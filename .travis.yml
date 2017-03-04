@@ -11,8 +11,12 @@ branches:
 # Install & setup Google Cloud SDK
 before_install:
   - openssl aes-256-cbc -K $encrypted_2a20bd2e68d5_key -iv $encrypted_2a20bd2e68d5_iv -in .google.credentials -out google.json -d
-  - "gcloud auth activate-service-account --key-file google.json -q"
-  - "gcloud config set project rokajdnik-com -q"
+  - wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-146.0.0-linux-x86_64.tar.gz
+  - tar -xzf google-cloud-sdk-146.0.0-linux-x86_64.tar.gz
+  - "./google-cloud-sdk/install.sh --quiet"
+  - "./google-cloud-sdk/bin/gcloud components update -q"
+  - "./google-cloud-sdk/bin/gcloud auth activate-service-account --key-file google.json -q"
+  - "./google-cloud-sdk/bin/gcloud config set project rokajdnik-com -q"
 
 # Prepare deploy artifacts
 script: "npm run build"
@@ -21,6 +25,6 @@ script: "npm run build"
 deploy:
   - provider: script
     skip_cleanup: true
-    script: "gsutil -m rsync -d -r dist/ gs://eu-rokajdnik-com"
+    script: "./google-cloud-sdk/bin/gsutil -m rsync -d -r dist/ gs://eu-rokajdnik-com"
     on:
       branch: master
