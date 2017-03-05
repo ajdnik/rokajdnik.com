@@ -25,7 +25,7 @@
                 if (my_index < item_size) {
                     this_item.fadeOut(800, function () {
                         this_item.html('<span>' +
-                                       item_array[my_index] + '</span>');
+                                       item_array[my_index] + '.</span>');
                         this_item.fadeIn(800);
                     });
                 } else {
