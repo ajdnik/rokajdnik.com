@@ -28,3 +28,7 @@ deploy:
     script: "./google-cloud-sdk/bin/gsutil -m rsync -d -r dist/ gs://eu-rokajdnik-com"
     on:
       branch: master
+
+# Invalidate CDN
+after_deploy:
+  - "./google-cloud-sdk/bin/gcloud compute url-maps invalidate-cdn-cache rokajdnik-com --path '/*' -q"
