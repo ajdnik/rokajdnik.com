@@ -8,7 +8,7 @@
     jQuery(document).ready(function () {
         $(window).on('load', function () {
             $('.text-rotator').each(function () {
-                var text_rotator_content = $(this).html();
+                var text_rotator_content = 'Developer., Co-Founder., CTO., IT security enthusiast., Whisky drinker., Movie buff.';
                 $(this).empty();
                 $(this).html('<div class="rotator-wrap"></div>')
                 var this_item = $(this).children('.rotator-wrap');
@@ -25,7 +25,7 @@
                 if (my_index < item_size) {
                     this_item.fadeOut(800, function () {
                         this_item.html('<span>' +
-                                       item_array[my_index] + '.</span>');
+                                       item_array[my_index] + '</span>');
                         this_item.fadeIn(800);
                     });
                 } else {
