@@ -20,7 +20,7 @@ gulp.task('pack-img', ['clean'], function() {
 });
 
 gulp.task('pack-js', ['clean'], function () {
-	return gulp.src(['js/scripts.js'])
+	return gulp.src(['js/jquery-3.1.1.min.js', 'js/scripts.js'])
 		.pipe(concat('bundle.js'))
 		.pipe(minify({
 			ext:{
@@ -32,7 +32,7 @@ gulp.task('pack-js', ['clean'], function () {
 });
 
 gulp.task('pack-css', ['clean'], function () {
-	return gulp.src(['css/style.css', 'css/responsive.css'])
+	return gulp.src(['css/bootstrap.min.css', 'css/style.css', 'css/responsive.css'])
 		.pipe(concat('stylesheet.css'))
 		.pipe(cleancss())
 		.pipe(uncss({
