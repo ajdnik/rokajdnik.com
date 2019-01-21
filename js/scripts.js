@@ -8,7 +8,7 @@
     jQuery(document).ready(function () {
         $(window).on('load', function () {
             $('.text-rotator').each(function () {
-                var text_rotator_content = 'Developer., Co-Founder., CTO., IT security enthusiast., Whisky drinker., Movie buff.';
+                var text_rotator_content = 'Developer., Co-Founder., CTO., IT security enthusiast., SCUBA diver.';
                 $(this).empty();
                 $(this).html('<div class="rotator-wrap"></div>')
                 var this_item = $(this).children('.rotator-wrap');
