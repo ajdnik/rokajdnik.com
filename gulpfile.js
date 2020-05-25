@@ -9,14 +9,14 @@ var htmlmin = require('gulp-htmlmin');
 
 gulp.task('clean', function () {
 	return del([
-		'dist/**'
+		'docs/**'
 	]);
 });
 
 gulp.task('pack-img', ['clean'], function() {
 	return gulp.src(['images/**'])
 		.pipe(imagemin())
-		.pipe(gulp.dest('dist/images'));
+		.pipe(gulp.dest('docs/images'));
 });
 
 gulp.task('pack-js', ['clean'], function () {
@@ -28,7 +28,7 @@ gulp.task('pack-js', ['clean'], function () {
 			},
 			noSource: true
 		}))
-    .pipe(gulp.dest('dist/js'));
+    .pipe(gulp.dest('docs/js'));
 });
 
 gulp.task('pack-css', ['clean'], function () {
@@ -38,13 +38,13 @@ gulp.task('pack-css', ['clean'], function () {
 		.pipe(uncss({
 			html: ['index.html']
 		}))
-    .pipe(gulp.dest('dist/css'));
+    .pipe(gulp.dest('docs/css'));
 });
 
 gulp.task('pack-html', ['clean'], function () {
 	return gulp.src(['index.html'])
 		.pipe(htmlmin({collapseWhitespace: true}))
-		.pipe(gulp.dest('dist'));
+		.pipe(gulp.dest('docs'));
 });
 
 gulp.task('pack', ['pack-img', 'pack-js', 'pack-css', 'pack-html']);
