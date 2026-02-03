@@ -1,0 +1,51 @@
+---
+export interface Props {
+  title: string;
+  description: string;
+  author: string;
+  url: string;
+  pubDate?: Date;
+}
+
+import "@fontsource-variable/space-grotesk";
+import "@fontsource/ibm-plex-mono";
+import Seo from "../components/Seo.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import "../styles/global.css";
+const { title, description, author, url, pubDate } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <Seo
+      title={title}
+      description={description}
+      author={author}
+      canonicalURL={url}
+      pubDate={pubDate}
+    />
+  </head>
+  <body>
+    <script is:inline>
+      const saved = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
+      document.documentElement.classList.add(
+        saved || (prefersDark ? "dark" : "light"),
+      );
+    </script>
+    <div class="body-margin">
+      <Header />
+      <main class="main-margin">
+        <slot />
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>

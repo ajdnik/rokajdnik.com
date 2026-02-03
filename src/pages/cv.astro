@@ -1,0 +1,175 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="CV | Rok Ajdnik"
+  description="Curriculum Vitae of Rok Ajdnik - Director of Software Engineering"
+  author="Rok Ajdnik"
+  url="/cv"
+>
+  <section class="center">
+    <h1 class="heading">My CV</h1>
+    
+    <!-- Summary -->
+    <div class="mb-12">
+      <p class="text-lg leading-relaxed opacity-90">
+        Director of Software Engineering with over 15 years of experience building scalable applications, 
+        leading technical teams, and co-founding technology startups. Passionate about innovation, 
+        software architecture, and solving complex engineering challenges.
+      </p>
+      <p class="mt-4 opacity-70">Ljubljana, Slovenia</p>
+    </div>
+
+    <!-- Experience -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Experience</h2>
+      
+      <div class="space-y-8">
+        <div class="cv-item">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+            <h3 class="text-xl font-medium">Director of Software Engineering</h3>
+            <span class="text-sm opacity-60">Sep 2020 - Present</span>
+          </div>
+          <p class="text-accent font-medium mb-2">Plume Design, Inc.</p>
+          <p class="opacity-80 mb-3">Leading engineering teams at a telecommunications company focused on smart home and WiFi solutions.</p>
+          <div class="text-sm opacity-70 space-y-1">
+            <p>Senior Software Engineer → Staff Software Engineer → Director of Software Engineering</p>
+          </div>
+        </div>
+
+        <div class="cv-item">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+            <h3 class="text-xl font-medium">CTO & Co-Founder</h3>
+            <span class="text-sm opacity-60">Jun 2019 - Oct 2020</span>
+          </div>
+          <p class="text-accent font-medium mb-2">CoilPay Technologies Inc.</p>
+          <p class="opacity-80">Bank-issued smart wearable-enabled payment ecosystem for micropayments. Built an Android-like ecosystem of MicroApps for Coil wearables including smartwatch functionality.</p>
+        </div>
+
+        <div class="cv-item">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+            <h3 class="text-xl font-medium">CTO & Co-Founder</h3>
+            <span class="text-sm opacity-60">Aug 2018 - Sep 2020</span>
+          </div>
+          <p class="text-accent font-medium mb-2">MikMik</p>
+          <p class="opacity-80">Integrated electric scooter micro-rental system focused on green mobility and innovation. Operated in Ljubljana, Piran, and Koper with expansion plans across Europe.</p>
+        </div>
+
+        <div class="cv-item">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+            <h3 class="text-xl font-medium">CTO & Co-Founder</h3>
+            <span class="text-sm opacity-60">Nov 2013 - Nov 2019</span>
+          </div>
+          <p class="text-accent font-medium mb-2">Reveel Technologies, Inc.</p>
+          <p class="opacity-80">First company to help brands and media outlets increase revenue by adding interactive experiences to visual media. Based in San Francisco, CA.</p>
+        </div>
+
+        <div class="cv-item">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+            <h3 class="text-xl font-medium">Previous Experience</h3>
+            <span class="text-sm opacity-60">2009 - 2015</span>
+          </div>
+          <p class="opacity-80">Computer Programmer at Studio Kreativis d.o.o. and 3zsistemi</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Skills</h2>
+      
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-medium mb-3 text-accent">Leadership</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Software Engineering</span>
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Team Management</span>
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Technical Strategy</span>
+          </div>
+        </div>
+        
+        <div>
+          <h3 class="font-medium mb-3 text-accent">Technical</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">REST APIs</span>
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Software Architecture</span>
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">DevOps</span>
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Data Engineering</span>
+          </div>
+        </div>
+        
+        <div>
+          <h3 class="font-medium mb-3 text-accent">Domain Expertise</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Telecommunications</span>
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Fintech</span>
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Computer Vision</span>
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Startups</span>
+          </div>
+        </div>
+        
+        <div>
+          <h3 class="font-medium mb-3 text-accent">Languages</h3>
+          <div class="flex flex-wrap gap-2">
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Slovenian (Native)</span>
+            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">English (Professional)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Education -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Education</h2>
+      
+      <div class="space-y-6">
+        <div class="cv-item">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+            <h3 class="text-xl font-medium">Bachelor's Degree in Computer Science</h3>
+            <span class="text-sm opacity-60">2009 - 2012</span>
+          </div>
+          <p class="text-accent font-medium">University of Maribor</p>
+          <p class="opacity-70">Computer Science and Information Technologies</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Certifications -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Certifications</h2>
+      
+      <ul class="space-y-3">
+        <li class="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent shrink-0 mt-1">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          <span class="opacity-90">Certified ScrumMaster (CSM) - Scrum Alliance</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent shrink-0 mt-1">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          <span class="opacity-90">Managing Multiple Generations - LinkedIn Learning</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- LinkedIn CTA -->
+    <div class="text-center pt-6">
+      <a
+        href="https://linkedin.com/in/rokajdnik"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="bg-accent text-background hover:opacity-80 inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-all duration-150 ease-in-out"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+        </svg>
+        Connect on LinkedIn
+      </a>
+    </div>
+  </section>
+</BaseLayout>

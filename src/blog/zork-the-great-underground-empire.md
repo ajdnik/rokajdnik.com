@@ -1,0 +1,196 @@
+---
+slug: zork-the-great-underground-empire
+title: "Zork: The Great Underground Empire"
+description: "Exploring the history and legacy of Zork, one of the most influential text-based adventure games of the 80s that helped shape the commercial video game industry."
+date: 2020-05-25
+author: "Rok Ajdnik"
+tags: ["gaming", "history", "retro"]
+featured: false
+editable: false
+cover:
+  src: "/images/blog/zork-the-great-underground-empire/cover-art.webp"
+  alt: "Zork cover art with the text 'Your greatest challenge lies ahead and downwards'"
+  caption: "Zork cover art. Copyright of Infocom."
+canonical: "https://medium.com/@r.ajdnik/zork-the-great-underground-empire-cda94623861c"
+---
+
+I was introduced to Zork in 2016 when I read [Ready Player One](https://en.wikipedia.org/wiki/Ready_Player_One) by Ernest Cline. In the book, the protagonist Wade Watts goes to the planet Frobozz where he must collect all 19 trophies, put them in the trophy case, and blow a whistle found in a Cap'n Crunch cereal box to obtain the Jade key. I know, bear with me, by the end of this article, you'll understand what Frobozz, trophies, and the trophy case have to do with Zork. As for the Cap'n Crunch whistle and the Jade key, those things are outside the scope of this article. The whistle is a reference to [John Draper](https://en.wikipedia.org/wiki/John_Draper) and the [Phreaking](https://en.wikipedia.org/wiki/Phreaking) culture. And Jade key is a part of the book. Ready Player One is a ballad to 80s nostalgia and Zork definitely fits the bill. It was one of the most influential games of the 80s and in this article, I'll explore its history and its effect on the gaming world. If you're interested in the game's architecture and source code you can read my second article on this topic [Zork: The Great Inner Workings](https://medium.com/@r.ajdnik/zork-the-great-inner-workings-b68012952bdc).
+
+## TL;DR
+
+- Zork is a text-based adventure game created in 1977 by Tim Anderson, Marc Blank, Bruce Daniels, and Dave Lebling at MIT.
+- It was known for witty and self-deprecating humor as well as for using a state-of-art language parser, for the time.
+- It was one of the most popular computer games of the 80s and is still referenced today in video games such as Don't Starve.
+- If you're curious about the trophies and Frobozz you'll have to read the article ;)
+
+## Text-Based Adventure
+
+<figure class="full-width">
+  <img src="/images/blog/zork-the-great-underground-empire/apple-ii.webp" alt="Start of the Zork game on an Apple II machine" />
+  <figcaption>Start of the Zork game on an Apple II machine. Copyright of <a href="https://twitter.com/a2_4am/status/972682211643322369">4am</a>.</figcaption>
+</figure>
+
+Zork is a [text-based adventure game](https://en.wikipedia.org/wiki/Text-based_game) which means it doesn't have any graphics. The players play the game by typing text-based commands in the prompt and the game responds using text. Kinda like the chatbots of today. Like its tabletop sibling, [Dungeons & Dragons](https://en.wikipedia.org/wiki/Dungeons_&_Dragons), the game relies on good storytelling and the player's imagination.
+
+```
+West of House
+You are standing in an open field west of a white house, with a boarded front door.
+There is a small mailbox here.
+
+>open the small mailbox
+Opening the small mailbox reveals a leaflet.
+
+>read the leaflet
+(Taken)
+"WELCOME TO ZORK!
+
+ZORK is a game of adventure, danger, and low cunning. In it you will explore some of the most amazing territory ever seen by mortals. No computer should be without one!"
+
+>
+```
+
+While Zork wasn't the first game of its kind, that accolade belongs to [Colossal Cave Adventure](https://en.wikipedia.org/wiki/Colossal_Cave_Adventure), it was arguably the most popular text-based adventure game, and at the very least it was the game that made the genre so popular in the 80s. What made Zork special can be boiled down to two things. Firstly, compared to Colossal Cave Adventure where you could only type in two-word commands such as `go north`, `read leaflet` or `enter house`, Zork understood complex sentences such as `attack the nasty troll with a rusty knife` which made the gameplay feel more natural, closer to the feeling Dungeons & Dragons players had when interacting with their game master. And secondly, because the game was humorous similar to the books of [Douglas Adams](https://en.wikipedia.org/wiki/Douglas_Adams) and [Terry Pratchett](https://en.wikipedia.org/wiki/Terry_Pratchett). The game started a movement of self-deprecating games¹ that persists until today with games such as [The Stanley Parable](https://en.wikipedia.org/wiki/The_Stanley_Parable) or [The Portal series](https://en.wikipedia.org/wiki/Portal_(video_game)).
+
+```
+>go north
+The Troll Room
+This is a small room with passages to the east and south and a forbidding hole leading west. Bloodstains and deep scratches (perhaps made by an axe) mar the walls.
+A nasty-looking troll, brandishing a bloody axe, blocks all passages out of the room.
+
+>tell the troll to move
+The troll isn't much of a conversationalist.
+
+>damn
+Such language in a high-class establishment like this!
+
+>give the troll lunch
+The troll, who is not overly proud, graciously accepts the gift and not having the most discriminating tastes, gleefully eats it.
+
+>
+```
+
+## Game's Story
+
+<figure>
+  <img src="/images/blog/zork-the-great-underground-empire/map.webp" alt="The map that came with the boxed game" />
+  <figcaption>The map that came with the boxed game. Copyright of <a href="http://infodoc.plover.net/manuals/zork1.pdf">Infocom</a>.</figcaption>
+</figure>
+
+Zork is set in the ruins of the Great Underground Empire and the player is an unnamed adventurer that must venture into the ruins to collect trophies and deposit them in the trophy case.² While adventuring in the dungeon the player will cross paths with a Grue, a sinister monster that lurks in the shadows, they will discover countless products made by the fictitious company FrobozzCo International, they will come face to face with a troll, cyclops, and other menacing opponents. The game world of the Great Underground Empire could've been taken straight out of some Terry Pratchett book.
+
+```
+>go down
+You have moved into a dark place.
+The trap door crashes shut, and you hear someone barring it.
+
+It is pitch black. You are likely to be eaten by a grue.
+
+>go east
+Oh, no! You have walked into the slavering fangs of a lurking grue!
+
+**** You have died ****
+
+Now, let's take a look here… Well, you probably deserve another chance. I can't quite fix you up completely, but you can't have everything.
+
+Forest
+This is a forest, with trees in all directions. To the east, there appears to be sunlight.
+
+>
+```
+
+Both the Grue and FrobozzCo are still referenced today by modern computer games as a nod to Zork as one of the games that defined the commercial game industry. For instance, in the game [Don't Starve](https://en.wikipedia.org/wiki/Don't_Starve), character [Charlie](https://dontstarve.fandom.com/wiki/Charlie) is referenced as Grue in the game files.
+
+```
+>look around
+Maintenance Room
+This is what appears to have been the maintenance room for Flood Control Dam #3. Apparently, this room has been ransacked recently, for most of the valuable equipment is gone. On the wall in front of you is a group of buttons colored blue, yellow, brown, and red. There are doorways to the west and south.
+There is a wrench here.
+There is an object which looks like a tube of toothpaste here.
+There is a screwdriver here.
+There is a group of tool chests here.
+
+>look at the tube
+---> Frobozz Magic Gunk Company <---
+All-Purpose Gunk
+
+>frobozz
+The FROBOZZ Corporation created, owns, and operates this dungeon.
+
+>
+```
+
+## The Beginning
+
+<figure>
+  <img src="/images/blog/zork-the-great-underground-empire/staff.webp" alt="Infocom staff photo from 1982" />
+  <figcaption>Infocom, 1982 — Back row, left to right: Chris Reeve, J.C.R. Licklider, Gabrielle Accord, president Joel Berez, Scott Cutler, Michael Berlyn. Front row, left to right: Dave Lebling, Marc Blank, Steve Meretzky. Copyright of <a href="http://thedoteaters.com/?bitstory=computer/zork-and-infocom">The Dot Eaters</a>.</figcaption>
+</figure>
+
+The history of Zork is very interesting and while I'll do my best to summarize the interesting bits I recommend you read through The History of Zork³⁻⁵ series written by the games co-creators.
+
+Zork was built between 1977 and 1979 by the original [Implementers](https://en.wikipedia.org/wiki/Implementer_(video_games)), Tim Anderson, Marc Blank, Bruce Daniels, and Dave Lebling who were members of the [MIT Dynamic Modelling Group](https://en.wikipedia.org/wiki/MIT_Computer_Science_and_Artificial_Intelligence_Laboratory). While playing through the aforementioned Colossal Cave Adventure they started working on their own version of the game which later became Zork. The word "Zork" was a nonsense word, often used by MIT hackers as the name for any unfinished program until they were ready to be installed on the system.⁶
+
+<figure>
+  <img src="/images/blog/zork-the-great-underground-empire/pdp-10.webp" alt="KL10-DA 1090 CPU and 6 Memory Modules" />
+  <figcaption>KL10-DA 1090 CPU and 6 Memory Modules. Copyright of <a href="https://en.wikipedia.org/wiki/PDP-10">Wikipedia</a>.</figcaption>
+</figure>
+
+It was a passion project they worked on in their spare time and they didn't have any plans to sell it commercially, especially because the game could only run on a [PDP-10](https://en.wikipedia.org/wiki/PDP-10) mainframe computer, which at the time cost $400,000.00. Back then the game was shared via the [ARPANET](https://en.wikipedia.org/wiki/ARPANET), a predecessor to the modern internet, and played by a handful of individuals who had access to such machines. Even so, the game had amassed a cult following, and players were spending weeks solving its puzzles.
+
+<figure>
+  <img src="/images/blog/zork-the-great-underground-empire/personal-software.webp" alt="Personal Software Inc. packaging of Zork for Apple II machines" />
+  <figcaption>Personal Software Inc. packaging of Zork for Apple II machines. Copyright of <a href="https://retro-treasures.blogspot.com/2011/07/zork-by-personal-software-apple-ii.html">Retro Treasures</a>.</figcaption>
+</figure>
+
+By late 1979 the group was graduating and moving on with their lives when they decided to form a company named [Infocom](https://en.wikipedia.org/wiki/Infocom), supposedly this was the least insulting name they could come up with, and sell Zork commercially. They had to split the game into 3 parts because the microcomputers, such as [TRS-80](https://en.wikipedia.org/wiki/TRS-80) and [Apple II](https://en.wikipedia.org/wiki/Apple_II), wouldn't be able to run it otherwise. They also partnered with Personal Software Inc. to publish the game because they were all engineers and were unfamiliar with the publishing market.
+
+Zork I was published in December of 1980 for TRS-80 machines and soon after an Apple II version was published. While the game was successful, having sold almost 8,000 copies in less than a year, there were some differences between Infocom and Personal Software Inc. which prompted Infocom to become its own publisher and by the end of 1981, they published Zork II and republished Zork I under new branding, which can be seen in the cover image of this article. In the fall of 1982, the company released Zork III and rereleased game versions for [Commodore 64](https://en.wikipedia.org/wiki/Commodore_64), [IBM-PC](https://en.wikipedia.org/wiki/IBM_Personal_Computer), and other microcomputers.
+
+<figure>
+  <img src="/images/blog/zork-the-great-underground-empire/bestseller-list.webp" alt="The Softsel bestseller list for December 12, 1983" />
+  <figcaption>The Softsel bestseller list for December 12, 1983. Games marked in yellow are Infocom's. Copyright of [6].</figcaption>
+</figure>
+
+The Zork series was very successful. Infocom sold more than 250,000 copies of the first three games by 1984 and more than 680,000 copies through 1986, or about one-third of Infocom's total game sales.⁷ When the commercial video game industry had its first boom⁸, Zork and other Infocom's games were dominating the charts, winning over the now cult games such as the [Ultima series](https://en.wikipedia.org/wiki/Ultima_(series)) and [Castle Wolfenstein](https://en.wikipedia.org/wiki/Castle_Wolfenstein).
+
+## Development
+
+<figure>
+  <img src="/images/blog/zork-the-great-underground-empire/mdl.webp" alt="The original 1977 implementation of the Grue function in MDL" />
+  <figcaption>The original 1977 implementation of the Grue function in MDL.</figcaption>
+</figure>
+
+The original Zork was written using [MDL](https://en.wikipedia.org/wiki/MDL_(programming_language)) (More Datatypes than Lisp) which was created in 1971 as a replacement for [Lisp](https://en.wikipedia.org/wiki/Lisp_(programming_language)). Suffice to say, it didn't. The game was developed for the aforementioned PDP-10 mainframe computer which the creators had access to at MIT. The initial version of the game actually consisted of Zork I, II, and III as well as some storyline that was later released in another video game [Sorcerer](https://en.wikipedia.org/wiki/Sorcerer_(video_game)). They were able to build such a big game because PDP-10 had 1152 kilobytes of memory while the TRS-80 and Apple II, which were machines built for home use, typically had 16 kilobytes of memory. This version of the game also got ported to [Fortran](https://en.wikipedia.org/wiki/Fortran) which meant it was able to run on a [PDP-11](https://en.wikipedia.org/wiki/PDP-11).
+
+In 1979, when they decided to monetize on their creation, they had to solve the storage problem, how to run a game that requires a megabyte of memory on machines with 70 times less memory. They considered different solutions from compressing the game to breaking it into multiple storylines. One tactic they used was to strip down MDL off all the nonessential features, that weren't used by the game, such as coroutines, associative storage, and fancy input/output. The striped down version of MDL was later named Zork Implementation Language (ZIL). But it wasn't enough, the compiled game was still too big, so they decided to implement a virtual machine, which they named [Z-machine](https://en.wikipedia.org/wiki/Z-machine), where they could express the game in a compact manner.
+
+The idea behind Z-machine was to define an ideal machine, essentially a set of imaginary [opcodes](https://en.wikipedia.org/wiki/Opcode), that could run Zork in a space-effective way. Then to write an interpreter on a real machine that could execute those opcodes. And lastly, to implement a compiler that could compile ZIL code into those opcodes (called Z-code). They took a lot of inspiration from [Pascal's p-code](https://en.wikipedia.org/wiki/P-code_machine) which was a similar implementation of a virtual machine for [Pascal](https://en.wikipedia.org/wiki/Pascal_(programming_language)).
+
+<figure>
+  <img src="/images/blog/zork-the-great-underground-empire/workflow.webp" alt="Z-machine development workflow" />
+  <figcaption>Z-machine development workflow. Apple II icon copyright of <a href="https://www.iconfinder.com/icons/92434/apple_icon">Ilie Ciorba</a>.</figcaption>
+</figure>
+
+Solutions similar to Z-machine are still used today, for example [Java](https://en.wikipedia.org/wiki/Java_(programming_language)) uses a similar approach where its code gets compiled into [bytecode](https://en.wikipedia.org/wiki/Java_bytecode) which can then be run on [Java virtual machine](https://en.wikipedia.org/wiki/Java_virtual_machine). [.NET languages](https://en.wikipedia.org/wiki/List_of_CLI_languages) also use a [Common Intermediate Language](https://en.wikipedia.org/wiki/Common_Intermediate_Language) that mimics the virtual machine approach, except in their case the virtual machine is their [Common Language Runtime](https://en.wikipedia.org/wiki/Common_Language_Runtime).
+
+Using the virtual machine they were able to significantly reduce the size of Zork. For example, the parser code, which analyzed the player's input, occupied 360 kilobytes on the PDP-10 version, but the Z-machine version only took up 24 kilobytes.⁹ Using Z-machine along with splitting the game into multiple storylines proved to be enough to make the game available on TRS-80 and soon after Apple II machines.
+
+Besides compressing the game, the Z-machine approach also made supporting multiple (real) machines, such as TRS-80 or Apple II, easier since they only had to implement the Z-machine interpreter for that device and not the entire game. This proved beneficial later on when Infocom was able to port their entire game library to new devices simply by implementing an interpreter for that device.
+
+## The End
+
+In part due to increasing demand for graphical games and in part due to their acquisition by [Activision](https://en.wikipedia.org/wiki/Activision) in 1986 the company slowly started losing its footing, later on, they were "gutted" by Activision and converted into a publishing company. While the company ended, the legacy of Zork still persists to this day. In 2012, Dave Lebling and Marc Blank received the [AIAS Pioneer Award](https://en.wikipedia.org/wiki/D.I.C.E._Awards) which is an award given "for individuals whose career-spanning work has helped shape and define the interactive entertainment industry". Other recipients include [David Crane](https://en.wikipedia.org/wiki/David_Crane_(programmer)), the creator of Pitfall!, [Ed Logg](https://en.wikipedia.org/wiki/Ed_Logg#Legacy), co-creator of Asteroids, and [Allan Alcorn](https://en.wikipedia.org/wiki/Allan_Alcorn), creator of Pong. The Z-machine evolved, over the decades, into a full-blown interactive fiction framework called [Inform 7](http://inform7.com/). And, more importantly, anyone can still play Zork online on sites such as [textadventures.co.uk](http://textadventures.co.uk/games/view/5zyoqrsugeopel3ffhz_vq/zork) or [playclassic.games](https://playclassic.games/games/adventure-dos-games-online/play-zork-great-underground-empire-online/).
+
+---
+
+## References
+
+1. Andy Grossman. Vulture. (May 22, 2020). *Zork and the Birth of Self-Deprecating Video Games* [https://www.vulture.com/2011/02/zork-and-the-birth-of-self-deprecating-video-games.html](https://www.vulture.com/2011/02/zork-and-the-birth-of-self-deprecating-video-games.html)
+2. Dave Lebling & Marc Blank. Infocom. (1984). *The Zork Instruction Manual*
+3. Tim Anderson. New Zork Times, pages 6–7, 11. (Winter 1985). *The History of Zork, First in a Series*
+4. Tim Anderson. New Zork Times, pages 3–5. (Spring 1985). *The History of Zork, Second in a Series*
+5. Stu Galley. New York Times, pages 4–5. (Summer 1985). *The History of Zork, The Final (?) Chapter: MIT, MDL, ZIL, ZIP*
+6. H. Briceno, W. Chao, A. Glenn, et. al. Infocom. (December 15, 2000). *Down From the Top of Its Game: The Story of Infocom, Inc.*
+7. Wikipedia, the free encyclopedia. (May 23, 2020). *Zork* [https://en.wikipedia.org/wiki/Zork](https://en.wikipedia.org/wiki/Zork)
+8. Wikipedia, the free encyclopedia. (May 23, 2020). *Video game industry* [https://en.wikipedia.org/wiki/Video_game_industry](https://en.wikipedia.org/wiki/Video_game_industry)
+9. Marc S. Blank & S. W. Galley. (May 24, 2020). *How to Fit a Large Program into a Small Machine* [http://mud.co.uk/richard/htflpism.htm](http://mud.co.uk/richard/htflpism.htm)

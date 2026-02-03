@@ -1,34 +1,45 @@
 {
   "name": "rokajdnik.com",
+  "type": "module",
   "version": "1.0.0",
-  "description": "My personal website.",
+  "description": "Personal blog and portfolio website",
   "scripts": {
-    "build": "gulp"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ajdnik/rokajdnik.com.git"
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
   },
   "keywords": [
     "personal",
     "website",
-    "html",
-    "css"
+    "blog",
+    "portfolio",
+    "astro"
   ],
   "author": "Rok Ajdnik",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/ajdnik/rokajdnik.com/issues"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajdnik/rokajdnik.com.git"
   },
-  "homepage": "https://github.com/ajdnik/rokajdnik.com#readme",
+  "dependencies": {
+    "@astrojs/react": "^4.4.2",
+    "@astrojs/rss": "^4.0.13",
+    "@astrojs/sitemap": "^3.6.0",
+    "@fontsource-variable/space-grotesk": "^5.2.10",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "astro": "^5.15.8",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.14"
+  },
   "devDependencies": {
-    "del": "^2.2.2",
-    "gulp": "^3.9.1",
-    "gulp-clean-css": "^3.0.3",
-    "gulp-concat": "^2.6.1",
-    "gulp-htmlmin": "^3.0.0",
-    "gulp-imagemin": "^3.1.1",
-    "gulp-minify": "0.0.15",
-    "gulp-uncss": "^1.0.6"
+    "prettier": "3.6.2",
+    "prettier-plugin-astro": "0.14.1",
+    "prettier-plugin-tailwindcss": "^0.7.1"
   }
 }

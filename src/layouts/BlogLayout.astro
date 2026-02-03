@@ -1,0 +1,32 @@
+---
+import ProgressBar from "../components/ProgressBar";
+import BaseLayout from "./BaseLayout.astro";
+import Title from "../components/Title.astro";
+import Lightbox from "../components/Lightbox.astro";
+const { frontmatter, readTime } = Astro.props;
+---
+
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+  author={frontmatter.author}
+  url={frontmatter.canonical || frontmatter.slug}
+  pubDate={frontmatter.date}
+>
+  <ProgressBar client:load />
+  {frontmatter.cover && (
+    <figure class="cover-image">
+      <img src={frontmatter.cover.src} alt={frontmatter.cover.alt} />
+      {frontmatter.cover.caption && (
+        <figcaption class="text-center">{frontmatter.cover.caption}</figcaption>
+      )}
+    </figure>
+  )}
+  <article class="center">
+    <Title frontmatter={frontmatter} readTime={readTime} />
+    <section class="markdown">
+      <slot />
+    </section>
+  </article>
+  <Lightbox />
+</BaseLayout>

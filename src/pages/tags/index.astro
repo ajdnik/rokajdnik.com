@@ -1,0 +1,30 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import type { BlogType } from "../../content.config";
+
+const blogs: BlogType[] = await getCollection("blogs");
+const tags = [...new Set(blogs.map((blog) => blog.data.tags).flat())].sort();
+---
+
+<BaseLayout
+  title="Tags | Rok Ajdnik"
+  description="Browse posts by tag"
+  author="Rok Ajdnik"
+  url="/tags"
+>
+  <section class="center">
+    <h1 class="heading">Tags</h1>
+    <div class="flex flex-wrap justify-center gap-3 py-6">
+      {
+        tags.map((tag) => {
+          return (
+            <a href={`/tags/${tag}/1`} class="button">
+              {tag}
+            </a>
+          );
+        })
+      }
+    </div>
+  </section>
+</BaseLayout>

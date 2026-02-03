@@ -1,0 +1,140 @@
+---
+// Lightbox component for enlarging images on click
+---
+
+<div id="lightbox" class="lightbox">
+  <button id="lightbox-close" class="lightbox-close" aria-label="Close lightbox">&times;</button>
+  <div class="lightbox-content">
+    <img id="lightbox-img" src="" alt="" />
+    <p id="lightbox-caption" class="lightbox-caption"></p>
+  </div>
+</div>
+
+<style>
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: color-mix(in srgb, var(--background) 95%, transparent);
+    backdrop-filter: blur(4px);
+    justify-content: center;
+    align-items: center;
+    cursor: zoom-out;
+  }
+
+  .lightbox.active {
+    display: flex;
+  }
+
+  .lightbox-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+
+  .lightbox img {
+    max-width: 100%;
+    max-height: calc(90vh - 3rem);
+    object-fit: contain;
+    border: none;
+    ring: none;
+  }
+
+  .lightbox-caption {
+    color: var(--foreground);
+    text-align: center;
+    padding: 1rem 0;
+    font-size: 0.875rem;
+    opacity: 0.7;
+    max-width: 100%;
+  }
+
+  .lightbox-caption:empty {
+    display: none;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 2.5rem;
+    color: var(--foreground);
+    background: none;
+    border: none;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.15s ease;
+    line-height: 1;
+  }
+
+  .lightbox-close:hover {
+    opacity: 1;
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  function initLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement;
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    const lightboxClose = document.getElementById('lightbox-close');
+
+    if (!lightbox || !lightboxImg || !lightboxCaption || !lightboxClose) return;
+
+    // Add click listeners to all images in markdown and figures (excluding cover images)
+    const images = document.querySelectorAll('.markdown img, figure img');
+    
+    images.forEach((img) => {
+      const imgElement = img as HTMLImageElement;
+      
+      // Skip cover images
+      if (imgElement.closest('.cover-image')) return;
+      
+      imgElement.style.cursor = 'pointer';
+      
+      imgElement.addEventListener('click', (e) => {
+        e.preventDefault();
+        lightboxImg.src = imgElement.src;
+        lightboxImg.alt = imgElement.alt;
+        
+        // Find the caption from the figcaption sibling
+        const figure = imgElement.closest('figure');
+        const figcaption = figure?.querySelector('figcaption');
+        lightboxCaption.textContent = figcaption?.textContent || '';
+        
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    // Close on background click
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) {
+        closeLightbox();
+      }
+    });
+
+    // Close on button click
+    lightboxClose.addEventListener('click', closeLightbox);
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && lightbox.classList.contains('active')) {
+        closeLightbox();
+      }
+    });
+
+    function closeLightbox() {
+      lightbox.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  }
+
+  // Initialize on page load and after view transitions
+  initLightbox();
+  document.addEventListener('astro:after-swap', initLightbox);
+</script>
