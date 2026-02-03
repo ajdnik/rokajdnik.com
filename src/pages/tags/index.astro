@@ -14,7 +14,6 @@ const tags = [...new Set(blogs.map((blog) => blog.data.tags).flat())].sort();
   url="/tags"
 >
   <section class="center">
-    <h1 class="heading">Tags</h1>
     <div class="flex flex-wrap justify-center gap-3 py-6">
       {
         tags.map((tag) => {
