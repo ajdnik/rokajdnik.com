@@ -1,6 +1,5 @@
 import rss from "@astrojs/rss";
 import { getCollection } from "astro:content";
-import type { BlogType } from "../content.config";
 import type { APIContext } from "astro";
 
 export async function GET(context: APIContext) {
@@ -10,17 +9,16 @@ export async function GET(context: APIContext) {
     });
   }
 
-  const blogs: BlogType[] = await getCollection("blogs");
+  const blogs = await getCollection("blogs");
   return rss({
     title: "Rok Ajdnik",
     description: "Personal blog and portfolio of Rok Ajdnik",
     site: context.site,
     trailingSlash: false,
-    items: blogs.map((blog: BlogType) => ({
-      title: blog.data.title,
-      description: blog.data.description,
-      pubDate: blog.data.date,
-      author: blog.data.author,
+    items: blogs.map((blog) => ({
+      title: String(blog.data.title),
+      description: String(blog.data.description),
+      pubDate: new Date(blog.data.date),
       link: `/${blog.data.slug}`,
     })),
   });
