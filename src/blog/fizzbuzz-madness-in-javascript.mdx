@@ -54,10 +54,14 @@ Is this tool overkill for benchmarking FizzBuzz? Yes. Am I still going to use it
 
 Running the benchmark against `fizzBuzzNaive` produces the following results:
 
+<figure>
+
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
 | Naive | 34.25 µs | 161.17 µs | 38.20 µs | 35.92 µs | 67.29 µs | 66.05 kb | 451.09 kb | 255.49 kb |
 
+<figcaption>Benchmark results for the naive FizzBuzz implementation with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
+</figure>
 
 Let's break down what we're seeing here:
 
@@ -95,10 +99,15 @@ From the distribution graph, we can see that the optimal check order would be di
 
 In the naive implementation, we perform 3 conditional checks for every number. For N=50, that means 150 checks total. In the new implementation, numbers divisible by 15 require only 1 check, numbers divisible by 3 require 2, and the rest require 3. For N=50, that works out to 131 checks. At larger values like N=100M, the difference becomes even more pronounced: 300M checks versus 260M. In theory, it should be faster. Let's verify.
 
+<figure>
+
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
 | Naive | 34.17 µs | 251.46 µs | 40.43 µs | 39.04 µs | 86.63 µs | 9.96 kb | 582.75 kb | 255.65 kb |
 | LCM | 28.25 µs | 213.58 µs | 32.54 µs | 32.13 µs | 62.13 µs | 7.48 kb | 506.38 kb | 255.55 kb |
+
+<figcaption>Benchmark comparison of Naive vs LCM implementations with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
+</figure>
 
 Success! By reducing the number of comparisons and eliminating string concatenations, we cut the execution time by 28% on the p99 metric. You may have noticed that the numbers for `fizzBuzzNaive` differ from the previous benchmarking run. This is expected. Mitata does its best to keep comparisons predictable, but due to the nature of Node.JS and other background processes on the machine, execution times will vary between runs.
 
@@ -120,11 +129,16 @@ const fizzBuzzModulo = (N) => {
 
 With this approach, every code path makes exactly 2 conditional checks. Since we're reducing modulo operations, the second most expensive operation in the algorithm after array append, this should be faster in theory. Let's verify.
 
+<figure>
+
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
 | Naive | 34.63 µs | 180.17 µs | 39.21 µs | 37.33 µs | 78.79 µs | 77.62 kb | 490.72 kb | 255.64 kb |
 | LCM | 28.13 µs | 262.58 µs | 32.18 µs | 31.79 µs | 64.08 µs | 7.48 kb | 447.28 kb | 255.56 kb |
 | Modulo | 28.13 µs | 132.50 µs | 34.29 µs | 34.29 µs | 43.21 µs | 64.46 kb | 474.13 kb | 255.56 kb |
+
+<figcaption>Benchmark comparison of Naive, LCM, and Modulo implementations with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
+</figure>
 
 Using this approach, we reduced the execution time by 32% compared to LCM, or a whopping 45% compared to the naive approach on p99 timings. We're on a roll.
 
@@ -159,12 +173,17 @@ const fizzBuzzPreallocation = (N) => {
 
 Preallocation works here because we know the array's final size ahead of time. As a bonus, we're also directly assigning values to array indices instead of using `push`. Let's see if this improves execution speed.
 
+<figure>
+
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
 | Name | 34.67 µs | 143.50 µs | 38.79 µs | 37.25 µs | 76.38 µs | 85.30 kb | 534.25 kb | 255.64 kb |
 | LCM | 28.17 µs | 146.96 µs | 31.33 µs | 30.92 µs | 53.04 µs | 87.48 kb | 458.84 kb | 255.53 kb |
 | Modulo | 27.21 µs | 187.08 µs | 34.27 µs | 34.42 µs | 42.63 µs | 71.13 kb | 383.62 kb | 255.56 kb |
 | Pre-allocated | 18.13 µs | 120.67 µs | 18.98 µs | 18.88 µs | 22.17 µs | 6.57 kb | 400.91 kb | 85.02 kb |
+
+<figcaption>Benchmark comparison including array preallocation with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
+</figure>
 
 That's a 48% speedup over the previous optimization, and roughly 71% faster than the original naive approach. Also notable is how much less memory the algorithm allocates on average, a direct consequence of eliminating dynamic array resizing.
 
@@ -204,6 +223,8 @@ Yes, it looks ugly, but bear with me. It's actually quite straightforward. The f
 
 Let's see how it compares to previous variants of the algorithm.
 
+<figure>
+
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
 | Naive | 34.63 µs | 154.42 µs | 38.07 µs | 35.96 µs | 74.50 µs | 67.18 kb | 538.41 kb | 255.62 kb |
@@ -211,6 +232,9 @@ Let's see how it compares to previous variants of the algorithm.
 | Modulo | 26.96 µs | 152.25 µs | 33.18 µs | 33.17 µs | 52.50 µs | 45.62 kb | 383.62 kb | 255.56 kb |
 | Pre-allocated | 17.75 µs | 170.25 µs | 18.94 µs | 18.88 µs | 23.25 µs | 6.57 kb | 225.74 kb | 85.03 kb |
 | Unrolled | 7.33 µs | 152.92 µs | 7.90 µs | 7.83 µs | 13.04 µs | 2.41 kb | 197.38 kb | 85.32 kb |
+
+<figcaption>Benchmark comparison including loop unrolling with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
+</figure>
 
 That's a further 44% improvement over the pre-allocated variant. Compared to the naive approach, this algorithm is 82% faster on p99 timings, our most representative comparison metric. At this point, I'm out of ideas for further optimizations. Let's peek behind the curtain and see if profiling reveals any clues.
 
@@ -411,6 +435,8 @@ console.log(result);
 
 Let's benchmark all these implementations to see how they compare to previous variants.
 
+<figure>
+
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
 | Naive | 34.58 µs | 139.79 µs | 38.03 µs | 35.96 µs | 74.42 µs | 14.59 kb | 650.48 kb | 255.65 kb |
@@ -418,6 +444,9 @@ Let's benchmark all these implementations to see how they compare to previous va
 | Recursive | 90.46 µs | 269.08 µs | 95.58 µs | 94.46 µs | 190.08 µs | 399.04 kb | 1.38 mb | 1.16 mb |
 | DSL | 86.25 µs | 345.75 µs | 94.82 µs | 93.92 µs | 129.83 µs | 25.83 kb | 1.04 mb | 128.48 kb |
 | Rust | 645.17 µs | 994.29 µs | 652.35 µs | 653.71 µs | 675.42 µs | 183.83 kb | 328.66 kb | 255.76 kb |
+
+<figcaption>Benchmark comparison of all implementations including Recursive, DSL, and Rust with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
+</figure>
 
 Predictably, the Recursive and DSL variants are much slower than Unrolled, even slower than Naive. Without Tail Call Optimization[^17], the Recursive variant pays a heavy price in stack allocations and function calls. The DSL variant has similar overhead. Both show elevated memory consumption compared to the other variants.
 
@@ -463,12 +492,17 @@ console.log(result);
 
 Let's see if this is actually faster than the previous Rust variant.
 
+<figure>
+
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
 | Naive | 34.63 µs | 133.50 µs | 38.24 µs | 35.92 µs | 75.58 µs | 9.28 kb | 557.04 kb | 255.62 kb |
 | Unrolled | 7.33 µs | 159.54 µs | 7.89 µs | 7.83 µs | 12.79 µs | 2.57 kb | 412.26 kb | 85.32 kb |
 | Rust | 647.88 µs | 973.75 µs | 656.97 µs | 656.58 µs | 725.63 µs | 183.83 kb | 328.66 kb | 255.67 kb |
 | Rust (JSON) | 256.79 µs | 482.71 µs | 261.20 µs | 260.42 µs | 303.50 µs | 58.55 kb | 465.45 kb | 171.12 kb |
+
+<figcaption>Benchmark comparison of Rust FFI vs Rust JSON optimizations with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
+</figure>
 
 The JSON variant is significantly faster than the previous Rust implementation, though it's still slower than any of the pure JavaScript variants.
 
