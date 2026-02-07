@@ -321,16 +321,13 @@ const fizzBuzzRecursive = (n, current = 1, arr = new Array(n)) => {
 What else could we try? While exploring functional programming concepts, I came across an interesting approach by Mr. Pirog[^22], who implemented a Domain-Specific Language in Haskell to solve FizzBuzz. I wanted to port the concept to JavaScript, partly because it's gloriously excessive, and partly because it reminds me of university days learning about DSLs.
 
 ```javascript
-// The Identity (End of chain)
 const identity = (n, v) => v;
 
-// The Rule
 const rule = (d, s) => (cont) => (n, v) => {
   if (n % d === 0) return s + cont(n, "");
   return cont(n, v);
 };
 
-// The Composition 
 const program = rule(3, "Fizz")(
                   rule(5, "Buzz")(
                     identity
@@ -380,7 +377,6 @@ fn fizz_buzz_core(n: i32) -> Vec<FizzBuzzValue> {
     (1..=n).map(classify).collect()
 }
 
-// 1. Standard napi-rs approach
 #[napi]
 pub fn fizz_buzz_rust(env: Env, n: i32) -> Result<JsObject> {
     let n_usize = n as usize;
