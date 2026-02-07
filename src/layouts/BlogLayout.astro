@@ -12,6 +12,7 @@ const { frontmatter, readTime } = Astro.props;
   author={frontmatter.author}
   url={frontmatter.canonical || frontmatter.slug}
   pubDate={frontmatter.date}
+  image={frontmatter.cover?.src}
 >
   <ProgressBar client:load />
   {frontmatter.cover && (

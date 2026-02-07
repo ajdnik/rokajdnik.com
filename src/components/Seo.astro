@@ -6,6 +6,7 @@ export interface Props {
   author?: string;
   canonicalURL?: string;
   pubDate?: Date;
+  image?: string;
 }
 
 const {
@@ -14,7 +15,10 @@ const {
   author = "Rok Ajdnik",
   canonicalURL = new URL(Astro.url.pathname, Astro.url),
   pubDate,
+  image,
 } = Astro.props;
+
+const absoluteImageUrl = image ? new URL(image, Astro.site).href : undefined;
 ---
 
 <meta charset="UTF-8" />
@@ -28,11 +32,13 @@ const {
 <meta property="og:url" content={canonicalURL} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
+{absoluteImageUrl && <meta property="og:image" content={absoluteImageUrl} />}
 
 <!-- Twitter -->
-<meta property="twitter:card" content="summary" />
+<meta property="twitter:card" content={absoluteImageUrl ? "summary_large_image" : "summary"} />
 <meta property="twitter:url" content={canonicalURL} />
 <meta property="twitter:title" content={title} />
+{absoluteImageUrl && <meta property="twitter:image" content={absoluteImageUrl} />}
 
 {
   pubDate && (

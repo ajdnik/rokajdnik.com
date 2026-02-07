@@ -5,6 +5,7 @@ export interface Props {
   author: string;
   url: string;
   pubDate?: Date;
+  image?: string;
 }
 
 import "@fontsource-variable/space-grotesk";
@@ -14,7 +15,7 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import BackToTop from "../components/BackToTop";
 import "../styles/global.css";
-const { title, description, author, url, pubDate } = Astro.props;
+const { title, description, author, url, pubDate, image } = Astro.props;
 ---
 
 <!doctype html>
@@ -29,6 +30,7 @@ const { title, description, author, url, pubDate } = Astro.props;
       author={author}
       canonicalURL={url}
       pubDate={pubDate}
+      image={image}
     />
   </head>
   <body>
