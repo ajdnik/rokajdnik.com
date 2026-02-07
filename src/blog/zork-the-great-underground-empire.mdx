@@ -9,11 +9,20 @@ featured: false
 editable: false
 codeLineNumbers: false
 cover:
-  src: "/images/blog/zork-the-great-underground-empire/cover-art.webp"
+  src: "../assets/images/blog/zork-the-great-underground-empire/cover-art.webp"
   alt: "Zork cover art with the text 'Your greatest challenge lies ahead and downwards'"
   caption: "Zork cover art. Copyright of Infocom."
 canonical: "https://medium.com/@r.ajdnik/zork-the-great-underground-empire-cda94623861c"
 ---
+import { Image } from 'astro:assets';
+import appleII from '../assets/images/blog/zork-the-great-underground-empire/apple-ii.webp';
+import map from '../assets/images/blog/zork-the-great-underground-empire/map.webp';
+import staff from '../assets/images/blog/zork-the-great-underground-empire/staff.webp';
+import pdp10 from '../assets/images/blog/zork-the-great-underground-empire/pdp-10.webp';
+import personalSoftware from '../assets/images/blog/zork-the-great-underground-empire/personal-software.webp';
+import bestsellerList from '../assets/images/blog/zork-the-great-underground-empire/bestseller-list.webp';
+import mdl from '../assets/images/blog/zork-the-great-underground-empire/mdl.webp';
+import workflow from '../assets/images/blog/zork-the-great-underground-empire/workflow.webp';
 
 I was introduced to Zork in 2016 when I read [Ready Player One](https://en.wikipedia.org/wiki/Ready_Player_One) by Ernest Cline. In the book, the protagonist Wade Watts goes to the planet Frobozz where he must collect all 19 trophies, put them in the trophy case, and blow a whistle found in a Cap'n Crunch cereal box to obtain the Jade key. I know, bear with me, by the end of this article, you'll understand what Frobozz, trophies, and the trophy case have to do with Zork. As for the Cap'n Crunch whistle and the Jade key, those things are outside the scope of this article. The whistle is a reference to [John Draper](https://en.wikipedia.org/wiki/John_Draper) and the [Phreaking](https://en.wikipedia.org/wiki/Phreaking) culture. And Jade key is a part of the book. Ready Player One is a ballad to 80s nostalgia and Zork definitely fits the bill. It was one of the most influential games of the 80s and in this article, I'll explore its history and its effect on the gaming world. If you're interested in the game's architecture and source code you can read my second article on this topic [Zork: The Great Inner Workings](https://medium.com/@r.ajdnik/zork-the-great-inner-workings-b68012952bdc).
 
@@ -27,7 +36,7 @@ I was introduced to Zork in 2016 when I read [Ready Player One](https://en.wikip
 ## Text-Based Adventure
 
 <figure>
-  <img src="/images/blog/zork-the-great-underground-empire/apple-ii.webp" alt="Start of the Zork game on an Apple II machine" />
+  <Image src={appleII} alt="Start of the Zork game on an Apple II machine" />
   <figcaption>Start of the Zork game on an Apple II machine. Copyright of <a href="https://twitter.com/a2_4am/status/972682211643322369">4am</a>.</figcaption>
 </figure>
 
@@ -73,7 +82,7 @@ The troll, who is not overly proud, graciously accepts the gift and not having t
 ## Game's Story
 
 <figure>
-  <img src="/images/blog/zork-the-great-underground-empire/map.webp" alt="The map that came with the boxed game" />
+  <Image src={map} alt="The map that came with the boxed game" />
   <figcaption>The map that came with the boxed game. Copyright of <a href="http://infodoc.plover.net/manuals/zork1.pdf">Infocom</a>.</figcaption>
 </figure>
 
@@ -123,7 +132,7 @@ The FROBOZZ Corporation created, owns, and operates this dungeon.
 ## The Beginning
 
 <figure>
-  <img src="/images/blog/zork-the-great-underground-empire/staff.webp" alt="Infocom staff photo from 1982" />
+  <Image src={staff} alt="Infocom staff photo from 1982" />
   <figcaption>Infocom, 1982 — Back row, left to right: Chris Reeve, J.C.R. Licklider, Gabrielle Accord, president Joel Berez, Scott Cutler, Michael Berlyn. Front row, left to right: Dave Lebling, Marc Blank, Steve Meretzky. Copyright of <a href="http://thedoteaters.com/?bitstory=computer/zork-and-infocom">The Dot Eaters</a>.</figcaption>
 </figure>
 
@@ -132,14 +141,14 @@ The history of Zork is very interesting and while I'll do my best to summarize t
 Zork was built between 1977 and 1979 by the original [Implementers](https://en.wikipedia.org/wiki/Implementer_(video_games)), Tim Anderson, Marc Blank, Bruce Daniels, and Dave Lebling who were members of the [MIT Dynamic Modelling Group](https://en.wikipedia.org/wiki/MIT_Computer_Science_and_Artificial_Intelligence_Laboratory). While playing through the aforementioned Colossal Cave Adventure they started working on their own version of the game which later became Zork. The word "Zork" was a nonsense word, often used by MIT hackers as the name for any unfinished program until they were ready to be installed on the system.[^6]
 
 <figure>
-  <img src="/images/blog/zork-the-great-underground-empire/pdp-10.webp" alt="KL10-DA 1090 CPU and 6 Memory Modules" />
+  <Image src={pdp10} alt="KL10-DA 1090 CPU and 6 Memory Modules" />
   <figcaption>KL10-DA 1090 CPU and 6 Memory Modules. Copyright of <a href="https://en.wikipedia.org/wiki/PDP-10">Wikipedia</a>.</figcaption>
 </figure>
 
 It was a passion project they worked on in their spare time and they didn't have any plans to sell it commercially, especially because the game could only run on a [PDP-10](https://en.wikipedia.org/wiki/PDP-10) mainframe computer, which at the time cost $400,000.00. Back then the game was shared via the [ARPANET](https://en.wikipedia.org/wiki/ARPANET), a predecessor to the modern internet, and played by a handful of individuals who had access to such machines. Even so, the game had amassed a cult following, and players were spending weeks solving its puzzles.
 
 <figure>
-  <img src="/images/blog/zork-the-great-underground-empire/personal-software.webp" alt="Personal Software Inc. packaging of Zork for Apple II machines" />
+  <Image src={personalSoftware} alt="Personal Software Inc. packaging of Zork for Apple II machines" />
   <figcaption>Personal Software Inc. packaging of Zork for Apple II machines. Copyright of <a href="https://retro-treasures.blogspot.com/2011/07/zork-by-personal-software-apple-ii.html">Retro Treasures</a>.</figcaption>
 </figure>
 
@@ -148,7 +157,7 @@ By late 1979 the group was graduating and moving on with their lives when they d
 Zork I was published in December of 1980 for TRS-80 machines and soon after an Apple II version was published. While the game was successful, having sold almost 8,000 copies in less than a year, there were some differences between Infocom and Personal Software Inc. which prompted Infocom to become its own publisher and by the end of 1981, they published Zork II and republished Zork I under new branding, which can be seen in the cover image of this article. In the fall of 1982, the company released Zork III and rereleased game versions for [Commodore 64](https://en.wikipedia.org/wiki/Commodore_64), [IBM-PC](https://en.wikipedia.org/wiki/IBM_Personal_Computer), and other microcomputers.
 
 <figure>
-  <img src="/images/blog/zork-the-great-underground-empire/bestseller-list.webp" alt="The Softsel bestseller list for December 12, 1983" />
+  <Image src={bestsellerList} alt="The Softsel bestseller list for December 12, 1983" />
   <figcaption>The Softsel bestseller list for December 12, 1983. Games marked in yellow are Infocom's. Copyright of [6].</figcaption>
 </figure>
 
@@ -157,7 +166,7 @@ The Zork series was very successful. Infocom sold more than 250,000 copies of th
 ## Development
 
 <figure>
-  <img src="/images/blog/zork-the-great-underground-empire/mdl.webp" alt="The original 1977 implementation of the Grue function in MDL" />
+  <Image src={mdl} alt="The original 1977 implementation of the Grue function in MDL" />
   <figcaption>The original 1977 implementation of the Grue function in MDL.</figcaption>
 </figure>
 
@@ -168,7 +177,7 @@ In 1979, when they decided to monetize on their creation, they had to solve the 
 The idea behind Z-machine was to define an ideal machine, essentially a set of imaginary [opcodes](https://en.wikipedia.org/wiki/Opcode), that could run Zork in a space-effective way. Then to write an interpreter on a real machine that could execute those opcodes. And lastly, to implement a compiler that could compile ZIL code into those opcodes (called Z-code). They took a lot of inspiration from [Pascal's p-code](https://en.wikipedia.org/wiki/P-code_machine) which was a similar implementation of a virtual machine for [Pascal](https://en.wikipedia.org/wiki/Pascal_(programming_language)).
 
 <figure>
-  <img src="/images/blog/zork-the-great-underground-empire/workflow.webp" alt="Z-machine development workflow" />
+  <Image src={workflow} alt="Z-machine development workflow" />
   <figcaption>Z-machine development workflow. Apple II icon copyright of <a href="https://www.iconfinder.com/icons/92434/apple_icon">Ilie Ciorba</a>.</figcaption>
 </figure>
 

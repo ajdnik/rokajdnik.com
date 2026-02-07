@@ -3,7 +3,7 @@ import { defineCollection, z } from "astro:content";
 
 const blogs = defineCollection({
   loader: glob({ pattern: "**/[^_]*.{md,mdx}", base: "./src/blog" }),
-  schema: z.object({
+  schema: ({ image }) => z.object({
     slug: z.string(),
     title: z.string(),
     description: z.string(),
@@ -15,7 +15,7 @@ const blogs = defineCollection({
     codeLineNumbers: z.boolean().default(true),
     readTime: z.number().optional(),
     cover: z.object({
-      src: z.string(),
+      src: image(),
       alt: z.string(),
       caption: z.string().optional(),
     }).optional(),

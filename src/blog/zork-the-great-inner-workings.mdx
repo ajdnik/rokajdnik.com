@@ -10,10 +10,26 @@ editable: false
 codeLineNumbers: false
 canonical: "https://medium.com/swlh/zork-the-great-inner-workings-b68012952bdc"
 cover:
-  src: "/images/blog/zork-the-great-inner-workings/cover.webp"
+  src: "../assets/images/blog/zork-the-great-inner-workings/cover.webp"
   alt: "Zork cover art inside the matrix"
   caption: "Zork cover art inside the matrix. Zork cover art is the copyright of Infocom and The Matrix code is the copyright of Warner Bros. Pictures."
 ---
+import { Image } from 'astro:assets';
+import commandBreakdown from '../assets/images/blog/zork-the-great-inner-workings/command-breakdown.webp';
+import mailbox from '../assets/images/blog/zork-the-great-inner-workings/mailbox.webp';
+import whiteHouse from '../assets/images/blog/zork-the-great-inner-workings/white-house.webp';
+import objectTree from '../assets/images/blog/zork-the-great-inner-workings/object-tree.webp';
+import attackSyntax from '../assets/images/blog/zork-the-great-inner-workings/attack-syntax.webp';
+import lookSyntax from '../assets/images/blog/zork-the-great-inner-workings/look-syntax.webp';
+import attackSyntaxBreakdown from '../assets/images/blog/zork-the-great-inner-workings/attack-syntax-breakdown.webp';
+import actionExecution from '../assets/images/blog/zork-the-great-inner-workings/action-execution.webp';
+import gameLoop from '../assets/images/blog/zork-the-great-inner-workings/game-loop.webp';
+import github from '../assets/images/blog/zork-the-great-inner-workings/github.webp';
+import goEntrypoint from '../assets/images/blog/zork-the-great-inner-workings/go-entrypoint.webp';
+import xyzzy from '../assets/images/blog/zork-the-great-inner-workings/xyzzy.webp';
+import rape from '../assets/images/blog/zork-the-great-inner-workings/rape.webp';
+import itake from '../assets/images/blog/zork-the-great-inner-workings/itake.webp';
+import comments from '../assets/images/blog/zork-the-great-inner-workings/comments.webp';
 
 Roughly a year ago, during the summer of 2019, I got an idea. I was setting up a [Kubernetes](https://en.wikipedia.org/wiki/Kubernetes) cluster, and as I usually do, I set up a mock web server using [Nginx](https://en.wikipedia.org/wiki/Nginx) to test out [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/), [SSL](https://en.wikipedia.org/wiki/Transport_Layer_Security), and domain settings. Then it hit me, wouldn't it be great if instead of a boring webserver I would use a web game as my testing service and then leave it in the cluster as sort of a calling card. I know, I can be childish, sometimes. If you're unfamiliar with Kubernetes, Nginx and SSL, don't worry, they have nothing to do with Zork. I'm just trying to rationalize the madness of going through and studying over 15 thousand lines of code that comprise the game of Zork. Which I did because I thought implementing Zork as a web game would be easy. Little did I know…
 
@@ -69,7 +85,7 @@ I've known strange people, but fighting a small mailbox?
 The game parses the player's input into three main variables PRSA, PRSI, and PRSO. The variables refer to an action, indirect object, and direct object respectively. A direct object is an object that the action acts upon, and an indirect object is an optional part of a sentence; it's the recipient of the action. The parser's job is to figure out which parts of the player's input are the PRSA, PRSI, and PRSO.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/command-breakdown.webp" alt="Breakdown of a command into the three main parsing variables" />
+  <Image src={commandBreakdown} alt="Breakdown of a command into the three main parsing variables" />
   <figcaption>Breakdown of a command into the three main parsing variables.</figcaption>
 </figure>
 
@@ -95,14 +111,14 @@ PRSA="attack" PRSO="mailbox" PRSI="elvish sword"
 To be fully transparent, this is only a simplified description of how the parser works. But it's enough to explain the next mechanism that comprises the game's architecture which is **a game object**.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/mailbox.webp" alt="Zork I ZIL source code definition of the MAILBOX object" />
+  <Image src={mailbox} alt="Zork I ZIL source code definition of the MAILBOX object" />
   <figcaption>Zork I ZIL source code definition of the MAILBOX object.</figcaption>
 </figure>
 
 Game objects can be anything, from a location such as the [White House](https://zork.fandom.com/wiki/White_house) to objects such as the [Mailbox](https://zork.fandom.com/wiki/Mailbox), essentially everywhere the player can go, anything they can take or attack with, everything is a game object. Each object has properties such as a name, a description, an action, a list of adjectives that describe it, etc.
 
 <figure class="full-width">
-  <img src="/images/blog/zork-the-great-inner-workings/white-house.webp" alt="Object definition of the WHITE-HOUSE object and its action definition" />
+  <Image src={whiteHouse} alt="Object definition of the WHITE-HOUSE object and its action definition" />
   <figcaption>Object definition of the WHITE-HOUSE object and its action definition (WHITE-HOUSE-F) on the right.</figcaption>
 </figure>
 
@@ -126,7 +142,7 @@ It's right here! Are you blind or something?
 All the objects are located in **the object tree** which is a hierarchical data structure where the parent objects represent owners of their node objects. Essentially, if one object has a parent it means the object is located in/on its parent. An example would be if an object called "quantity of water" were located within an object called "glass bottle", the bottle object would be the parent of the water object, as shown in the image below. The parent object is defined in the *IN* property of the object. The *KITCHEN* object has a parent called ROOMS which isn't shown below. It's a top-level object within the object tree that contains all the game's rooms.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/object-tree.webp" alt="Excerpt from the object tree showing how the hierarchy defines the object's placement within the game" />
+  <Image src={objectTree} alt="Excerpt from the object tree showing how the hierarchy defines the object's placement within the game" />
   <figcaption>Excerpt from the object tree showing how the hierarchy defines the object's placement within the game.</figcaption>
 </figure>
 
@@ -145,21 +161,21 @@ On the table is an elongated brown sack, smelling of hot peppers.
 The parser uses the game's object tree to locate relevant objects which were referenced in the player's input. Once the algorithm unambiguously determines which object or objects were referenced in the input the variables PRSO and PRSI are populated with those objects. And lastly, the parser needs to populate the PRSA variable but for that, it uses another mechanism called **the syntax**.
 
 <figure class="full-width">
-  <img src="/images/blog/zork-the-great-inner-workings/attack-syntax.webp" alt="Syntax definition for the ATTACK action" />
+  <Image src={attackSyntax} alt="Syntax definition for the ATTACK action" />
   <figcaption>Syntax definition for the ATTACK action.</figcaption>
 </figure>
 
 The syntax is a table structure where Zork defines its actions. As seen in the source code above it uses a format: "Verb preposition Direct object preposition Indirect object", where prepositions and objects are optional.
 
 <figure class="full-width">
-  <img src="/images/blog/zork-the-great-inner-workings/look-syntax.webp" alt="Syntax definitions for LOOK actions taken from Zork I ZIL source" />
+  <Image src={lookSyntax} alt="Syntax definitions for LOOK actions taken from Zork I ZIL source" />
   <figcaption>Syntax definitions for LOOK actions taken from Zork I ZIL source.</figcaption>
 </figure>
 
 The snippet above shows different syntax definitions for the *LOOK* action. Some have objects and prepositions defined while others don't. Each syntax also has a callback function defined (*V-LOOK*, *V-EXAMINE*, *V-LOOK-INSIDE*, …). The callback functions are similar to object actions, meaning they get executed if the syntax is matched to the player's input. The attack syntax example, shown above, can be broken down as follows:
 
 <figure class="full-width">
-  <img src="/images/blog/zork-the-great-inner-workings/attack-syntax-breakdown.webp" alt="Breakdown of ATTACK syntax definition" />
+  <Image src={attackSyntaxBreakdown} alt="Breakdown of ATTACK syntax definition" />
   <figcaption>Breakdown of ATTACK syntax definition.</figcaption>
 </figure>
 
@@ -168,14 +184,14 @@ Once the parser finds PRSO and PRSI and determines the verb in the player's inpu
 If the syntax structure matches the player's input and PRSO and PRSI match based on the flags defined in the syntax, then that syntax is set to PRSA and the parser has completed its job. After parsing the game executes specific in-game actions based on the values of PRSA, PRSO, and PRSI. The pseudo-code shown below demonstrates the general algorithm.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/action-execution.webp" alt="Approximation of the action execution logic written in Python" />
+  <Image src={actionExecution} alt="Approximation of the action execution logic written in Python" />
   <figcaption>Approximation of the action execution logic written in Python.</figcaption>
 </figure>
 
 After the game executes those actions and outputs the results it loops back to obtaining new player input and the loop continues. The diagram, shown below, demonstrates a simplified loop where the player inputs text which gets parsed into PRSA, PRSO, and PRSI by using the object tree and syntax table structures. And lastly, syntax or game object actions get executed which results in text being printed out to the player.
 
 <figure class="full-width">
-  <img src="/images/blog/zork-the-great-inner-workings/game-loop.webp" alt="Simplified Zork I game loop" />
+  <Image src={gameLoop} alt="Simplified Zork I game loop" />
   <figcaption>Simplified Zork I game loop.</figcaption>
 </figure>
 
@@ -188,14 +204,14 @@ This description is a somewhat simplified architecture because it doesn't take i
 Now that we have a general understanding of how the game works let's look at its source code.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/github.webp" alt="Zork I GitHub repository files" />
+  <Image src={github} alt="Zork I GitHub repository files" />
   <figcaption>Zork I GitHub repository files.</figcaption>
 </figure>
 
 Looking at the file structure above, any software engineer could make a reasonable guess that the game starts in gmain.zil since main is a common software [entry point](https://en.wikipedia.org/wiki/Entry_point). They would be wrong. The game execution starts in the [*GO*](https://github.com/historicalsource/zork1/blob/master/1dungeon.zil#L2637) function which is located in 1dungeon.zil. The function takes care of some setup logic and in the end starts the game's main loop, whose function is located in gmain.zil.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/go-entrypoint.webp" alt="The entry point to the Zork I game" />
+  <Image src={goEntrypoint} alt="The entry point to the Zork I game" />
   <figcaption>The entry point to the Zork I game.</figcaption>
 </figure>
 
@@ -208,7 +224,7 @@ The repository also contains a compiled version of the game in [z3](https://file
 Now, let's look at some of the more interesting aspects of Zork's source code. Firstly, let's start with the [xyzzy](https://en.wikipedia.org/wiki/Xyzzy_(computing)) easter egg. The *XYZZY* command was added to Zork as an easter egg or a nod to the [Colossal Cave Adventure](https://en.wikipedia.org/wiki/Colossal_Cave_Adventure), which was the first text-based adventure game.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/xyzzy.webp" alt="XYZZY syntax definition" />
+  <Image src={xyzzy} alt="XYZZY syntax definition" />
   <figcaption>XYZZY syntax definition.</figcaption>
 </figure>
 
@@ -222,7 +238,7 @@ A hollow voice says "Fool."
 Another interesting find is the inclusion of the *RAPE* command. Yes, you're reading that correctly, it's not a typo. The command didn't really do anything and was most likely put there by the authors for comedic effect, but it's certainly something that wouldn't be found in today's games.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/rape.webp" alt="RAPE command syntax definition" />
+  <Image src={rape} alt="RAPE command syntax definition" />
   <figcaption>RAPE command syntax definition.</figcaption>
 </figure>
 
@@ -242,7 +258,7 @@ To me, especially considering the problems in the present gaming culture[^2], th
 One piece of source code I have to address is something the gaming community already discovered back in 2017[^3]. Back then they didn't have access to the original ZIL code so they used the decompiled Z-code to decode this trolling logic. The game has an interesting inventory management logic. Essentially whenever a player tries to put an object into their inventory the [*ITAKE*](https://github.com/historicalsource/zork1/blob/master/gverbs.zil#L1900) function is executed.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/itake.webp" alt="Games TAKE logic" />
+  <Image src={itake} alt="Games TAKE logic" />
   <figcaption>Games TAKE logic.</figcaption>
 </figure>
 
@@ -279,7 +295,7 @@ Taken.
 Besides easter eggs, inappropriate game commands, and trolling game mechanics, the source code also contains interesting comments. Some of the comments show unused code which was commented out, and other comments show how developers tracked changes before [source version control](https://en.wikipedia.org/wiki/Version_control) became popular.
 
 <figure>
-  <img src="/images/blog/zork-the-great-inner-workings/comments.webp" alt="Change tracking using comments" />
+  <Image src={comments} alt="Change tracking using comments" />
   <figcaption>Change tracking using comments.</figcaption>
 </figure>
 

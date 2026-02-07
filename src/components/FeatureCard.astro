@@ -1,11 +1,13 @@
 ---
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
 interface Props {
   title: string;
   date: string;
   url: string;
   tags: string[];
   readTime: number;
-  cover?: { src: string; alt: string };
+  cover?: { src: ImageMetadata; alt: string };
 }
 const { title, date, url, tags, readTime, cover } = Astro.props;
 ---
@@ -15,10 +17,12 @@ const { title, date, url, tags, readTime, cover } = Astro.props;
   class="ring-accent hover:bg-accent/13 group flex gap-4 rounded-lg p-6 ring-1 transition-all duration-150 ease-in-out"
 >
   {cover && (
-    <img
+    <Image
       src={cover.src}
       alt={cover.alt}
       class="hidden sm:block h-32 w-48 shrink-0 rounded-lg object-cover"
+      widths={[192, 384]}
+      sizes="192px"
     />
   )}
   <div class="flex flex-col gap-3">

@@ -1,4 +1,5 @@
 ---
+import { Image } from "astro:assets";
 import ProgressBar from "../components/ProgressBar";
 import BaseLayout from "./BaseLayout.astro";
 import Title from "../components/Title.astro";
@@ -12,12 +13,12 @@ const { frontmatter, readTime } = Astro.props;
   author={frontmatter.author}
   url={frontmatter.canonical || frontmatter.slug}
   pubDate={frontmatter.date}
-  image={frontmatter.cover?.src}
+  image={frontmatter.cover?.src.src}
 >
   <ProgressBar client:load />
   {frontmatter.cover && (
     <figure class="cover-image">
-      <img src={frontmatter.cover.src} alt={frontmatter.cover.alt} />
+      <Image src={frontmatter.cover.src} alt={frontmatter.cover.alt} />
       {frontmatter.cover.caption && (
         <figcaption class="text-center">{frontmatter.cover.caption}</figcaption>
       )}

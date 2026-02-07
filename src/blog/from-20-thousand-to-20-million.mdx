@@ -8,9 +8,11 @@ tags: ["computer-vision", "distributed-systems", "algorithms", "startup"]
 featured: false
 editable: false
 cover:
-  src: "/images/blog/from-20-thousand-to-20-million/cover.png"
+  src: "../assets/images/blog/from-20-thousand-to-20-million/cover.png"
   alt: "From 20 Thousand to 20 Million article cover"
 ---
+import { Image } from 'astro:assets';
+import diagram from '../assets/images/blog/from-20-thousand-to-20-million/diagram.png';
 
 Penetrating Silicon Valley with any idea from Slovenia is difficult, but developing a system to recognize over a million images is even harder. Every algorithm has humble beginnings accompanied by failures. Usually, the development of such algorithms is based on an empirical method. [Reveel](https://reveel.it/)[^1] is no exception here. We developed an algorithm that worked perfectly on a database of 20,000 images, but problems arose with server query speeds and processing concurrent queries, which prevented expanding the database to a million images. It turned out that solutions from the field of distributed systems could solve this problem.
 
@@ -89,7 +91,7 @@ We thus arrive at the [consensus problem](https://en.wikipedia.org/wiki/Consensu
 Architecturally speaking, we updated our system from a monolithic one, which contained query and storage functionality, to a distributed architecture where query servers (Q) communicate with multiple storage servers (S), each replicated for redundancy.
 
 <figure>
-  <img src="/images/blog/from-20-thousand-to-20-million/diagram.png" alt="Architecture of the upgraded image recognition system" />
+  <Image src={diagram} alt="Architecture of the upgraded image recognition system" />
   <figcaption>Figure 1: Architecture of the upgraded image recognition system, where Q are the so-called query servers and S are the so-called storage servers.</figcaption>
 </figure>
 
