@@ -99,7 +99,7 @@
 /* FULL WIDTH IMAGE (for use in markdown articles) */
 @layer base {
   .markdown figure.full-width {
-    @apply relative my-8 px-6 md:px-12;
+    @apply relative my-8 px-6 md:px-12 z-10;
     width: 100vw;
     left: 50%;
     transform: translateX(-50%);
@@ -137,6 +137,42 @@
 }
 .profile-image img {
   filter: grayscale(100%) contrast(1.1);
+}
+
+/* TABLE OF CONTENTS */
+@layer base {
+  .toc-sidebar {
+    @apply fixed hidden xl:block z-[5];
+    left: calc(50% + 25rem);
+    width: min(14rem, calc(50vw - 25rem - 1.5rem));
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .toc-sidebar::-webkit-scrollbar {
+    width: 2px;
+  }
+  .toc-sidebar ul {
+    @apply list-none border-l border-foreground/15 p-0 m-0;
+  }
+  .toc-sidebar li {
+    @apply p-0 m-0;
+  }
+  .toc-link {
+    @apply block w-full cursor-pointer border-none bg-transparent py-1.5 pl-4 pr-2 text-left text-sm leading-snug opacity-40 transition-all duration-200 ease-in-out;
+    text-decoration: none;
+    color: var(--color-foreground);
+  }
+  .toc-link:hover {
+    @apply opacity-80;
+  }
+  .toc-indent {
+    @apply pl-7;
+  }
+  .toc-active {
+    @apply opacity-100 font-medium;
+    color: var(--color-accent);
+    box-shadow: -1px 0 0 0 var(--color-accent);
+  }
 }
 
 /* CLICKABLE IMAGES */

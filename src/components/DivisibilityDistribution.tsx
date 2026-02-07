@@ -5,9 +5,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
 } from "recharts";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const data = [
   { name: "Other", percentage: 53.33, count: 533333 },
@@ -40,6 +39,8 @@ function ChartTooltip({ active, payload }: any) {
 }
 
 export default function DivisibilityDistribution() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
   const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
@@ -55,46 +56,62 @@ export default function DivisibilityDistribution() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const measure = () => setWidth(el.clientWidth);
+    measure();
+
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const textColor = isDark ? "#d4d4d8" : "#1f2937";
   const gridColor = isDark ? "#3f3f46" : "#d1d5db";
   const accentColor = isDark ? "#eab308" : "#3b82f6";
 
   return (
-    <ResponsiveContainer width="100%" height={250}>
-      <BarChart
-        data={data}
-        layout="vertical"
-        margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
-      >
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke={gridColor}
-          horizontal={false}
-        />
-        <XAxis
-          type="number"
-          tick={{ fill: textColor, fontSize: 13 }}
-          tickFormatter={(v: number) => `${v}%`}
-          domain={[0, 60]}
-        />
-        <YAxis
-          type="category"
-          dataKey="name"
-          tick={{ fill: textColor, fontSize: 13 }}
-          width={120}
-          axisLine={false}
-          tickLine={false}
-        />
-        <Tooltip
-          content={<ChartTooltip />}
-          cursor={{
-            fill: isDark
-              ? "rgba(255,255,255,0.05)"
-              : "rgba(0,0,0,0.05)",
-          }}
-        />
-        <Bar dataKey="percentage" radius={[0, 4, 4, 0]} maxBarSize={36} fill={accentColor} />
-      </BarChart>
-    </ResponsiveContainer>
+    <div ref={containerRef} className="chart-container" style={{ width: "100%", height: 250 }}>
+      {width > 0 && (
+        <BarChart
+          width={width}
+          height={250}
+          data={data}
+          layout="vertical"
+          margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke={gridColor}
+            horizontal={false}
+          />
+          <XAxis
+            type="number"
+            tick={{ fill: textColor, fontSize: 13 }}
+            tickFormatter={(v: number) => `${v}%`}
+            domain={[0, 60]}
+          />
+          <YAxis
+            type="category"
+            dataKey="name"
+            tick={{ fill: textColor, fontSize: 13 }}
+            width={120}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip
+            content={<ChartTooltip />}
+            cursor={{
+              fill: isDark
+                ? "rgba(255,255,255,0.05)"
+                : "rgba(0,0,0,0.05)",
+            }}
+          />
+          <Bar dataKey="percentage" radius={[0, 4, 4, 0]} maxBarSize={36} fill={accentColor} />
+        </BarChart>
+      )}
+    </div>
   );
 }

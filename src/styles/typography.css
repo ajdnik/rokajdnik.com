@@ -221,6 +221,10 @@
     figure img {
       @apply cursor-pointer;
     }
+    .chart-container,
+    .chart-container * {
+      @apply outline-none;
+    }
     figcaption {
       @apply text-center text-sm opacity-70 py-2;
     }

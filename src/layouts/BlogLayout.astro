@@ -1,6 +1,7 @@
 ---
 import { Image } from "astro:assets";
 import ProgressBar from "../components/ProgressBar";
+import TableOfContents from "../components/TableOfContents";
 import BaseLayout from "./BaseLayout.astro";
 import Title from "../components/Title.astro";
 import Lightbox from "../components/Lightbox.astro";
@@ -30,5 +31,6 @@ const { frontmatter, readTime } = Astro.props;
       <slot />
     </section>
   </article>
+  <TableOfContents client:load />
   <Lightbox />
 </BaseLayout>
