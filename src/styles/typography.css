@@ -201,14 +201,18 @@
     }
 
     /* table */
+    .table-wrapper {
+      @apply my-8 overflow-x-auto rounded-xl;
+      -webkit-overflow-scrolling: touch;
+    }
     table {
-      @apply mx-auto my-8 w-full opacity-90;
+      @apply mx-auto w-full opacity-90;
     }
     tr {
       @apply visible;
     }
     th {
-      @apply bg-foreground/8 ring-foreground/18 px-3 py-1 text-center text-lg ring-1;
+      @apply bg-foreground/8 ring-foreground/18 whitespace-nowrap px-3 py-1 text-center text-lg ring-1;
     }
     td {
       @apply ring-foreground/18 px-3 py-1 ring-1;

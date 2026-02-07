@@ -5,6 +5,7 @@ import react from "@astrojs/react";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import remarkGfm from "remark-gfm";
+import rehypeTableWrapper from "./src/plugins/rehype-table-wrapper.mjs";
 
 // https://astro.build/config
 export default defineConfig({
@@ -18,6 +19,7 @@ export default defineConfig({
 
   markdown: {
     remarkPlugins: [remarkGfm],
+    rehypePlugins: [rehypeTableWrapper],
     shikiConfig: {
       defaultColor: false,
       themes: {
