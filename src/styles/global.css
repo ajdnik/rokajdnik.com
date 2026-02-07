@@ -89,7 +89,7 @@
     transform: translateX(-50%);
   }
   .cover-image img {
-    @apply w-full h-auto border-0 ring-0 cursor-default;
+    @apply w-full h-auto rounded-none border-0 ring-0 cursor-default;
   }
   .cover-image figcaption {
     @apply static opacity-70 bg-transparent text-foreground text-sm py-2 text-center;
