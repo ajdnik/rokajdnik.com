@@ -238,7 +238,7 @@ Executing fizzBuzzNaive with N=10000 for 100000 iterations...
 [bailout (kind: deopt-eager, reason: prepare for on stack replacement (OSR)): begin. deoptimizing 0x1f7fc6be5c49 <JSFunction (sfi = 0x1f7fc6bdf4a9)>, 0x2fbc45ee0081 <Code MAGLEV>, opt id 6, bytecode offset 436, deopt exit 35, FP to SP delta 208, caller SP 0x00016b458f38, pc 0x00012c683b58]
 ```
 
-We can see that V8 first optimized the code to Maglev[^15], a mid-tier compiler designed for code that is hot but not yet stable. It also performed OSR (on-stack replacement)[^16], which happens when a currently executing function is swapped out mid-execution for an optimized version.
+We can see that V8 first optimized the code to Maglev[^15], a mid-tier compiler designed for code that is hot but not yet stable. In this context, being *hot* means the code is run often, but it lacks the *stability*, or predictability, required for a higher-tier compiler to maximize speed. It also performed OSR (on-stack replacement)[^16], which happens when a currently executing function is swapped out mid-execution for an optimized version.
 
 Next, V8 attempted to promote the code to TurboFan[^7], its highest-tier compiler for hot, stable code. However, the optimization failed due to a "wrong map" deoptimization. This means the optimizer's assumptions about the shape of objects in memory were incorrect, forcing a bailout back to Maglev.
 
@@ -265,11 +265,11 @@ Now let's look at the log for `fizzBuzzUnrolled` and see if we can find any diff
 
 Right away, we can see that V8 optimized the code to Maglev and Maglev OSR, compiling both the current execution and generating an optimized version for future calls. It then promoted the code to TurboFan, and unlike `fizzBuzzNaive`, there are no deoptimizations. The only deoptimization is the benign OSR one, which we can safely ignore.
 
-The takeaway from these logs is clear: the unrolled variant is a much better fit for V8's optimizer, which explains its superior performance. I don't think there's much more we can squeeze out at this point; or, to be honest, I've lost interest in inspecting bytecode. But I'm still having fun, so let's implement a few more variants and see how they compare.
+The takeaway from these logs is clear: the unrolled variant is a much better fit for V8's optimizer, which explains its superior performance. I don't think there's much more we can squeeze out at this point, at least, not without inspecting the bytecode to find micro-optimizations. To be honest, I have no interest in descending into that particular madness. But I'm still having fun, so let's implement a few more variants and see how they compare.
 
 ## Let The Madness Begin
 
-Now that we're drunk on benchmarking power, what else can we try? What about tail recursion, which is commonly fast and well-optimized in languages like Erlang?
+Now that we're drunk on benchmarking power, let's get experimental. What about tail recursion, which is commonly fast and well-optimized in languages like Erlang?
 
 Unfortunately, JavaScript doesn't have Tail Call Optimization[^17]. In languages like Erlang or Haskell, TCO allows a recursive function to call itself without adding a new stack frame, effectively turning recursion into a loop. The V8 engine, along with the TC39 committee[^18], controversially decided not to support implicit Proper Tail Calls[^19]. This means every recursive step adds a frame to the stack[^20]. Since the stack size in Node is limited, recursion is a poor choice for large iterations in JavaScript.
 
