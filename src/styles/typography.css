@@ -156,13 +156,15 @@
       @apply mt-0 rounded-t-none;
     }
     .astro-code {
-      @apply my-6 rounded-xl py-4;
+      @apply my-6 rounded-xl py-4 overflow-x-auto;
       border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
       counter-reset: line;
     }
     .astro-code code {
       @apply bg-inherit p-0 font-medium;
       display: grid;
+      width: max-content;
+      min-width: 100%;
     }
     .astro-code code .line {
       @apply px-4 leading-relaxed;
