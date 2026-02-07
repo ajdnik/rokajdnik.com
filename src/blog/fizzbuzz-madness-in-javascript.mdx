@@ -10,19 +10,19 @@ editable: false
 ---
 import DivisibilityDistribution from '../components/DivisibilityDistribution.tsx';
 
-If you would ask a kid what FizzBuzz is, they may tell you it is a game they played at school where the teacher would corral them into a circle and they would  start counting numbers out loud in a clockwise fashion. But for every number divisible by 3 they would say "Fizz", for every number divisible by 5 they would say "Buzz", and for every one divisible by 15 they would say "Fizzbuzz".[^1] The purpose of the game is to teach kids about divisibility in a fun and interactive way. If you would ask the same question to a college senior, they would probably explain the rules a bit differently, explaining how you should take a shot if you get a number wrong.
-But, if you ask a programmer what is FizzBuzz they will tell you it is a silly coding question you get asked in job interviews. They would describe it something like this:
+If you asked a kid what FizzBuzz is, they may tell you it is a game they played at school where the teacher would corral them into a circle, and they would start counting numbers out loud in a clockwise fashion. But for every number divisible by 3, they would say "Fizz", for every number divisible by 5 they would say "Buzz", and for every number divisible by 15 they would say "FizzBuzz".[^1] The purpose of the game is to teach kids about divisibility in a fun and interactive way. If you asked the same question to a college senior, they would probably explain the rules a bit differently, explaining how you should take a shot if you get a number wrong.
+But if you ask a programmer what FizzBuzz is, they'll tell you it is a silly coding question you get asked in job interviews. They would describe it something like this:
 
 > Given a positive integer N, return an array of strings with all the integers from 1 to N. 
  But for multiples of 3 the array should have "Fizz" instead of the number. 
  For the multiples of 5, the array should have "Buzz" instead of the number. 
  For numbers which are multiple of 3 and 5 both, the array should have "FizzBuzz" instead of the number.[^2]
 
-The purpose of this task is to test elementary knowledge of conditional statements, loops, and basic data structures. The interviewees aren't expected to write an optimised algorithm, merely to demonstrate fundamental programming knowledge. Given how simple this problem is I thought it would be a great way to explore Node.JS internals, specifically the V8 engine[^3] to understand how to optimize this simple algorithm as much as possible. 
+The purpose of this task is to test elementary knowledge of conditional statements, loops, and basic data structures. The interviewees aren't expected to write an optimized algorithm, merely to demonstrate fundamental programming knowledge. Given how simple this problem is, I thought it would be a great way to explore Node.JS internals, specifically the V8 engine[^3], to understand how to optimize this simple algorithm as much as possible. 
 
 ## The Naive Approach
 
-Let's start with the simplest approach, following the original FizzBuzz instructions and implementing a simple method. The method receives `N` as in input parameter, where N is the upper bound of how many elements the method will return. For example, if `N=16`, then the output of the method would be `[1, 2, 'Fizz', 4, 'Buzz', 'Fizz', 7, 8, 'Fizz', 'Buzz', 11, 'Fizz', 13, 14, 'FizzBuzz', 16]`.
+Let's start with the simplest approach, following the original FizzBuzz instructions and implementing a simple method. The method receives `N` as an input parameter, where N is the upper bound of how many elements the method will return. For example, if `N=16`, then the output of the method would be `[1, 2, 'Fizz', 4, 'Buzz', 'Fizz', 7, 8, 'Fizz', 'Buzz', 11, 'Fizz', 13, 14, 'FizzBuzz', 16]`.
 
 ```javascript
 const fizzBuzzNaive = (N) => {
@@ -38,13 +38,13 @@ const fizzBuzzNaive = (N) => {
 };
 ```
 
-As seen above the solution to the coding problem is simple and doesn't require any special knowledge to implement. But can we solve this problem more efficiently? Before we begin writing various algorithm iterations to figure out which one is faster, we need a good benchmarking tool. Simply using `console.time()` is not good enough, we need something that can accuratelly and predictably measure performance of different variations of the algorithm. "Enter stage left" Mitata a benchmarking framework[^4] which handles:
+As seen above, the solution to the coding problem is simple and doesn't require any special knowledge to implement. But can we solve this problem more efficiently? Before we begin writing various algorithm iterations to figure out which one is faster, we need a good benchmarking tool. Simply using `console.time()` is not good enough; we need something that can accurately and predictably measure the performance of different variations of the algorithm. "Enter stage left," Mitata, a benchmarking framework[^4] which handles:
 
-- **JIT[^5] Warmup:** It runs the code enough times to ensure V8 has compiled it to machine code before measuring. This ensures code is executed using TurboFan[^7] instead of Ingition[^6] which ensures all code is maximally optimized by Node.JS compiler.
+- **JIT[^5] Warmup:** It runs the code enough times to ensure V8 has compiled it to machine code before measuring. This ensures code is executed using TurboFan[^7] instead of Ignition[^6], which ensures all code is maximally optimized by the Node.JS compiler.
 - **Outliers:** It removes statistical anomalies (like a sudden background process on your OS).
 - **Visualization:** It draws a CLI graph showing exactly how much faster/slower functions are compared to a baseline.
 
-Is this tool an overkill for benchmarking this? Yes. Am I still going to use it? Absolutely. Running the benchmarking tool against the `fizzBuzzNaive` function produces the following results:
+Is this tool overkill for benchmarking this? Yes. Am I still going to use it? Absolutely. Running the benchmarking tool against the `fizzBuzzNaive` function produces the following results:
 
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
@@ -53,15 +53,15 @@ Is this tool an overkill for benchmarking this? Yes. Am I still going to use it?
 
 Let's break down what we're seeing here:
 
-1. **Min/Max/Avg** is showing us the average, minimum, and maximum execution time per iteration. Iteration is a single execution of `fizzBuzzNaive(10_000)`. The fact that we're seeing large variance between minimum and maximum times indicates that garbage collector[^8] or some other Node.JS process was running at the same time as the benchmark.
-2. **P75/P99** is showing us the p75 and p99 times. Where p75 means that 75% of runs finished faster than the time shown and p99 means that 99% of runs finished faster than the time shown. A big jump between p75 and p99 timings would indicate garbage collector pressure or branch misprediction[^9].
+1. **Min/Max/Avg** is showing us the minimum, maximum, and average execution time per iteration. An iteration is a single execution of `fizzBuzzNaive(10_000)`. The fact that we're seeing a large variance between minimum and maximum times indicates that the garbage collector[^8] or some other Node.JS process was running at the same time as the benchmark.
+2. **P75/P99** is showing us the p75 and p99 times. Where p75 means that 75% of runs finished faster than the time shown, and p99 means that 99% of runs finished faster than the time shown. A big jump between p75 and p99 timings would indicate garbage collector pressure or branch misprediction[^9].
 3. **Min mem/Max mem/Avg mem** is showing us the minimum, top 1%, and average memory allocation for each iteration. The large variance between minimum and maximum memory allocation per iteration is most likely due to dynamic array allocation. 
 
 Now we're ready to start testing various optimizations to the algorithm and measure if they do what we think they do.
 
 ## Optimizing Conditional Checks
 
-Let's start with low-hanging-fruit and try and optimize how many conditional checks are executed in each for loop iteration. Reviewing the naive implementation it seems that no matter what number gets passed to the function we always need to perform 3 conditional checks and perform either one or two string concatenations. It turns out we can leverage the Least Common Multiple[^10] and rewrite the code to require less checks and no concatenations.
+Let's start with low-hanging fruit and try to optimize how many conditional checks are executed in each for loop iteration. Reviewing the naive implementation, it seems that no matter what number gets passed to the function, we always need to perform 3 conditional checks and either one or two string concatenations. It turns out we can leverage the Least Common Multiple[^10] and rewrite the code to require fewer checks and no concatenations.
 
 ```javascript
 const fizzBuzzLCM = (N) => {
@@ -76,25 +76,25 @@ const fizzBuzzLCM = (N) => {
 };
 ```
 
-You might ask yourself why would this code be faster than the previous implementation? To answer that let's first compute a distribution of numbers that are divisible by 3, 5, and 15; and those that don't fall into any of those buckets.
+You might ask yourself why this code is faster than the previous implementation? To answer that, let's first compute a distribution of numbers that are divisible by 3, 5, and 15; and those that don't fall into any of those buckets.
 
 <figure>
   <DivisibilityDistribution client:visible />
   <figcaption>Distribution of numbers when N=1,000,000</figcaption>
 </figure>
 
-From the distribution graph we can see that it would make most sense to first check for numbers divisible by 3, then 5, and last 15. This way we'd minimize the number of conditional checks. Unfortunatelly, all numbers that are divisible by 15 are also divisible by 3 and 5, so we can't order modulus checks in the optimal order.
+From the distribution graph, we can see that it would make most sense to first check for numbers divisible by 3, then 5, and last 15. This way, we'd minimize the number of conditional checks. Unfortunately, all numbers that are divisible by 15 are also divisible by 3 and 5, so we can't order the modulus checks in the optimal order.
 
-In the naive implementation we made 3 conditional checks for all numbers meaning, that if N was 50, the code made 150 conditional checks alltogether. In this new implementation if a number is divisible by 15 we only make 1 check, if it's divisible by 3 we make 2, if it's divisible by 5 or if it's not divisible by any of the 3 numbers, we make 3 checks. If we take the N=50 example again, that would mean we make 131 conditional checks. If we look at a much larger N size such as 100M we find there's even a bigger difference between the two implementations. 300M checks vs. 260M checks. So at least in theory it should be faster. Let's check.
+In the naive implementation, we made 3 conditional checks for all numbers, meaning that if N was 50, the code made 150 conditional checks altogether. In this new implementation, if a number is divisible by 15, we only make 1 check; if it's divisible by 3, we make 2, if it's divisible by 5 or if it's not divisible by any of the 3 numbers, we make 3 checks. If we take the N=50 example again, that would mean we make 131 conditional checks. If we look at a much larger N size, such as 100M, we find there's even a bigger difference between the two implementations. 300M checks vs. 260M checks. So, at least in theory, it should be faster. Let's check.
 
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
 | Naive | 34.17 µs | 251.46 µs | 40.43 µs | 39.04 µs | 86.63 µs | 9.96 kb | 582.75 kb | 255.65 kb |
 | LCM | 28.25 µs | 213.58 µs | 32.54 µs | 32.13 µs | 62.13 µs | 7.48 kb | 506.38 kb | 255.55 kb |
 
-Success! Looks like by reducing the number of comparissons and string concatenations we were able to reduce the speed of execution by 28% comparing p99 metrics. You may have noticed something, that the numbers for `fizzBuzzNaive` are different from the previous benchmarking run. This is normal, Mitata does it's best to make the comparisson as predictable as possible, but due to the nature of Node.JS's and other background processes running on the computer, execution times aren't the same between benchmarking runs.
+Success! Looks like by reducing the number of comparisons and string concatenations, we were able to reduce the execution time by 28% comparing p99 metrics. You may have noticed that the numbers for `fizzBuzzNaive` are different from the previous benchmarking run. This is normal. Mitata does its best to make the comparison as predictable as possible, but due to the nature of Node.JS and other background processes running on the computer, execution times aren't the same between benchmarking runs.
 
-To keep the momentum going let's see if we can further reduce the number of comparissons. Is there a way where we could always make a maximum of 2 checks? In that case if N=100M we'd only be making 200M checks, so in theory it should be faster. Playing around with code flow execution we can achieve this:
+To keep the momentum going let's see if we can further reduce the number of comparisons. Is there a way we could always make a maximum of 2 checks? In that case, if N=100M, we'd only be making 200M checks, so in theory it should be faster. Playing around with code flow execution, we can achieve this:
 
 ```javascript
 const fizzBuzzModulo = (N) => {
@@ -110,7 +110,7 @@ const fizzBuzzModulo = (N) => {
 };
 ```
 
-With this approach no matter which case we're checking we're always making 2 conditional checks. Since we're reducing the number of modulo checks which are the second most expensive operation in the algorithm, right after array append, in theory it should be faster, but let's verify.
+With this approach, no matter which case we're checking, we're always making 2 conditional checks. Since we're reducing the number of modulo checks, which are the second most expensive operation in the algorithm right after array append, in theory it should be faster, but let's verify.
 
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
@@ -118,11 +118,11 @@ With this approach no matter which case we're checking we're always making 2 con
 | LCM | 28.13 µs | 262.58 µs | 32.18 µs | 31.79 µs | 64.08 µs | 7.48 kb | 447.28 kb | 255.56 kb |
 | Modulo | 28.13 µs | 132.50 µs | 34.29 µs | 34.29 µs | 43.21 µs | 64.46 kb | 474.13 kb | 255.56 kb |
 
-Using this approach we were able to further reduce the speed of execution by 32% comparing to the LCM optimization, or a whopping 45% compared to the naive approach, comparing p99 timings. We're on a roll. There's an anomaly in the benchmark results. The average execution time of the latest optimization is actually slower then the previous optimization. What's going on? The answer is in the distribution graph above. The majority of numbers processed won't be divisible by any of the numbers (3, 5, 15) and for those numbers the latest optimization only makes two conditional checks, compared to 3 conditional checks in the previous optimization. Since the latest optimization is doing less math it has a faster p99 metric. But why is the average slower? That's because of how CPU works. It uses branch prediction[^9] to pre-fetch instructions. In the case of the LCM implementation the if ... else if ... else if logic is linear and the CPU can pre-fetch instructions very effectivelly. In the case of modulo optimization the implementation has nested if statements and can cause the CPU to occasionally misspredict the branches, which causes the CPU to have to dump pre-fetched instructions and load new ones. This in turn causes the latest optimization to have a worse average execution time, even though it has a better p99 time.
+Using this approach, we were able to further reduce the execution time by 32% compared to the LCM optimization, or a whopping 45% compared to the naive approach, comparing p99 timings. We're on a roll. There's an anomaly in the benchmark results. The average execution time of the latest optimization is actually slower than that of the previous optimization. What's going on? The answer is in the distribution graph above. The majority of numbers processed won't be divisible by any of the numbers (3, 5, 15), and for those numbers, the latest optimization only makes two conditional checks, compared to 3 conditional checks in the previous optimization. Since the latest optimization is doing less math, it has a faster p99 metric. But why is the average slower? That's because of how the CPU works. It uses branch prediction[^9] to pre-fetch instructions. In the case of the LCM implementation, the if ... else if ... else if logic is linear, and the CPU can pre-fetch instructions very effectively. In the case of the modulo optimization, the implementation has nested if statements and can cause the CPU to occasionally mispredict the branches, which causes it to dump pre-fetched instructions and load new ones. This, in turn, causes the latest optimization to have a worse average execution time, even though it has a better p99 time.
 
 ## Optimizing The Array
 
-We've already optimized if statements to the best of our abbility, like I mentioned earlier there's one operation that's even more expensive than modulo and that's the array append. How can we optimize that? The reason why array append is expensive is because under-the-hood V8 is dynamically resizing the array. When we define `const arr = [];` the V8 engine preallocates an array with 4 elements, then when capacity is exceeded it increases the array by allocating a larger buffer and copying previous array buffer into the new one. The array grows more agressivelly when it's small and it stabilizes around a factor of 1.5 once the array gets bigger. To optimize this we should preallocate the entire array, that way V8 won't need to do any dynamic resizing. Let's try it.
+We've already optimized if statements to the best of our ability. As I mentioned earlier, there's one operation that's even more expensive than modulo, and that's the array append. How can we optimize that? The reason why array append is expensive is because under the hood, V8 is dynamically resizing the array. When we define `const arr = [];` the V8 engine preallocates an array with 4 elements, then when capacity is exceeded, it increases the array by allocating a larger buffer and copying the previous array buffer into the new one. The array grows more aggressively when it's small, and it stabilizes around a factor of 1.5 once the array gets bigger. To optimize this, we should preallocate the entire array; that way, V8 won't need to do any dynamic resizing. Let's try it.
 
 ```javascript
 const fizzBuzzPreallocation = (N) => {
@@ -139,7 +139,7 @@ const fizzBuzzPreallocation = (N) => {
 };
 ```
 
-Of course preallocation works for this case because we know the maximum size of the array ahead of time. Besides preallocating the entire array another optimization is that we're directly assigning results to array indices. But let's see if this optimization will improve our execution speed.
+Of course, preallocation works for this case because we know the maximum size of the array ahead of time. Besides preallocating the entire array, another optimization is that we're directly assigning results to array indices. Let's see if this optimization will improve our execution speed.
 
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
@@ -152,7 +152,7 @@ Looks like we achieved a speed up of 48% compared to our previous optimization, 
 
 ## Optimizing The For Loop
 
-We've optimized conditional checks and array assignment, the next target is the for loop. Can we do anything to optimize how the for loop runs? You may think using `.map()` would be a valid solution, nowadays in modern JavaScript there's a lot of code utilizing `.map()`, `.forEach()`, and other functional helper functions. They make the code readable and concise. But in reality that would be slower than a simple for loop. The reason being that the overhead of function calls and context binding would add additional complexity to the algorithm which would slow it down, and while V8 is very good at function inlining [^11] it's not that good. What else could we try? What about loop unrolling[^12]? This is a common optimization strategy and it just so happens that there's a pattern in FizzBuzz that we can leverage to optimize our for loop. If we look closely at the output of FizzBuzz we notice something interesting. The pattern of strings repeats exactly every 15 numbers: `1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, Buzz, 11, Fizz, 13, 14, FizzBuzz`. Instead of checking numbers one by one, we can process them in chunks of 15.
+We've optimized conditional checks and array assignment; the next target is the for loop. Can we do anything to optimize how the for loop runs? You may think using `.map()` would be a valid solution; nowadays, in modern JavaScript, there's a lot of code utilizing `.map()`, `.forEach()`, and other functional helper functions. They make the code readable and concise. But in reality, that would be slower than a simple for loop. The reason is that the overhead of function calls and context binding would add additional complexity to the algorithm, which would slow it down, and while V8 is very good at function inlining[^11], it's not that good. What else could we try? What about loop unrolling[^12]? This is a common optimization strategy, and it just so happens that there's a pattern in FizzBuzz that we can leverage to optimize our for loop. If we look closely at the output of FizzBuzz we notice something interesting. The pattern of strings repeats exactly every 15 numbers: `1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, Buzz, 11, Fizz, 13, 14, FizzBuzz`. Instead of checking numbers one by one, we can process them in chunks of 15.
 
 ```javascript
 export const fizzBuzzUnrolled = (N) => {
@@ -178,7 +178,7 @@ export const fizzBuzzUnrolled = (N) => {
 };
 ```
 
-Yes, I know it looks ugly, but bear with me, it's actually really stratighforward. The first while loop computes the array values in chunks of 15 items at once, but since the `N` is not necessarily divisible by 15 we need a second while loop to handle the remainder.
+Yes, I know it looks ugly, but bear with me, it's actually really straightforward. The first while loop computes the array values in chunks of 15 items at once, but since `N` is not necessarily divisible by 15, we need a second while loop to handle the remainder.
 
 Let's see how it compares to previous variants of the algorithm.
 
@@ -190,11 +190,11 @@ Let's see how it compares to previous variants of the algorithm.
 | Pre-allocated | 17.75 µs | 170.25 µs | 18.94 µs | 18.88 µs | 23.25 µs | 6.57 kb | 225.74 kb | 85.03 kb |
 | Unrolled | 7.33 µs | 152.92 µs | 7.90 µs | 7.83 µs | 13.04 µs | 2.41 kb | 197.38 kb | 85.32 kb |
 
-Awesome! Looks like we improved the algorithm a further 44% compared to the pre-allocated variant, and when compared ot the naive variant this algorithm is 82% faster. We're comparing p99 speed as that's the most representative for comparisson. Now I'm all out of ideas on what to optimize further. Let's peek behind the curtain and see if we can find any clues by profiling our code.
+Awesome! Looks like we improved the algorithm by a further 44% compared to the pre-allocated variant, and when compared to the naive variant, this algorithm is 82% faster. We're comparing p99 speed, as that's the most representative for comparison. Now I'm all out of ideas on what to optimize further. Let's peek behind the curtain and see if we can find any clues by profiling our code.
 
 ## Profiling The Code
 
-There are excellent tools for profiling JavaScript code out there like Clinic.js[^13] or 0x[^14], but for this simple algorithm they likely won't be as useful as for a more complex implementation which multiple function calls and I/O operations. In our case we'll just use node's built in optimization/deoptimization log to understand how our code is being optimized. To get the log we just need to run our script with `node --trace-opt --trace-deopt` flags. Of course just executing `fizzBuzzNaive` or `fizzBuzzUnrolled` likely won't tell us a lot about algorithms performance since we need to warm up the JIT, so I build a simple script to execute a given function 100000 times with `N=10_000` each time.
+There are excellent tools for profiling JavaScript code out there, like Clinic.js[^13] or 0x[^14], but for this simple algorithm, they likely won't be as useful as for a more complex implementation with multiple function calls and I/O operations. In our case, we'll just use Node's built-in optimization/deoptimization log to understand how our code is being optimized. To get the log, we just need to run our script with `node --trace-opt --trace-deopt` flags. Of course, just executing `fizzBuzzNaive` or `fizzBuzzUnrolled` likely won't tell us a lot about the algorithm's performance since we need to warm up the JIT, so I built a simple script to execute a given function 100000 times with `N=10_000` each time.
 
 Let's run the script with `fizzBuzzNaive` and see what we can learn from the optimization log and compare it to the log we get when running `fizzBuzzUnrolled`. I won't paste full logs, only the interesting parts.
 
@@ -214,8 +214,8 @@ Executing fizzBuzzNaive with N=10000 for 100000 iterations...
 [bailout (kind: deopt-eager, reason: prepare for on stack replacement (OSR)): begin. deoptimizing 0x1f7fc6be5c49 <JSFunction (sfi = 0x1f7fc6bdf4a9)>, 0x2fbc45ee0081 <Code MAGLEV>, opt id 6, bytecode offset 436, deopt exit 35, FP to SP delta 208, caller SP 0x00016b458f38, pc 0x00012c683b58]
 ```
 
-We see that the code was optimized to Maglev[^15] which is a mid-tier compiler that performs basic optimizations and is designed for code that is hot but not yet stable. We also see that it performed OSR which is on stack replacement[^16] and happens when the currently executing function is replaced while executing.
-Then we see that V8 tried to optimize the code to TurboFan[^7] which is the highest tier compiler that performs aggressive optimizations and is designed for code that is hot and stable. However, it seems that the optimization failed due to a wrong map deoptimization reason. This means that the assumptions made by the optimizer about the shape of objects in memory were incorrect, leading to a bailout and deoptimization back to Maglev. Finally we see another deoptimization with a reason of prepare for on stack replacement (OSR), which is a benign deoptimization that is just V8 saying: "I'm about to swap in optimized code, I need to deoptimize to do it safely."
+We see that the code was optimized to Maglev[^15], which is a mid-tier compiler that performs basic optimizations and is designed for code that is hot but not yet stable. We also see that it performed OSR, which is on stack replacement[^16] and happens when the currently executing function is replaced while executing.
+Then we see that V8 tried to optimize the code to TurboFan[^7], which is the highest tier compiler that performs aggressive optimizations and is designed for code that is hot and stable. However, it seems that the optimization failed due to a wrong map deoptimization reason. This means that the assumptions made by the optimizer about the shape of objects in memory were incorrect, leading to a bailout and deoptimization back to Maglev. Finally, we see another deoptimization with a reason of preparing for on-stack replacement (OSR), which is a benign deoptimization that is just V8 saying: "I'm about to swap in optimized code, I need to deoptimize to do it safely."
 
 Now let's look at the log for `fizzBuzzUnrolled` and see if we can find any differences.
 
@@ -236,13 +236,13 @@ Now let's look at the log for `fizzBuzzUnrolled` and see if we can find any diff
 [bailout (kind: deopt-eager, reason: prepare for on stack replacement (OSR)): begin. deoptimizing 0x1bc719925c49 <JSFunction (sfi = 0x1bc71991f4a9)>, 0x2129a66dea89 <Code MAGLEV>, opt id 5, bytecode offset 436, deopt exit 6, FP to SP delta 208, caller SP 0x00016bd6cf38, pc 0x000127e02084]
 ```
 
-From the get go we see that the code was optimized to Maglev, and to Maglev OSR, meaning the V8 compiled the current execution and it also generated Maglev version for future executions of the code. Then it optimized to TurboFan and unlike `fizzBuzzNaive` we don't see any deoptimizations happening. And the same as in the naive function we see the final OSR deoptimization, which we determined was a beingn one, so we can ignore it.
+From the get go, we see that the code was optimized to Maglev, and to Maglev OSR, meaning the V8 compiled the current execution, and it also generated a Maglev version for future executions of the code. Then it optimized to TurboFan, and unlike `fizzBuzzNaive`, we don't see any deoptimizations happening. And the same as in the naive function, we see the final OSR deoptimization, which we determined was a benign one, so we can ignore it.
 
-What we can see from the logs is that the unrolled variant of the algorithm is a better fit for V8's optimizer which explains why it is faster. I don't think we can do anything else that would measurably speed up the algorithm, or the truth is that I've lost interest in inspecting the bytecode and seeing if we can extract any more performance gains. But I'm still hyped so how about we implement some more variants and see how they compare?
+What we can see from the logs is that the unrolled variant of the algorithm is a better fit for V8's optimizer, which explains why it is faster. I don't think we can do anything else that would measurably speed up the algorithm, or the truth is that I've lost interest in inspecting the bytecode and seeing if we can extract any more performance gains. But I'm still hyped, so how about we implement some more variants and see how they compare?
 
 ## Let The Madness Begin
 
-Now that we're drunk on benchmarking power, what else can we benchmark? What about tail recursion which is commonly very fast and optimized in other languages like Erlang? Unfortunatelly, JavaScript doesn't have Tail Call Optimization[^17], which is a common feature of Erlang or Haskell, and allows a recursive function to call itself without adding a new stack frame, effectively turning recursion into a loop. The V8 engine (and the TC39 committee[^18]) controversially decided not to support implicit Proper Tail Calls[^19]. This means every recursive step adds a frame to the Stack[^20]. Since the Stack size in Node is limited (unlike the Heap), recursion is a fatal choice for large iterations in JavaScript. However we can use the Trampoline Pattern[^21] to use recursion and implement FizzBuzz.
+Now that we're drunk on benchmarking power, what else can we benchmark? What about tail recursion, which is commonly very fast and optimized in other languages like Erlang? Unfortunately, JavaScript doesn't have Tail Call Optimization[^17], which is a common feature of Erlang or Haskell, and allows a recursive function to call itself without adding a new stack frame, effectively turning recursion into a loop. The V8 engine (and the TC39 committee[^18]) controversially decided not to support implicit Proper Tail Calls[^19]. This means every recursive step adds a frame to the Stack[^20]. Since the Stack size in Node is limited (unlike the Heap), recursion is a fatal choice for large iterations in JavaScript. However, we can use the Trampoline Pattern[^21] to use recursion and implement FizzBuzz.
 
 ```javascript
 const trampoline = (fn) => (...args) => {
@@ -267,7 +267,7 @@ const _fizzBuzzInternal = (n, current = 1, arr = new Array(n)) => {
 
 export const fizzBuzzRecursive = trampoline(_fizzBuzzInternal);
 ```
-This implementation is pretty much the same as the pre-allocated variant, but instead of using a for loop it uses recursion. The trampoline function is a higher-order function that takes a recursive function and returns a new function that can be called without worrying about hitting the maximum call stack size. Why does this work? The critical part is that we don't return a result in the `_fizzBuzzInternal` function, instead we return a new function. This prevents the common problem with recursion where the parent `_fizzBuzzInternal` call can't be removed from the stack until its child `_fizzBuzzInternal` completes, which also can't be removed from the stack until its child completes, and the loop goes on and on... until stack baloons. The `trampoline` is just a manager which executes the next function once the previous one finishes. This allows the stack to be continuously cleaned as the old `_fizzBuzzInternal` is removed and a new call to `_fizzBuzzInternal` is added to the stack.
+This implementation is pretty much the same as the pre-allocated variant, but instead of using a for loop, it uses recursion. The trampoline function is a higher-order function that takes a recursive function and returns a new function that can be called without worrying about hitting the maximum call stack size. Why does this work? The critical part is that we don't return a result in the `_fizzBuzzInternal` function; we return a new function. This prevents the common problem with recursion where the parent `_fizzBuzzInternal` call can't be removed from the stack until its child `_fizzBuzzInternal` completes, which also can't be removed from the stack until its child completes, and the loop goes on and on... until the stack balloons. The `trampoline` is just a manager that executes the next function once the previous one finishes. This allows the stack to be continuously cleaned as the old `_fizzBuzzInternal` is removed and a new call to `_fizzBuzzInternal` is added to the stack.
 
 Here's what a "standard" recursive implementation would look like without the trampoline:
 
@@ -285,7 +285,7 @@ const fizzBuzzRecursive = (n, current = 1, arr = new Array(n)) => {
 }
 ```
 
-What else could we try? Since we're playing with functional programming concepts, I remember reading about an interesting approach where mr. Pirog[^22] implemented a Domain-Specific Language in Haskell to solve FizzBuzz. I wanted to implement the same concept in JavaScript, just because it seems mad and it reminds me of university days when we learned about DSLs and how to write them.
+What else could we try? Since we're playing with functional programming concepts, I remember reading about an interesting approach where Mr. Pirog[^22] implemented a Domain-Specific Language in Haskell to solve FizzBuzz. I wanted to implement the same concept in JavaScript, just because it seems mad, and it reminds me of university days when we learned about DSLs and how to write them.
 
 ```javascript
 // The Identity (End of chain)
@@ -313,9 +313,9 @@ export const fizzBuzzDSL = (N) => {
 }
 ```
 
-What we're doing here is defining a DSL for FizzBuzz. The `identity` and `rule` functions are the building blocks of our DSL. The `identity` function is the simplest possible function that just returns the value passed to it. The `rule` function is a higher-order function that takes a divisor and a string, and returns a function that takes a continuation. The `program` is a composition of rules, where we first check for divisibility by 3, then by 5, and finally we have the identity at the end of the chain. You can think of it like an ellaborate function callback setup. The `identity` and `rule` are like programming keywords, similar to `if` or `for`, and then we compose then together into a program just like we would if and for statements, but in this case the keywords are functions and the final program (composition) is also another function. The `fizzBuzzDSL` function just iterates over numbers from 1 to N and applies the program to each number.
+What we're doing here is defining a DSL for FizzBuzz. The `identity` and `rule` functions are the building blocks of our DSL. The `identity` function is the simplest possible function that just returns the value passed to it. The `rule` function is a higher-order function that takes a divisor and a string, and returns a function that takes a continuation. The `program` is a composition of rules, where we first check for divisibility by 3, then by 5, and finally, we have the identity at the end of the chain. You can think of it as an elaborate function callback setup. The `identity` and `rule` are like programming keywords, similar to `if` or `for`, and then we compose them together into a program, just like we would compose if and for statements, but in this case, the keywords are functions, and the final program (composition) is also a function. The `fizzBuzzDSL` function just iterates over numbers from 1 to N and applies the program to each number.
 
-Ok, now that we've gotten a bit crazy with out implementations let's see if we can implement a variant that would actually be faster. Let's look at Node Addons[^23] which are a feature of Node.JS that allows us to write code in C++, Rust, and other languages and have that code executable from within JavaScript code. We'll use the napi-rs[^24] which is a Rust variant of Node Addon APIs. 
+Ok, now that we've gotten a bit crazy with our implementations, let's see if we can implement a variant that would actually be faster. Let's look at Node Addons[^23], which are a feature of Node.JS that allows us to write code in C++, Rust, and other languages and have that code executable from within JavaScript code. We'll use napi-rs[^24], which is a Rust variant of Node Addon APIs. 
 
 ```rust
 #[derive(Debug, Clone, PartialEq)]
@@ -366,7 +366,7 @@ pub fn fizz_buzz_rust(env: Env, n: i32) -> Result<JsObject> {
 }
 ```
 
-This is a pretty straightforward implementation of FizzBuzz in Rust using napi-rs. The `FizzBuzzValue`, `classify`, and `fizz_buzz_core` are just abstractions that make the code more idiomatic in Rust. The code is similar to the `fizzBuzzLCM` variant of the algorithm, and once compiled, can then be imported easily in JavaScript.
+This is a pretty straightforward implementation of FizzBuzz in Rust using napi-rs. The `FizzBuzzValue`, `classify`, and `fizz_buzz_core` are just abstractions that make the code more idiomatic in Rust. The code is similar to the `fizzBuzzLCM` variant of the algorithm, and once compiled, can be easily imported into JavaScript.
 
 ```javascript
 const { fizzBuzzRust } = require('./fizzbuzz_napi.node');
@@ -389,11 +389,11 @@ Let's benchmark all these implementations to see how they compare to previous va
 | DSL | 86.25 µs | 345.75 µs | 94.82 µs | 93.92 µs | 129.83 µs | 25.83 kb | 1.04 mb | 128.48 kb |
 | Rust | 645.17 µs | 994.29 µs | 652.35 µs | 653.71 µs | 675.42 µs | 183.83 kb | 328.66 kb | 255.76 kb |
 
-Predictably the Recursive and DSL variant are much slower than the Unrolled variant, even slower than the Naive variant. This is because Tail Call Optimization[^17] the Recursive variant has to deal with the overhead of a lot of stack allocations and function calls, similarly as the DSL variant. We can see that in their memory consumption which is higher than the other variants. Interestingly the average memory consumption of the DSL variant is much lower than the Recursive variant, event though on paper the DSL variant makes 3 to 4 function calls for each iteration of `N`, while the Recursive variant only makes one function call. What's going on? It has to do with Heap[^20] allocations. In the Recursive variants all of the `return () => _fizzBuzzInternal(n, current + 1, arr);` calls create function objects on the Heap, but in the DSL variant the `identity`, `rule`, and `program` are created once.
+Predictably, the Recursive and DSL variants are much slower than the Unrolled variant, even slower than the Naive variant. This is because, without Tail Call Optimization[^17], the Recursive variant has to deal with the overhead of a lot of stack allocations and function calls, similar to the DSL variant. We can see that in their memory consumption which is higher than the other variants. Interestingly, the average memory consumption of the DSL variant is much lower than the Recursive variant, even though on paper the DSL variant makes 3 to 4 function calls for each iteration of `N`, while the Recursive variant only makes one function call. What's going on? It has to do with Heap[^20] allocations. In the Recursive variant, all of the `return () => _fizzBuzzInternal(n, current + 1, arr);` calls create function objects on the Heap, but in the DSL variant, the `identity`, `rule`, and `program` are created once.
 
-What's also interesting is that the Rust variant to soo much slower than any other variant. One would expect Rust to be faster than JavaScript, but in this case the overhead of crossing the FFI[^25] barrier is so high that it completely overshadows any performance gains we would get from using Rust. This is a common problem when using native addons, and it's important to keep in mind that while native code can be faster, the overhead of calling into it can make it slower for small tasks. For larger tasks, the performance benefits of native code can outweigh the overhead, but for something as simple as FizzBuzz, it's not worth it.
+What's also interesting is that the Rust variant is so much slower than any other variant. One would expect Rust to be faster than JavaScript, but in this case, the overhead of crossing the FFI[^25] barrier is so high that it completely overshadows any performance gains we would get from using Rust. This is a common problem when using native addons, and it's important to keep in mind that while native code can be faster, the overhead of calling into it can make it slower for small tasks. For larger tasks, the performance benefits of native code can outweigh the overhead, but for something as simple as FizzBuzz, it's not worth it.
 
-Before we call is quits, could we optimize the FFI calls in the Rust implementation? One counter intuitive optimization we could try is that instead of returning a JavaScript compatible array we instead return a JSON[^26] string which JavaScript code can then efficiently parse. 
+Before we call it quits, could we optimize the FFI calls in the Rust implementation? One counterintuitive optimization we could try is that instead of returning a JavaScript-compatible array, we return a JSON[^26] string, which JavaScript code can then efficiently parse. 
 
 ```rust
 #[napi]
@@ -419,7 +419,7 @@ pub fn fizz_buzz_rust_json(n: i32) -> String {
 }
 ```
 
-This implementation still uses the `FizzBuzzValue`, `classify`, and `fizz_buzz_core` abstractions as the previous variant, but instead of returning a `JsObject` it returns a string buffer. In JavaScript it's called like so:
+This implementation still uses the `FizzBuzzValue`, `classify`, and `fizz_buzz_core` abstractions from the previous variant, but instead of returning a `JsObject`, it returns a string buffer. In JavaScript, it's called like so:
 
 ```javascript
 const { fizzBuzzRustJson } = require('./fizzbuzz_napi.node');
@@ -429,7 +429,7 @@ const result = JSON.parse(fizzBuzzRustJson(N));
 console.log(result);
 ```
 
-Let's see of this is actually faster than the previous Rust variant.
+Let's see if this is actually faster than the previous Rust variant.
 
 | Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
 |------|-----|-----|-----|-----|-----|---------|---------|---------|
@@ -443,7 +443,7 @@ Let's see of this is actually faster than the previous Rust variant.
 | Rust | 647.88 µs | 973.75 µs | 656.97 µs | 656.58 µs | 725.63 µs | 183.83 kb | 328.66 kb | 255.67 kb |
 | Rust (JSON) | 256.79 µs | 482.71 µs | 261.20 µs | 260.42 µs | 303.50 µs | 58.55 kb | 465.45 kb | 171.12 kb |
 
-Looks like the JSON variant is much faster than the previous Rust variant, although it's still significantly faster than any of the native JavaScript variants. The reason it's faster then the other Rust variant is that it only breaks the FFI barrier once in the end when `result` is returned while in the previous Rust variant the FFI barrier is broken twice for each iteration of `N`. Everytime the function calls `env.create_string`, `env.create_int32`, and `arr.set_element` it causes the V8 engine to allocate objects in Heap[^20] and pointers being sent back into Rust-land. The other reason the JSON variant works is because `JSON.parse` is such as common operation in JavaScript that the V8 engine has special optimizations[^27][^28] to execute it as efficiently as possible.
+Looks like the JSON variant is much faster than the previous Rust variant, although it's still significantly slower than any of the native JavaScript variants. The reason it's faster than the other Rust variant is that it only breaks the FFI barrier once at the end when the `result` is returned, while in the previous Rust variant, the FFI barrier is broken twice for each iteration of `N`. Every time the function calls `env.create_string`, `env.create_int32`, and `arr.set_element`, it causes the V8 engine to allocate objects on the Heap[^20] and pointers being sent back into Rust-land. The other reason the JSON variant works is that `JSON.parse` is such a common operation in JavaScript that the V8 engine has special optimizations[^27][^28] to execute it as efficiently as possible.
 
 I think we're done with all the madness now, we've implemented 8 different variants of FizzBuzz in JavaScript and Rust, and we've benchmarked them all to see how they compare. We've seen that the unrolled variant is the fastest in JavaScript, while the JSON variant is the fastest in Rust. We've also seen that the overhead of crossing the FFI barrier can make native code slower for small tasks, but for larger tasks, the performance benefits of native code can outweigh the overhead.
 
@@ -451,22 +451,22 @@ But wait, there's more!
 
 ## The Free Lunch
 
-There's one more potential optimization we can do. Until now we've been running our benchmarks on my local machine using Node.JS v24, but Node is constantly improving it's performance[^29] and now we also have Bun[^30] and Deno[^31] as great alternatives to the Node runtime. Let's compare various Node versions and Bun and Deno to see if we can speed up our algorithm even more, by simply using a different runtime. I was able to set up a GitHub action on my [fizzbuzz-js](https://github.com/ajdnik/fizzbuzz-js) repository which runs the same benchmark against Node v20, v22, v24, and v25, as well as the latest Bun and Deno variants. I won't include all the results in this article, if you want you can check them out on GitHub.
+There's one more potential optimization we can do. Until now, we've been running our benchmarks on my local machine using Node.JS v24, but Node is constantly improving its performance[^29], and now we also have Bun[^30] and Deno[^31] as great alternatives to the Node runtime. Let's compare various Node versions and Bun and Deno to see if we can speed up our algorithm even more by simply using a different runtime. I was able to set up a GitHub action on my [fizzbuzz-js](https://github.com/ajdnik/fizzbuzz-js) repository, which runs the same benchmark against Node v20, v22, v24, and v25, as well as the latest Bun and Deno variants. I won't include all the results in this article; if you want, you can check them out on GitHub.
 
 
 Here's what I saw in the results that was interesting:
 
-- First off, by simply switching to Bun instead of using Node.JS we can get another 65% speed improvement when running `fizzBuzzUnrolled`. This is a huge improvement and it shows how much work the Bun team has done to optimize their runtime for performance.
+- First off, by simply switching to Bun instead of using Node.JS we can get another 65% speed improvement when running `fizzBuzzUnrolled`. This is a huge improvement, and it shows how much work the Bun team has done to optimize their runtime for performance.
 - When comparing different runtimes Bun is the outright winner in raw speed and memory consumption, while Deno and Node are pretty much neck and neck, with Deno being slightly faster in some cases and Node being slightly faster in others.
-- When comparing different Node versions we can see a steady improvement in performance with each new version. Interestingly, Node 25 shows a slight regression compared to Node 24. This is common in newer major versions before minor patch optimizations smooth things out.
+- When comparing different Node versions, we can see a steady improvement in performance with each new version. Interestingly, Node 25 shows a slight regression compared to Node 24. This is common in newer major versions before minor patch optimizations smooth things out.
 
 ## Conclusion
 
-In this article we explored the FizzBuzz problem and implemented it in various ways in JavaScript and Rust. We started with a naive implementation and then optimized it step by step, using different techniques like pre-allocation, loop unrolling, recursion, and even a DSL. We also explored the use of native addons to see if we could get even more performance out of our implementation. Finally, we compared different runtimes to see if we could get a free performance boost just by switching to a different runtime.
+In this article, we explored the FizzBuzz problem and implemented it in various ways in JavaScript and Rust. We started with a naive implementation and then optimized it step by step, using different techniques like pre-allocation, loop unrolling, recursion, and even a DSL. We also explored the use of native addons to see if we could get even more performance out of our implementation. Finally, we compared different runtimes to see if we could get a free performance boost just by switching to a different runtime.
 
 What we learned is that there are many ways to optimize a simple algorithm like FizzBuzz, and that the choice of runtime can have a significant impact on performance. We also learned that while native code can be faster, the overhead of calling into it can make it slower for small tasks, but for larger tasks, the performance benefits of native code can outweigh the overhead.
 
-If you're interested in code, or have any other variants you'd like to include into the benchmark, please check out my GitHub repository [fizzbuzz-js](https://github.com/ajdnik/fizzbuzz-js).
+If you're interested in the code or have any other variants you'd like to include in the benchmark, please check out my GitHub repository [fizzbuzz-js](https://github.com/ajdnik/fizzbuzz-js).
 
 [^1]: Wikipedia. *Fizz buzz* [https://en.wikipedia.org/wiki/Fizz_buzz](https://en.wikipedia.org/wiki/Fizz_buzz)
 [^2]: InterviewBit. *FizzBuzz* [https://www.interviewbit.com/problems/fizzbuzz/](https://www.interviewbit.com/problems/fizzbuzz/)
