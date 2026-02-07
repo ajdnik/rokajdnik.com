@@ -24,7 +24,7 @@ const { frontmatter, readTime } = Astro.props;
   )}
   <article class="center">
     <Title frontmatter={frontmatter} readTime={readTime} />
-    <section class="markdown">
+    <section class:list={["markdown", { "no-line-numbers": frontmatter.codeLineNumbers === false }]}>
       <slot />
     </section>
   </article>

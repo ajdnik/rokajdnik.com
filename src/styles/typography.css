@@ -118,7 +118,7 @@
 
     /* quote */
     blockquote {
-      @apply bg-foreground/13 ring-accent text-foreground my-3 px-6 py-3 opacity-80 ring-1;
+      @apply border-l-4 border-accent text-foreground my-6 pl-6 pr-4 py-4 italic opacity-85;
     }
 
     /* bold */
@@ -137,12 +137,43 @@
     }
 
     /* code */
+    .code-filename {
+      @apply bg-foreground/5 text-foreground/50 mt-6 mb-0 flex items-center gap-3 rounded-t-xl px-4 py-2.5 font-mono text-sm;
+      border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+      border-bottom: none;
+    }
+    .code-filename::before {
+      content: "";
+      @apply inline-block shrink-0;
+      width: 52px;
+      height: 12px;
+      background-image:
+        radial-gradient(circle at 6px 6px, #ec6a5e 5px, transparent 5px),
+        radial-gradient(circle at 26px 6px, #f4bf4f 5px, transparent 5px),
+        radial-gradient(circle at 46px 6px, #61c554 5px, transparent 5px);
+    }
+    .code-filename + .astro-code {
+      @apply mt-0 rounded-t-none;
+    }
     .astro-code {
-      @apply ring-accent my-6 p-6 ring-1;
+      @apply my-6 rounded-xl py-4;
+      border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+      counter-reset: line;
     }
     .astro-code code {
       @apply bg-inherit p-0 font-medium;
+      display: grid;
     }
+    .astro-code code .line {
+      @apply px-4 leading-relaxed;
+      display: inline-block;
+    }
+    .astro-code code .line::before {
+      @apply text-foreground/30 mr-6 inline-block min-w-6 text-right text-sm;
+      counter-increment: line;
+      content: counter(line);
+    }
+
     code {
       @apply bg-foreground/13 dark:bg-foreground/18 text-foreground rounded-lg px-2 py-0.5 font-mono text-base leading-relaxed opacity-90;
     }
@@ -209,5 +240,34 @@
     hr {
       @apply border-foreground/26 mx-13 mt-13 mb-3;
     }
+
+
+    /* footnotes */
+    sup a[data-footnote-ref] {
+      @apply text-accent no-underline font-semibold text-sm hover:underline;
+    }
+    .footnotes {
+      @apply mt-13 pt-6 border-t border-foreground/26;
+    }
+    .footnotes h2 {
+      @apply sr-only;
+    }
+    .footnotes ol {
+      @apply list-decimal space-y-2 px-8;
+    }
+    .footnotes li {
+      @apply text-base opacity-80;
+    }
+    .footnotes a[data-footnote-backref] {
+      @apply text-accent no-underline ml-1;
+    }
+  }
+
+  /* hide line numbers when disabled */
+  .markdown.no-line-numbers .astro-code code .line::before {
+    content: none;
+  }
+  .markdown.no-line-numbers .astro-code code .line {
+    @apply px-6;
   }
 }

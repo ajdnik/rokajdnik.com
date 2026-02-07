@@ -5,8 +5,9 @@ description: "Exploring the source code and game architecture of Zork, one of th
 date: 2020-07-05
 author: "Rok Ajdnik"
 tags: ["gaming", "programming", "retro"]
-featured: true
+featured: false
 editable: false
+codeLineNumbers: false
 canonical: "https://medium.com/swlh/zork-the-great-inner-workings-b68012952bdc"
 cover:
   src: "/images/blog/zork-the-great-inner-workings/cover.webp"
@@ -26,7 +27,7 @@ Before delving into the architecture and source code it's worth noting that Zork
 
 The first version of Zork was written from 1977 to 1979 and was developed in [MDL](https://en.wikipedia.org/wiki/MDL_(programming_language)), which was a functional language similar to [LISP](https://en.wikipedia.org/wiki/Lisp_(programming_language)). The game was developed exclusively for the [PDP-10](https://en.wikipedia.org/wiki/PDP-10) mainframe computer.
 
-In 1978 some "madman"¹ ported the source code into [FORTRAN](https://en.wikipedia.org/wiki/Fortran) which is an imperative programming language. That version was initially developed for the [PDP-11](https://en.wikipedia.org/wiki/PDP-11) mainframe but got compiled on numerous other systems since FORTRAN was much more portable than MDL.
+In 1978 some "madman"[^1] ported the source code into [FORTRAN](https://en.wikipedia.org/wiki/Fortran) which is an imperative programming language. That version was initially developed for the [PDP-11](https://en.wikipedia.org/wiki/PDP-11) mainframe but got compiled on numerous other systems since FORTRAN was much more portable than MDL.
 
 In 1981 the [original Zork developers](https://en.wikipedia.org/wiki/Implementer_(video_games)) decided to create a game development company and distribute Zork as their first game. Due to limitations, which you can read about in the first article, they had to separate Zork into three games, Zork I, II, and III. They also invented their own programming language [ZIL](http://www.ifwiki.org/index.php/ZIL) which was similar to MDL but was more portable which meant they were able to run Zork on [TRS-80](https://en.wikipedia.org/wiki/TRS-80) and [Apple II](https://en.wikipedia.org/wiki/Apple_II) computers.
 
@@ -236,9 +237,9 @@ There is a small mailbox here.
 What a (ahem!) strange idea.
 ```
 
-To me, especially considering the problems in the present gaming culture², the command is an interesting window into the gaming culture of the past and how this cultural behavior got passed on to the newer generations and potentiated.
+To me, especially considering the problems in the present gaming culture[^2], the command is an interesting window into the gaming culture of the past and how this cultural behavior got passed on to the newer generations and potentiated.
 
-One piece of source code I have to address is something the gaming community already discovered back in 2017³. Back then they didn't have access to the original ZIL code so they used the decompiled Z-code to decode this trolling logic. The game has an interesting inventory management logic. Essentially whenever a player tries to put an object into their inventory the [*ITAKE*](https://github.com/historicalsource/zork1/blob/master/gverbs.zil#L1900) function is executed.
+One piece of source code I have to address is something the gaming community already discovered back in 2017[^3]. Back then they didn't have access to the original ZIL code so they used the decompiled Z-code to decode this trolling logic. The game has an interesting inventory management logic. Essentially whenever a player tries to put an object into their inventory the [*ITAKE*](https://github.com/historicalsource/zork1/blob/master/gverbs.zil#L1900) function is executed.
 
 <figure>
   <img src="/images/blog/zork-the-great-inner-workings/itake.webp" alt="Games TAKE logic" />
@@ -290,10 +291,6 @@ The entire Zork I codebase consists of more than 15k lines of code so there are 
 
 Exploring and examining the Zork I source code gave me the knowledge and confidence needed to port the game into a modern programming language. I've started porting the game into [Golang](https://en.wikipedia.org/wiki/Go_(programming_language)) and you can check out my project on [GitHub](https://github.com/ajdnik/gozork). It's still a work in progress and while I've ported the parser and the syntax I still have a lot of work to do. After I finish porting it to Golang I might rebuild the game in [React](https://en.wikipedia.org/wiki/React_(web_framework))/[Redux](https://en.wikipedia.org/wiki/Redux_(JavaScript_library)), I'm curious if a game such as this could be built entirely in a Redux architecture.
 
----
-
-## References
-
-1. Tim Anderson. New Zork Times, pages 6–7, 11. (Winter 1985). *The History of Zork, First in a Series*
-2. Mark Melnychuk. Regina Leader-Post. (Nov 25, 2014). *The word rape is sadly engrained in gaming culture* [https://leaderpost.com/entertainment/the-word-rape-is-sadly-engrained-in-gaming-culture](https://leaderpost.com/entertainment/the-word-rape-is-sadly-engrained-in-gaming-culture)
-3. Logan Booker. Kotaku. (August 28, 2017). *Zork Source Code Is A Master Class In Game Developer Trolling* [https://www.kotaku.com.au/2017/08/zork-source-code-is-a-master-class-in-game-developer-trolling/](https://www.kotaku.com.au/2017/08/zork-source-code-is-a-master-class-in-game-developer-trolling/)
+[^1]: Tim Anderson. New Zork Times, pages 6–7, 11. (Winter 1985). *The History of Zork, First in a Series*
+[^2]: Mark Melnychuk. Regina Leader-Post. (Nov 25, 2014). *The word rape is sadly engrained in gaming culture* [https://leaderpost.com/entertainment/the-word-rape-is-sadly-engrained-in-gaming-culture](https://leaderpost.com/entertainment/the-word-rape-is-sadly-engrained-in-gaming-culture)
+[^3]: Logan Booker. Kotaku. (August 28, 2017). *Zork Source Code Is A Master Class In Game Developer Trolling* [https://www.kotaku.com.au/2017/08/zork-source-code-is-a-master-class-in-game-developer-trolling/](https://www.kotaku.com.au/2017/08/zork-source-code-is-a-master-class-in-game-developer-trolling/)
