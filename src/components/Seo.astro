@@ -13,10 +13,19 @@ const {
   title = "Rok Ajdnik",
   description = "Personal blog and portfolio of Rok Ajdnik",
   author = "Rok Ajdnik",
-  canonicalURL = new URL(Astro.url.pathname, Astro.url),
+  canonicalURL: rawCanonicalURL,
   pubDate,
   image,
 } = Astro.props;
+
+const canonicalURL = rawCanonicalURL
+  ? new URL(
+      rawCanonicalURL.startsWith("http")
+        ? rawCanonicalURL
+        : `/${rawCanonicalURL.replace(/^\//, "")}`,
+      Astro.site,
+    ).href
+  : new URL(Astro.url.pathname, Astro.site).href;
 
 const absoluteImageUrl = image ? new URL(image, Astro.site).href : undefined;
 ---
