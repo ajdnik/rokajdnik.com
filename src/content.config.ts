@@ -19,6 +19,15 @@ const blogs = defineCollection({
       alt: z.string(),
       caption: z.string().optional(),
     }).optional(),
+    series: z.object({
+      id: z.string(),
+      title: z.string(),
+      order: z.number(),
+      cover: z.object({
+        src: image(),
+        alt: z.string(),
+      }).optional(),
+    }).optional(),
     canonical: z.string().url().optional(),
   }),
 });

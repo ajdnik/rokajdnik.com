@@ -5,7 +5,8 @@ import TableOfContents from "../components/TableOfContents";
 import BaseLayout from "./BaseLayout.astro";
 import Title from "../components/Title.astro";
 import Lightbox from "../components/Lightbox.astro";
-const { frontmatter, readTime } = Astro.props;
+import SeriesNav from "../components/SeriesNav.astro";
+const { frontmatter, readTime, series } = Astro.props;
 ---
 
 <BaseLayout
@@ -27,6 +28,7 @@ const { frontmatter, readTime } = Astro.props;
   )}
   <article class="center">
     <Title frontmatter={frontmatter} readTime={readTime} />
+    <SeriesNav series={series} />
     <section class:list={["markdown", { "no-line-numbers": frontmatter.codeLineNumbers === false }]}>
       <slot />
     </section>

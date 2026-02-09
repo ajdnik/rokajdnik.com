@@ -1,7 +1,26 @@
 ---
 import { render, getCollection } from "astro:content";
+import type { ImageMetadata } from "astro";
 import BlogLayout from "../layouts/BlogLayout.astro";
 import type { BlogType } from "../content.config";
+
+type SeriesEntry = {
+  slug: string;
+  title: string;
+  order: number;
+};
+
+type SeriesInfo = {
+  id: string;
+  title: string;
+  order: number;
+  total: number;
+  currentSlug: string;
+  cover: { src: ImageMetadata; alt: string } | null;
+  first: SeriesEntry | null;
+  prev: SeriesEntry | null;
+  next: SeriesEntry | null;
+};
 
 export async function getStaticPaths() {
   const blogs: BlogType[] = await getCollection("blogs");
@@ -11,16 +30,59 @@ export async function getStaticPaths() {
 
     return { ...blog, data: { ...blog.data, readTime: minutes } };
   });
-  return blogs_.map((blog: BlogType) => ({
-    params: { slug: blog.data.slug },
-    props: { blog },
-  }));
+
+  const seriesGroups = new Map<string, BlogType[]>();
+  for (const blog of blogs_) {
+    if (!blog.data.series) continue;
+    const id = blog.data.series.id;
+    const group = seriesGroups.get(id) ?? [];
+    group.push(blog);
+    seriesGroups.set(id, group);
+  }
+
+  for (const group of seriesGroups.values()) {
+    group.sort((a, b) => {
+      const orderA = a.data.series?.order ?? 0;
+      const orderB = b.data.series?.order ?? 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.data.date.getTime() - b.data.date.getTime();
+    });
+  }
+
+  return blogs_.map((blog: BlogType) => {
+    let series: SeriesInfo | null = null;
+    if (blog.data.series) {
+      const group = seriesGroups.get(blog.data.series.id) ?? [];
+      const index = group.findIndex((entry) => entry.data.slug === blog.data.slug);
+      const first = group[0];
+      const prev = index > 0 ? group[index - 1] : null;
+      const next = index >= 0 && index < group.length - 1 ? group[index + 1] : null;
+      const coverSource = group.find((entry) => entry.data.series?.cover)?.data.series?.cover ?? null;
+
+      series = {
+        id: blog.data.series.id,
+        title: blog.data.series.title,
+        order: blog.data.series.order,
+        total: group.length,
+        currentSlug: blog.data.slug,
+        cover: coverSource ? { src: coverSource.src, alt: coverSource.alt } : null,
+        first: first ? { slug: first.data.slug, title: first.data.title, order: first.data.series?.order ?? 0 } : null,
+        prev: prev ? { slug: prev.data.slug, title: prev.data.title, order: prev.data.series?.order ?? 0 } : null,
+        next: next ? { slug: next.data.slug, title: next.data.title, order: next.data.series?.order ?? 0 } : null,
+      };
+    }
+
+    return {
+      params: { slug: blog.data.slug },
+      props: { blog, series },
+    };
+  });
 }
 
-const { blog } = Astro.props;
+const { blog, series } = Astro.props;
 const { Content } = await render(blog);
 ---
 
-<BlogLayout frontmatter={blog.data} readTime={blog.data.readTime}>
+<BlogLayout frontmatter={blog.data} readTime={blog.data.readTime} series={series}>
   <Content />
 </BlogLayout>
