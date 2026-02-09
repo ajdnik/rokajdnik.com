@@ -280,4 +280,10 @@
   .markdown.no-line-numbers .astro-code code .line {
     @apply px-6;
   }
+  .markdown.no-line-numbers .with-line-numbers .astro-code code .line::before {
+    content: counter(line);
+  }
+  .markdown.no-line-numbers .with-line-numbers .astro-code code .line {
+    @apply px-4;
+  }
 }

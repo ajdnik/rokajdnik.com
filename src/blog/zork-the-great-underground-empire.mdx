@@ -28,7 +28,6 @@ import staff from '../assets/images/blog/zork-the-great-underground-empire/staff
 import pdp10 from '../assets/images/blog/zork-the-great-underground-empire/pdp-10.webp';
 import personalSoftware from '../assets/images/blog/zork-the-great-underground-empire/personal-software.webp';
 import bestsellerList from '../assets/images/blog/zork-the-great-underground-empire/bestseller-list.webp';
-import mdl from '../assets/images/blog/zork-the-great-underground-empire/mdl.webp';
 import workflow from '../assets/images/blog/zork-the-great-underground-empire/workflow.webp';
 
 I was introduced to Zork in 2016 when I read [Ready Player One](https://en.wikipedia.org/wiki/Ready_Player_One) by Ernest Cline. In the book, the protagonist Wade Watts goes to the planet Frobozz where he must collect all 19 trophies, put them in the trophy case, and blow a whistle found in a Cap'n Crunch cereal box to obtain the Jade key. I know, bear with me, by the end of this article, you'll understand what Frobozz, trophies, and the trophy case have to do with Zork. As for the Cap'n Crunch whistle and the Jade key, those things are outside the scope of this article. The whistle is a reference to [John Draper](https://en.wikipedia.org/wiki/John_Draper) and the [Phreaking](https://en.wikipedia.org/wiki/Phreaking) culture. And Jade key is a part of the book. Ready Player One is a ballad to 80s nostalgia and Zork definitely fits the bill. It was one of the most influential games of the 80s and in this article, I'll explore its history and its effect on the gaming world. If you're interested in the game's architecture and source code you can read my second article on this topic [Zork: The Great Inner Workings](https://medium.com/@r.ajdnik/zork-the-great-inner-workings-b68012952bdc).
@@ -172,10 +171,26 @@ The Zork series was very successful. Infocom sold more than 250,000 copies of th
 
 ## Development
 
-<figure>
-  <Image src={mdl} alt="The original 1977 implementation of the Grue function in MDL" />
-  <figcaption>The original 1977 implementation of the Grue function in MDL.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```clojure
+<DEFINE GRUE-FUNCTION ("AUX" (PRSA <1 ,PRSVEC>))
+  #DECL ((PRSA) VERB)
+  <COND (<==? .PRSA ,EXAMI!-WORDS>
+         <TELL
+"The grue is a sinister, lurking presence in the dark places of the
+earth. Its favorite diet is adventurers, but its insatiable
+appetite is tempered by its fear of light. No grue has ever been
+seen by the light of day, and few have survived its fearsome jaws
+to tell the tale.">)
+        (<==? .PRSA ,FIND!-WORDS>
+         <TELL
+"There is no grue here, but I'm sure there is at least one lurking
+in the darkness nearby. I wouldn't let my light go out if I were
+you!">)>>
+```
+
+</div>
 
 The original Zork was written using [MDL](https://en.wikipedia.org/wiki/MDL_(programming_language)) (More Datatypes than Lisp) which was created in 1971 as a replacement for [Lisp](https://en.wikipedia.org/wiki/Lisp_(programming_language)). Suffice to say, it didn't. The game was developed for the aforementioned PDP-10 mainframe computer which the creators had access to at MIT. The initial version of the game actually consisted of Zork I, II, and III as well as some storyline that was later released in another video game [Sorcerer](https://en.wikipedia.org/wiki/Sorcerer_(video_game)). They were able to build such a big game because PDP-10 had 1152 kilobytes of memory while the TRS-80 and Apple II, which were machines built for home use, typically had 16 kilobytes of memory. This version of the game also got ported to [Fortran](https://en.wikipedia.org/wiki/Fortran) which meant it was able to run on a [PDP-11](https://en.wikipedia.org/wiki/PDP-11).
 
