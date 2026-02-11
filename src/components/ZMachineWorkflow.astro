@@ -1,0 +1,409 @@
+---
+import computerImage from "../assets/images/blog/zork-the-great-underground-empire/computer.webp";
+---
+
+<div class="z-machine-workflow">
+  <div class="workflow-step zil-code">
+    <h3>1. ZIL Code</h3>
+    <pre class="workflow-code"><code><span class="code-line">&lt;ROUTINE READLINE ()</span>
+<span class="code-line">  &lt;PRINTI "&gt; "&gt;</span>
+<span class="code-line">  &lt;PUTB ,READBUF 0 ,READBUF-SIZE&gt;</span>
+<span class="code-line">  &lt;READ ,READBUF ,LEXBUF&gt;</span>
+<span class="code-line">  &lt;COND (&lt;==? &lt;GETB ,READBUF O&gt; 0&gt;</span>
+<span class="code-line">    &lt;TELL "I beg your pardon?" CR&gt;</span>
+<span class="code-line">    &lt;AGAIN&gt;)&gt;</span>
+<span class="code-line">  &lt;REPEAT ((I 1))</span>
+<span class="code-line">    &lt;COND (&lt;OR &lt;==? .I ,READBUF-SIZE&gt; &lt;ZERO? &lt;GETB ,READBUF .I&gt;&gt;&gt;</span>
+<span class="code-line">      &lt;PUTB ,READBUF 0 &lt;- .I 1&gt;&gt;</span>
+<span class="code-line">      &lt;RETURN&gt;)&gt;</span>
+<span class="code-line">    &lt;SET I &lt;+ .I 1&gt;&gt;&gt;</span>
+<span class="code-line">  &lt;RTRUE&gt;&gt;</span>
+</code></pre>
+  </div>
+
+  <div class="workflow-arrow-container compile-arrow">
+    <div class="arrow-line horizontal-line"></div>
+    <span class="arrow-text">2. Compile</span>
+  </div>
+
+  <div class="workflow-step z-code">
+    <h3>3. Z-Code</h3>
+    <pre class="workflow-code"><code><span class="code-line">      .FUNCT READLINE,I</span>
+<span class="code-line">?L0:  PRINTI "&gt; "</span>
+<span class="code-line">      PUTB READBUF,0,READBUF_SIZE</span>
+<span class="code-line">      READ READBUF,LEXBUF</span>
+<span class="code-line">      GETB READBUF,0 &gt;STACK</span>
+<span class="code-line">      ZERO? STACK \\?L1</span>
+<span class="code-line">      PRINTI "I beg your pardon?"</span>
+<span class="code-line">      CRLF</span>
+<span class="code-line">      JUMP ?L0</span>
+<span class="code-line">?L1:  SET 'I,1</span>
+<span class="code-line">?L6:  EQUAL? I,READBUF-SIZE /?L10</span>
+<span class="code-line">      GETB READBUF,I &gt;STACK</span>
+<span class="code-line">      ZERO? STACK \\?L8</span>
+<span class="code-line">?L10: SUB I,1 &gt;STACK</span>
+<span class="code-line">      PUTB READBUF,0,STACK</span>
+<span class="code-line">      RTRUE</span>
+<span class="code-line">?L8:  INC 'I</span>
+<span class="code-line">      JUMP ?L6</span>
+</code></pre>
+  </div>
+
+  <!-- Desktop Interpreter Flow -->
+  <div class="workflow-desktop-interpreter-flow">
+    <div class="workflow-arrow-container vertical-arrow-desktop">
+      <div class="arrow-line vertical-line"></div>
+      <span class="arrow-text">4. Interpreter</span>
+    </div>
+    <div class="workflow-computer">
+      <img class="workflow-computer-image" src={computerImage.src} alt="Computer" loading="lazy" />
+    </div>
+  </div>
+
+  <!-- Mobile Interpreter Flow -->
+  <div class="workflow-mobile-interpreter-flow md:hidden">
+    <div class="workflow-arrow-container vertical-arrow-mobile">
+      <div class="arrow-line vertical-line"></div>
+      <span class="arrow-text">4. Interpreter</span>
+    </div>
+    <div class="workflow-computer">
+      <img class="workflow-computer-image" src={computerImage.src} alt="Computer" loading="lazy" />
+    </div>
+  </div>
+</div>
+
+<style>
+  .z-machine-workflow {
+    display: flex;
+    flex-direction: column; /* Default vertical layout for mobile */
+    align-items: center;
+    gap: 1.1rem;
+    padding: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    background-color: color-mix(in srgb, var(--color-background) 94%, var(--color-foreground) 6%);
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--color-foreground) 8%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 12px 12px;
+    background-position: 0 0;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    box-shadow: none;
+  }
+
+  .workflow-step, .workflow-computer {
+    padding: 0.4rem 1.5rem 0.9rem;
+    border: none;
+    border-radius: 0;
+    text-align: center;
+    min-width: 180px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  .workflow-step {
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.5rem;
+    background-color: color-mix(in srgb, var(--color-background) 50%, transparent);
+  }
+
+  .workflow-step {
+    text-align: left;
+  }
+
+  .workflow-step h3 {
+    margin: 0;
+    padding-top: 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-foreground);
+  }
+
+
+  .workflow-code {
+    margin: 0.4rem 0 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.35rem;
+    background: color-mix(in srgb, var(--color-background) 94%, var(--color-foreground) 6%);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--color-foreground) 85%, transparent);
+    text-align: left;
+    white-space: pre;
+    overflow: hidden;
+    opacity: 1;
+    counter-reset: code-line;
+  }
+
+  .workflow-code code {
+    background: transparent !important;
+    color: inherit;
+    opacity: 1;
+    font-size: 0.65rem;
+    line-height: 1;
+    padding: 0;
+    font-weight: 400;
+  }
+
+  .workflow-code .code-line {
+    display: block;
+    counter-increment: code-line;
+  }
+
+  .workflow-code .code-line::before {
+    content: counter(code-line);
+    display: inline-block;
+    min-width: 1.5ch;
+    margin-right: 0.5rem;
+    color: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+    text-align: right;
+  }
+
+  .workflow-computer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .workflow-computer-image {
+    width: 150px;
+    max-width: 80%;
+    height: auto;
+    display: block;
+  }
+
+  .arrow-text {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  /* --- Arrow Containers --- */
+  .workflow-arrow-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    gap: 0.5rem; /* Gap between text and line */
+  }
+
+  .arrow-line {
+    background-color: color-mix(in srgb, var(--color-foreground) 70%, transparent);
+  }
+
+  .horizontal-line {
+    width: 3rem; /* Length of horizontal line */
+    height: 2px;
+    position: relative;
+  }
+
+  .horizontal-line::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid color-mix(in srgb, var(--color-foreground) 70%, transparent);
+  }
+
+  .vertical-line {
+    width: 2px;
+    height: 5.2rem; /* Length of vertical line */
+    position: relative;
+  }
+
+  .vertical-line::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid color-mix(in srgb, var(--color-foreground) 70%, transparent);
+  }
+
+  /* --- Mobile Layout --- */
+  .workflow-desktop-interpreter-flow {
+    display: none;
+  }
+  .workflow-mobile-interpreter-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .workflow-arrow-container.vertical-arrow-mobile {
+    flex-direction: column;
+    height: 3.6rem; /* Space for arrow text and line */
+    position: relative;
+  }
+
+  .z-machine-workflow > .workflow-step {
+    margin-bottom: 0;
+  }
+
+  .workflow-arrow-container.compile-arrow {
+    flex-direction: column;
+  }
+
+  .workflow-arrow-container.compile-arrow .horizontal-line {
+    width: 2px;
+    height: 3.2rem;
+  }
+
+  .workflow-arrow-container.compile-arrow .arrow-text {
+    position: absolute;
+    left: -0.5rem;
+    top: 50%;
+    transform: translate(-100%, -50%);
+    order: 0;
+    margin: 0;
+  }
+
+  .workflow-arrow-container.vertical-arrow-mobile .arrow-text {
+    position: absolute;
+    left: -0.5rem;
+    top: 50%;
+    transform: translate(-100%, -50%);
+    order: 0;
+    margin: 0;
+  }
+
+  /* --- Desktop Layout --- */
+  @media (min-width: 768px) {
+    .z-machine-workflow {
+      display: grid;
+      grid-template-columns: auto minmax(6rem, 1fr) auto;
+      grid-template-rows: auto auto;
+      column-gap: 1rem;
+      row-gap: 1.5rem;
+      justify-content: center;
+      justify-items: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .workflow-step,
+    .workflow-computer {
+      width: 280px;
+      max-width: none;
+    }
+
+    /* Hide mobile interpreter flow on desktop */
+    .workflow-mobile-interpreter-flow {
+        display: none;
+    }
+
+    /* Position items in a 2-row desktop grid */
+    .workflow-step.zil-code {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: end;
+    }
+
+    .workflow-arrow-container.compile-arrow {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: stretch;
+      align-self: center;
+      position: relative;
+    }
+
+    .workflow-step.z-code {
+      grid-column: 3;
+      grid-row: 1;
+      justify-self: start;
+    }
+
+    /* Show desktop interpreter flow below Z-Code */
+    .workflow-desktop-interpreter-flow {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        grid-column: 3;
+        grid-row: 2;
+        justify-self: start;
+    }
+
+    /* Compile Arrow (Horizontal) */
+    .workflow-arrow-container:not(.vertical-arrow-mobile):not(.vertical-arrow-desktop) { /* Target the compile arrow specifically */
+      flex-direction: column;
+      width: 100%;
+      height: auto;
+      margin: 0;
+    }
+
+    .workflow-arrow-container.compile-arrow .horizontal-line {
+      width: 100%;
+      height: 2px;
+    }
+
+    .workflow-arrow-container.compile-arrow .arrow-text {
+      position: absolute;
+      left: 50%;
+      top: auto;
+      bottom: -2.1rem;
+      transform: translateX(-50%);
+      text-align: center;
+      background-color: transparent;
+      padding: 0;
+    }
+
+    .workflow-arrow-container.compile-arrow .horizontal-line::after {
+      left: auto;
+      bottom: auto;
+      top: 50%;
+      right: -6px;
+      transform: translateY(-50%);
+      border-left: 6px solid color-mix(in srgb, var(--color-foreground) 70%, transparent);
+      border-right: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+    }
+
+    /* Interpreter Desktop Vertical Arrow */
+    .workflow-arrow-container.vertical-arrow-desktop {
+        flex-direction: column; /* Text above line */
+        width: auto;
+        height: auto;
+        margin: 0;
+        position: relative;
+    }
+
+    .workflow-arrow-container.vertical-arrow-desktop .arrow-text {
+        position: absolute;
+        left: -0.5rem;
+        top: 50%;
+        transform: translate(-100%, -50%);
+        order: 0;
+        margin: 0;
+    }
+
+    .workflow-computer {
+      margin-left: 0; /* Reset */
+    }
+  }
+</style>

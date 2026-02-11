@@ -22,13 +22,14 @@ cover:
 canonical: "https://medium.com/@r.ajdnik/zork-the-great-underground-empire-cda94623861c"
 ---
 import { Image } from 'astro:assets';
+import ZMachineWorkflow from '../components/ZMachineWorkflow.astro';
 import appleII from '../assets/images/blog/zork-the-great-underground-empire/apple-ii.webp';
 import map from '../assets/images/blog/zork-the-great-underground-empire/map.webp';
 import staff from '../assets/images/blog/zork-the-great-underground-empire/staff.webp';
 import pdp10 from '../assets/images/blog/zork-the-great-underground-empire/pdp-10.webp';
 import personalSoftware from '../assets/images/blog/zork-the-great-underground-empire/personal-software.webp';
 import bestsellerList from '../assets/images/blog/zork-the-great-underground-empire/bestseller-list.webp';
-import workflow from '../assets/images/blog/zork-the-great-underground-empire/workflow.webp';
+
 
 I was introduced to Zork in 2016 when I read [Ready Player One](https://en.wikipedia.org/wiki/Ready_Player_One) by Ernest Cline. In the book, the protagonist Wade Watts goes to the planet Frobozz where he must collect all 19 trophies, put them in the trophy case, and blow a whistle found in a Cap'n Crunch cereal box to obtain the Jade key. I know, bear with me, by the end of this article, you'll understand what Frobozz, trophies, and the trophy case have to do with Zork. As for the Cap'n Crunch whistle and the Jade key, those things are outside the scope of this article. The whistle is a reference to [John Draper](https://en.wikipedia.org/wiki/John_Draper) and the [Phreaking](https://en.wikipedia.org/wiki/Phreaking) culture. And Jade key is a part of the book. Ready Player One is a ballad to 80s nostalgia and Zork definitely fits the bill. It was one of the most influential games of the 80s and in this article, I'll explore its history and its effect on the gaming world. If you're interested in the game's architecture and source code you can read my second article on this topic [Zork: The Great Inner Workings](https://medium.com/@r.ajdnik/zork-the-great-inner-workings-b68012952bdc).
 
@@ -199,7 +200,7 @@ In 1979, when they decided to monetize on their creation, they had to solve the 
 The idea behind Z-machine was to define an ideal machine, essentially a set of imaginary [opcodes](https://en.wikipedia.org/wiki/Opcode), that could run Zork in a space-effective way. Then to write an interpreter on a real machine that could execute those opcodes. And lastly, to implement a compiler that could compile ZIL code into those opcodes (called Z-code). They took a lot of inspiration from [Pascal's p-code](https://en.wikipedia.org/wiki/P-code_machine) which was a similar implementation of a virtual machine for [Pascal](https://en.wikipedia.org/wiki/Pascal_(programming_language)).
 
 <figure>
-  <Image src={workflow} alt="Z-machine development workflow" />
+  <ZMachineWorkflow />
   <figcaption>Z-machine development workflow. Apple II icon copyright of <a href="https://www.iconfinder.com/icons/92434/apple_icon">Ilie Ciorba</a>.</figcaption>
 </figure>
 
