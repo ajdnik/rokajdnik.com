@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import rehypeTableWrapper from "./src/plugins/rehype-table-wrapper.mjs";
 import lightTheme from "./src/themes/light.json";
 import darkTheme from "./src/themes/dark.json";
+import zilGrammar from "./src/themes/zil.tmLanguage.json";
 
 // https://astro.build/config
 export default defineConfig({
@@ -28,6 +29,7 @@ export default defineConfig({
         light: lightTheme,
         dark: darkTheme,
       },
+      langs: [zilGrammar],
       wrap: true,
     },
   },

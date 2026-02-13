@@ -1,0 +1,69 @@
+{
+  "name": "zil",
+  "scopeName": "source.zil",
+  "patterns": [
+    { "include": "#strings" },
+    { "include": "#storage" },
+    { "include": "#keywords" },
+    { "include": "#numbers" },
+    { "include": "#global-variables" },
+    { "include": "#local-variables" }
+  ],
+  "repository": {
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.zil",
+          "begin": "\"",
+          "end": "\"",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.zil" }
+          },
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.zil" }
+          }
+        }
+      ]
+    },
+    "storage": {
+      "patterns": [
+        {
+          "name": "storage.type.zil",
+          "match": "#DECL"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.zil",
+          "match": "\\b(DEFINE|ROUTINE|COND|TELL|REPEAT|SET|RETURN|AGAIN|RTRUE|RFALSE|PRINTI|PRINTR|PRINT|PRINTN|PUTB|PUTP|READ|SREAD|GETB|GETP|ZERO\\?|EQUAL\\?|OR|AND|NOT|MOVE|REMOVE|LOC|CRLF|QUIT|ADD|SUB|MUL|INC|DEC|JUMP|OBJECT|ROOM|GLOBAL|SETG|FIRST\\?|NEXT\\?|IN\\?|FSET\\?|LESS\\?|GRTR\\?|APPLY|PROG|BIND|MAPF|VERSION)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.zil",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+    "global-variables": {
+      "patterns": [
+        {
+          "name": "variable.other.constant.zil",
+          "match": ",[A-Za-z][A-Za-z0-9!?*-]*"
+        }
+      ]
+    },
+    "local-variables": {
+      "patterns": [
+        {
+          "name": "variable.other.readwrite.zil",
+          "match": "\\.[A-Za-z][A-Za-z0-9!?*-]*"
+        }
+      ]
+    }
+  }
+}
