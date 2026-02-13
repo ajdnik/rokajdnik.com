@@ -1,0 +1,290 @@
+<div class="wh-diagram">
+  <div class="wh-block wh-object">
+    <h3>OBJECT</h3>
+    <pre class="wh-code"><code><span class="code-line">&lt;<span class="syn-kw">OBJECT</span> WHITE-HOUSE</span>
+<span class="code-line">    (<span class="syn-kw">IN</span> LOCAL-GLOBALS)</span>
+<span class="code-line">    (<span class="syn-kw">SYNONYM</span> HOUSE)</span>
+<span class="code-line">    (<span class="syn-kw">ADJECTIVE</span> WHITE BEAUTI COLONI)</span>
+<span class="code-line">    (<span class="syn-kw">DESC</span> <span class="syn-str">"white house"</span>)</span>
+<span class="code-line">    (<span class="syn-kw">FLAGS</span> NDESCBIT)</span>
+<span class="code-line">    (<span class="syn-kw">ACTION</span> <span class="syn-ref">WHITE-HOUSE-F</span>)&gt;</span>
+</code></pre>
+  </div>
+
+  <div class="wh-arrow-container">
+    <div class="wh-arrow-line"></div>
+    <span class="wh-arrow-label">Action</span>
+  </div>
+
+  <div class="wh-block wh-routine">
+    <h3>ROUTINE</h3>
+    <pre class="wh-code"><code><span class="code-line">&lt;<span class="syn-kw">ROUTINE</span> <span class="syn-ref">WHITE-HOUSE-F</span> ()</span>
+<span class="code-line">  &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">EQUAL?</span> ,HERE ,KITCHEN ,LIVING-ROOM ,ATTIC&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">VERB?</span> FIND&gt;</span>
+<span class="code-line">      &lt;<span class="syn-kw">TELL</span> <span class="syn-str">"Why not find your brains?"</span> CR&gt;)</span>
+<span class="code-line">      (&lt;<span class="syn-kw">VERB?</span> WALK-AROUND&gt;</span>
+<span class="code-line">        &lt;<span class="syn-kw">GO-NEXT</span> ,IN-HOUSE-AROUND&gt;</span>
+<span class="code-line">          T)&gt;)</span>
+<span class="code-line">    (&lt;<span class="syn-kw">NOT</span> &lt;<span class="syn-kw">OR</span> &lt;<span class="syn-kw">EQUAL?</span> ,HERE ,EAST-OF-HOUSE ,WEST-OF-HOUSE&gt;</span>
+<span class="code-line">            &lt;<span class="syn-kw">EQUAL?</span> ,HERE ,NORTH-OF-HOUSE ,SOUTH-OF-HOUSE&gt;&gt;&gt;</span>
+<span class="code-line">      &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">VERB?</span> FIND&gt;</span>
+<span class="code-line">        &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">EQUAL?</span> ,HERE ,CLEARING&gt;</span>
+<span class="code-line">          &lt;<span class="syn-kw">TELL</span> <span class="syn-str">"It seems to be to the west."</span> CR&gt;)</span>
+<span class="code-line">        (T</span>
+<span class="code-line">          &lt;<span class="syn-kw">TELL</span> <span class="syn-str">"It was here just a minute ago..."</span> CR&gt;)&gt;)</span>
+<span class="code-line">      (T &lt;<span class="syn-kw">TELL</span> <span class="syn-str">"You're not at the house."</span> CR&gt;)&gt;)</span>
+<span class="code-line">    (&lt;<span class="syn-kw">VERB?</span> FIND&gt;</span>
+<span class="code-line">      &lt;<span class="syn-kw">TELL</span></span>
+<span class="code-line">        <span class="syn-str">"It's right here! Are you blind or something?"</span> CR&gt;)</span>
+<span class="code-line">    (&lt;<span class="syn-kw">VERB?</span> WALK-AROUND&gt;</span>
+<span class="code-line">      &lt;<span class="syn-kw">GO-NEXT</span> ,HOUSE-AROUND&gt;</span>
+<span class="code-line">    T)</span>
+<span class="code-line">  (&lt;<span class="syn-kw">VERB?</span> EXAMINE&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">TELL</span></span>
+<span class="code-line">      <span class="syn-str">"The house is a beautiful colonial house which is painted</span></span>
+<span class="code-line">      <span class="syn-str">white. It is clear that the owners must have been</span></span>
+<span class="code-line">      <span class="syn-str">extremely wealthy."</span> CR&gt;)</span>
+<span class="code-line">  (&lt;<span class="syn-kw">VERB?</span> THROUGH OPEN&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">EQUAL?</span> ,HERE ,EAST-OF-HOUSE&gt;</span>
+<span class="code-line">      &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">FSET?</span> ,KITCHEN-WINDOW ,OPENBIT&gt;</span>
+<span class="code-line">        &lt;<span class="syn-kw">GOTO</span> ,KITCHEN&gt;)</span>
+<span class="code-line">      (T</span>
+<span class="code-line">        &lt;<span class="syn-kw">TELL</span> <span class="syn-str">"The window is closed."</span> CR&gt;</span>
+<span class="code-line">          &lt;<span class="syn-kw">THIS-IS-IT</span> ,KITCHEN-WINDOW&gt;)&gt;)</span>
+<span class="code-line">    (T</span>
+<span class="code-line">      &lt;<span class="syn-kw">TELL</span> <span class="syn-str">"I can't see how to get in from here."</span> CR&gt;)&gt;)</span>
+<span class="code-line">  (&lt;<span class="syn-kw">VERB?</span> BURN&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">TELL</span> <span class="syn-str">"You must be joking."</span> CR&gt;)&gt;&gt;</span>
+</code></pre>
+  </div>
+</div>
+
+<style>
+  /* === Container === */
+  .wh-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    background-color: color-mix(in srgb, var(--color-background) 94%, var(--color-foreground) 6%);
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--color-foreground) 8%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 12px 12px;
+    background-position: 0 0;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    box-shadow: none;
+  }
+
+  /* === Blocks === */
+  .wh-block {
+    padding: 0.4rem 1.2rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    background-color: color-mix(in srgb, var(--color-background) 50%, transparent);
+    text-align: left;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .wh-block h3 {
+    margin: 0;
+    padding-top: 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-accent);
+  }
+
+  /* === Code Blocks === */
+  .wh-code {
+    margin: 0.4rem 0 0;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--color-background) 94%, var(--color-foreground) 6%);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--color-foreground) 85%, transparent);
+    text-align: left;
+    white-space: pre;
+    overflow: hidden;
+    opacity: 1;
+    counter-reset: code-line;
+  }
+
+  .wh-code code {
+    background: transparent !important;
+    color: inherit;
+    opacity: 1;
+    font-size: 0.65rem;
+    line-height: 1;
+    padding: 0;
+    font-weight: 400;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .wh-code .code-line {
+    display: block;
+    counter-increment: code-line;
+  }
+
+  .wh-code .code-line::before {
+    content: counter(code-line);
+    display: inline-block;
+    min-width: 2ch;
+    margin-right: 0.5rem;
+    color: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+    text-align: right;
+  }
+
+  /* === Syntax Highlighting === */
+  .wh-code .syn-kw {
+    color: var(--color-accent);
+  }
+
+  .wh-code .syn-str {
+    color: color-mix(in srgb, #22c55e 70%, var(--color-foreground) 30%);
+  }
+
+  .wh-code .syn-ref {
+    color: color-mix(in srgb, #f59e0b 80%, var(--color-foreground) 20%);
+  }
+
+  /* === Arrow (Mobile: vertical) === */
+  .wh-arrow-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    gap: 0.15rem;
+    padding: 1rem 0;
+  }
+
+  .wh-arrow-container::before {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 0.5rem;
+    background-color: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+    order: -2;
+  }
+
+  .wh-arrow-label {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--color-accent);
+    white-space: nowrap;
+    text-align: center;
+    order: -1;
+  }
+
+  .wh-arrow-line {
+    width: 2px;
+    height: 0.5rem;
+    background-color: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+    position: relative;
+  }
+
+  .wh-arrow-line::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid color-mix(in srgb, var(--color-foreground) 45%, transparent);
+  }
+
+  /* === Desktop Layout === */
+  @media (min-width: 768px) {
+    .wh-diagram {
+      display: grid;
+      grid-template-columns: auto minmax(4rem, 1fr) auto;
+      grid-template-rows: auto;
+      column-gap: 1rem;
+      justify-content: center;
+      justify-items: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .wh-object {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: end;
+      width: auto;
+      min-width: 240px;
+    }
+
+    .wh-arrow-container {
+      grid-column: 2;
+      grid-row: 1;
+      flex-direction: column;
+      width: 100%;
+      height: auto;
+      padding: 0;
+      justify-self: stretch;
+      align-self: center;
+      position: relative;
+    }
+
+    .wh-arrow-container::before {
+      display: none;
+    }
+
+    .wh-arrow-line {
+      width: 100%;
+      height: 2px;
+    }
+
+    .wh-arrow-line::after {
+      left: auto;
+      bottom: auto;
+      top: 50%;
+      right: -6px;
+      transform: translateY(-50%);
+      border-left: 6px solid color-mix(in srgb, var(--color-foreground) 70%, transparent);
+      border-right: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+    }
+
+    .wh-arrow-label {
+      position: absolute;
+      left: 50%;
+      bottom: -2.1rem;
+      transform: translateX(-50%);
+      text-align: center;
+      background-color: transparent;
+      padding: 0;
+      order: unset;
+      font-size: 0.9rem;
+    }
+
+    .wh-routine {
+      grid-column: 3;
+      grid-row: 1;
+      justify-self: start;
+      width: auto;
+      min-width: 280px;
+    }
+  }
+</style>

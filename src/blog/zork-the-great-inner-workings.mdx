@@ -23,7 +23,7 @@ cover:
 ---
 import { Image } from 'astro:assets';
 import commandBreakdown from '../assets/images/blog/zork-the-great-inner-workings/command-breakdown.webp';
-import whiteHouse from '../assets/images/blog/zork-the-great-inner-workings/white-house.webp';
+import WhiteHouseDiagram from '../components/WhiteHouseDiagram.astro';
 import objectTree from '../assets/images/blog/zork-the-great-inner-workings/object-tree.webp';
 import attackSyntaxBreakdown from '../assets/images/blog/zork-the-great-inner-workings/attack-syntax-breakdown.webp';
 import gameLoop from '../assets/images/blog/zork-the-great-inner-workings/game-loop.webp';
@@ -125,8 +125,8 @@ To be fully transparent, this is only a simplified description of how the parser
 
 Game objects can be anything, from a location such as the [White House](https://zork.fandom.com/wiki/White_house) to objects such as the [Mailbox](https://zork.fandom.com/wiki/Mailbox), essentially everywhere the player can go, anything they can take or attack with, everything is a game object. Each object has properties such as a name, a description, an action, a list of adjectives that describe it, etc.
 
-<figure class="full-width">
-  <Image src={whiteHouse} alt="Object definition of the WHITE-HOUSE object and its action definition" />
+<figure>
+  <WhiteHouseDiagram />
   <figcaption>Object definition of the WHITE-HOUSE object and its action definition (WHITE-HOUSE-F) on the right.</figcaption>
 </figure>
 
