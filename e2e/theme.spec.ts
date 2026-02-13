@@ -63,24 +63,20 @@ test.describe("Theme toggle", () => {
   test("theme persists after toggling and navigating", async ({ page }) => {
     await page.goto("/");
 
-    // Ensure we start in dark mode
-    await page.evaluate(() => localStorage.setItem("theme", "dark"));
-    await page.evaluate(() => {
-      document.documentElement.classList.remove("light");
-      document.documentElement.classList.add("dark");
-    });
-
     const html = page.locator("html");
-    await expect(html).toHaveClass(/dark/);
-
     const toggle = page.locator('button[aria-label="toggle theme"]');
+
+    // Detect the current theme, then toggle it
+    const initialClass = await html.getAttribute("class");
+    const wasDark = initialClass?.includes("dark");
+    const expectedAfterToggle = wasDark ? /light/ : /dark/;
+
     await toggle.click();
+    await expect(html).toHaveClass(expectedAfterToggle);
 
-    await expect(html).toHaveClass(/light/);
-
-    // Navigate via link click to preserve localStorage
+    // Navigate via link click and verify the toggled theme persists
     await page.locator('header a[href="/tags"]').click();
     await expect(page).toHaveURL("/tags");
-    await expect(html).toHaveClass(/light/);
+    await expect(html).toHaveClass(expectedAfterToggle);
   });
 });
