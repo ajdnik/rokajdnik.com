@@ -1,13 +1,17 @@
 ---
+import { Image } from "astro:assets";
+import profileImage from "../assets/images/profile.webp";
 import GitHubIcon from "./icons/GitHub.astro";
 import LinkedInIcon from "./icons/LinkedIn.astro";
 ---
 
 <section class="center">
   <div class="profile-image mx-auto mb-6 h-40 w-40 overflow-hidden rounded-full">
-    <img
-      src="/images/profile.jpg"
+    <Image
+      src={profileImage}
       alt="Rok Ajdnik"
+      width={160}
+      height={160}
       class="h-full w-full object-cover"
     />
   </div>
