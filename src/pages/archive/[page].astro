@@ -8,25 +8,23 @@ import { formatDate } from "../../utils/formatDate";
 import { SITE_TITLE, SITE_AUTHOR } from "../../consts";
 import Year from "../../components/Year.astro";
 
-const blogs = await getCollection("blogs");
-const years = [
-  ...new Set(
-    blogs.map((blog: BlogType) => new Date(blog.data.date).getFullYear()),
-  ),
-];
-
 export async function getStaticPaths({
   paginate,
 }: {
   paginate: (data: BlogType[], options: { pageSize: number }) => unknown;
 }) {
   const blogs = await getCollection("blogs");
+  const years = [
+    ...new Set(
+      blogs.map((blog: BlogType) => new Date(blog.data.date).getFullYear()),
+    ),
+  ];
   blogs.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
-  return paginate(blogs, { pageSize: 8 });
+  return paginate(blogs, { pageSize: 8, props: { years } });
 }
 
-const { page } = Astro.props as { page: { data: BlogType[] } };
+const { page, years } = Astro.props as { page: { data: BlogType[] }; years: number[] };
 ---
 
 <BaseLayout
