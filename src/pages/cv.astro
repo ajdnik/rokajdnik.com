@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { SITE_TITLE, SITE_AUTHOR } from "../consts";
 import CheckCircle from "../components/icons/CheckCircle.astro";
+import Tag from "../components/Tag.astro";
 ---
 
 <BaseLayout
@@ -83,38 +84,38 @@ import CheckCircle from "../components/icons/CheckCircle.astro";
         <div>
           <h3 class="font-medium mb-3 text-accent">Leadership</h3>
           <div class="flex flex-wrap gap-2">
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Software Engineering</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Team Management</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Technical Strategy</span>
+            <Tag size="md">Software Engineering</Tag>
+            <Tag size="md">Team Management</Tag>
+            <Tag size="md">Technical Strategy</Tag>
           </div>
         </div>
         
         <div>
           <h3 class="font-medium mb-3 text-accent">Technical</h3>
           <div class="flex flex-wrap gap-2">
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">REST APIs</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Distributed Systems</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Software Architecture</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">DevOps</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Data Engineering</span>
+            <Tag size="md">REST APIs</Tag>
+            <Tag size="md">Distributed Systems</Tag>
+            <Tag size="md">Software Architecture</Tag>
+            <Tag size="md">DevOps</Tag>
+            <Tag size="md">Data Engineering</Tag>
           </div>
         </div>
         
         <div>
           <h3 class="font-medium mb-3 text-accent">Domain Expertise</h3>
           <div class="flex flex-wrap gap-2">
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Telecommunications</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Fintech</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Computer Vision</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Startups</span>
+            <Tag size="md">Telecommunications</Tag>
+            <Tag size="md">Fintech</Tag>
+            <Tag size="md">Computer Vision</Tag>
+            <Tag size="md">Startups</Tag>
           </div>
         </div>
         
         <div>
           <h3 class="font-medium mb-3 text-accent">Languages</h3>
           <div class="flex flex-wrap gap-2">
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">Slovenian (Native)</span>
-            <span class="bg-foreground/13 rounded-lg px-3 py-1 text-sm">English (Professional)</span>
+            <Tag size="md">Slovenian (Native)</Tag>
+            <Tag size="md">English (Professional)</Tag>
           </div>
         </div>
       </div>
