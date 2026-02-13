@@ -1,4 +1,5 @@
 ---
+import { formatDate } from "../utils/formatDate";
 const { frontmatter, readTime } = Astro.props;
 ---
 
@@ -13,15 +14,7 @@ const { frontmatter, readTime } = Astro.props;
         <path d="M3 10h18" />
       </svg>
       <span>
-        {
-          frontmatter.date
-            .toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })
-            .slice(0, 11)
-        }
+        {formatDate(frontmatter.date)}
       </span>
     </div>
     <div class="flex items-center gap-2">
