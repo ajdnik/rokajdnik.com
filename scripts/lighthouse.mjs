@@ -18,6 +18,8 @@ const PAGES = [
   { path: "/fizzbuzz-madness-in-javascript", name: "Blog Post" },
   { path: "/cv", name: "CV" },
   { path: "/tags", name: "Tags" },
+  { path: "/archive/1", name: "Archive" },
+  { path: "/404", name: "404" },
 ];
 
 async function waitForServer(url, timeout = 30_000) {
