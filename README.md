@@ -1,5 +1,8 @@
 # rokajdnik.com
 
+[![E2E Tests](https://github.com/ajdnik/rokajdnik.com/actions/workflows/e2e.yml/badge.svg)](https://github.com/ajdnik/rokajdnik.com/actions/workflows/e2e.yml)
+[![Deploy to GitHub Pages](https://github.com/ajdnik/rokajdnik.com/actions/workflows/deploy.yml/badge.svg)](https://github.com/ajdnik/rokajdnik.com/actions/workflows/deploy.yml)
+
 Personal blog and portfolio website built with Astro.
 
 ## Tech Stack
@@ -45,9 +48,25 @@ Preview the production build:
 npm run preview
 ```
 
+## Testing
+
+Run Playwright end-to-end tests:
+
+```bash
+npm run test:e2e
+```
+
+Run tests with the interactive UI:
+
+```bash
+npm run test:e2e:ui
+```
+
+Tests also run automatically on every push and pull request via the [E2E Tests](https://github.com/ajdnik/rokajdnik.com/actions/workflows/e2e.yml) workflow.
+
 ## Deployment
 
-The site is automatically deployed to GitHub Pages when changes are pushed to the `main` branch via GitHub Actions.
+The site is automatically deployed to GitHub Pages when changes are pushed to the `main` branch via the [Deploy](https://github.com/ajdnik/rokajdnik.com/actions/workflows/deploy.yml) workflow.
 
 Live at: [rokajdnik.com](https://rokajdnik.com)
 

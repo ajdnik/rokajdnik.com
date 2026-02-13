@@ -1,0 +1,150 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        id: tests
+        run: npx playwright test --reporter=list,json
+        env:
+          CI: "true"
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+
+      - name: Generate test report summary
+        if: always() && steps.tests.outcome != 'cancelled'
+        run: |
+          node <<'SCRIPT'
+          const fs = require("fs");
+
+          const results = JSON.parse(fs.readFileSync("results.json", "utf8"));
+          const { expected, unexpected, flaky, skipped } = results.stats;
+          const total = expected + unexpected + flaky + skipped;
+          const passed = expected + flaky;
+          const duration = (results.stats.duration / 1000).toFixed(1);
+          const allPassed = unexpected === 0;
+
+          const lines = [];
+
+          lines.push(`## ${allPassed ? "\u2705" : "\u274C"} Playwright Test Results`);
+          lines.push("");
+          lines.push(`| Metric | Count |`);
+          lines.push(`| --- | --- |`);
+          lines.push(`| Total | ${total} |`);
+          lines.push(`| Passed | ${passed} |`);
+          if (unexpected > 0) lines.push(`| Failed | ${unexpected} |`);
+          if (flaky > 0) lines.push(`| Flaky | ${flaky} |`);
+          if (skipped > 0) lines.push(`| Skipped | ${skipped} |`);
+          lines.push(`| Duration | ${duration}s |`);
+          lines.push("");
+
+          function collectSpecs(suite, prefix) {
+            const specs = [];
+            const title = prefix ? `${prefix} \u203A ${suite.title}` : suite.title;
+            for (const spec of suite.specs || []) {
+              for (const test of spec.tests || []) {
+                specs.push({
+                  suite: title,
+                  name: spec.title,
+                  status: test.status,
+                  duration: test.results.reduce((sum, r) => sum + r.duration, 0),
+                  errors: test.results.flatMap((r) => r.errors || []),
+                });
+              }
+            }
+            for (const child of suite.suites || []) {
+              specs.push(...collectSpecs(child, title));
+            }
+            return specs;
+          }
+
+          const allSpecs = results.suites.flatMap((s) => collectSpecs(s, ""));
+
+          const icon = (status) => {
+            if (status === "expected") return "\u2705";
+            if (status === "unexpected") return "\u274C";
+            if (status === "flaky") return "\u26A0\uFE0F";
+            return "\u23ED\uFE0F";
+          };
+
+          // Group by suite
+          const grouped = {};
+          for (const spec of allSpecs) {
+            if (!grouped[spec.suite]) grouped[spec.suite] = [];
+            grouped[spec.suite].push(spec);
+          }
+
+          lines.push("<details>");
+          lines.push(`<summary><strong>Test details (${total} tests)</strong></summary>`);
+          lines.push("");
+
+          for (const [suite, specs] of Object.entries(grouped)) {
+            lines.push(`### ${suite}`);
+            lines.push("");
+            lines.push("| Status | Test | Duration |");
+            lines.push("| --- | --- | --- |");
+            for (const spec of specs) {
+              const ms = spec.duration;
+              const dur = ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+              lines.push(`| ${icon(spec.status)} | ${spec.name} | ${dur} |`);
+            }
+            lines.push("");
+          }
+
+          lines.push("</details>");
+
+          // Show failure details if any
+          const failures = allSpecs.filter((s) => s.status === "unexpected");
+          if (failures.length > 0) {
+            lines.push("");
+            lines.push("### Failures");
+            lines.push("");
+            for (const f of failures) {
+              lines.push(`#### ${f.suite} \u203A ${f.name}`);
+              lines.push("");
+              for (const err of f.errors) {
+                const msg = (err.message || "").replace(/\u001b\[[0-9;]*m/g, "");
+                lines.push("```");
+                lines.push(msg.trim());
+                lines.push("```");
+              }
+              lines.push("");
+            }
+          }
+
+          const summary = lines.join("\n");
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+          console.log(summary);
+          SCRIPT
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always() && steps.tests.outcome != 'cancelled'
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
