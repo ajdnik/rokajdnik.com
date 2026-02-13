@@ -14,7 +14,7 @@
 .light {
   --background: var(--color-gray-100);
   --foreground: var(--color-gray-800);
-  --accent: var(--color-blue-500);
+  --accent: var(--color-blue-600);
   --code-bg: #f6f8fa;
 }
 

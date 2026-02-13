@@ -23,7 +23,7 @@
 @layer base {
   /* navbar */
   .navigation {
-    @apply hover:text-accent text-base tracking-wider select-none;
+    @apply hover:text-accent inline-flex items-center justify-center min-w-6 min-h-6 text-base tracking-wider select-none;
   }
 
   /* button */
