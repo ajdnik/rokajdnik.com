@@ -113,13 +113,13 @@ To be fully transparent, this is only a simplified description of how the parser
 
 ```zil
 <OBJECT MAILBOX
-	(IN WEST-OF-HOUSE)
-	(SYNONYM MAILBOX BOX)
-	(ADJECTIVE SMALL)
-	(DESC "small mailbox")
-	(FLAGS CONTBIT TRYTAKEBIT)
-	(CAPACITY 10)
-	(ACTION MAILBOX-F)>
+  (IN WEST-OF-HOUSE)
+  (SYNONYM MAILBOX BOX)
+  (ADJECTIVE SMALL)
+  (DESC "small mailbox")
+  (FLAGS CONTBIT TRYTAKEBIT)
+  (CAPACITY 10)
+  (ACTION MAILBOX-F)>
 ```
 
 </div>
@@ -195,7 +195,7 @@ The syntax is a table structure where Zork defines its actions. As seen in the s
 <SYNTAX LOOK BEHIND OBJECT = V-LOOK-BEHIND>
 <SYNTAX LOOK IN OBJECT (HELD CARRIED ON-GROUND IN-ROOM MANY) = V-LOOK-INSIDE>
 <SYNTAX LOOK AT OBJECT (HELD CARRIED ON-GROUND IN-ROOM)
-	WITH OBJECT = V-READ PRE-READ>
+  WITH OBJECT = V-READ PRE-READ>
 <SYNTAX LOOK FOR OBJECT = V-FIND>
 <SYNONYM LOOK L STARE GAZE>
 ```
@@ -244,30 +244,30 @@ Looking at the file structure above, any software engineer could make a reasonab
 
 ```zil
 <ROUTINE GO ()
-	<ENABLE <QUEUE I-FIGHT -1>>
-	<QUEUE I-SWORD -1>
-	<ENABLE <QUEUE I-THIEF -1>>
-	<QUEUE I-CANDLES 40>
-	<QUEUE I-LANTERN 200>
-	<PUTP ,INFLATED-BOAT ,P?VTYPE ,NONLANDBIT>
-	<PUT ,DEF1-RES 1 <REST ,DEF1 2>>
-	<PUT ,DEF1-RES 2 <REST ,DEF1 4>>
-	<PUT ,DEF2-RES 2 <REST ,DEF2B 2>>
-	<PUT ,DEF2-RES 3 <REST ,DEF2B 4>>
-	<PUT ,DEF3-RES 1 <REST ,DEF3A 2>>
-	<PUT ,DEF3-RES 3 <REST ,DEF3B 2>>
-	<SETG HERE ,WEST-OF-HOUSE>
-	<THIS-IS-IT ,MAILBOX>
-	<COND (<NOT <FSET? ,HERE ,TOUCHBIT>>
-	       <V-VERSION>
-	       <CRLF>)>
-	<SETG LIT T>
-	<SETG WINNER ,ADVENTURER>
-	<SETG PLAYER ,WINNER>
-	<MOVE ,WINNER ,HERE>
-	<V-LOOK>
-	<MAIN-LOOP>
-	<AGAIN>>
+  <ENABLE <QUEUE I-FIGHT -1>>
+  <QUEUE I-SWORD -1>
+  <ENABLE <QUEUE I-THIEF -1>>
+  <QUEUE I-CANDLES 40>
+  <QUEUE I-LANTERN 200>
+  <PUTP ,INFLATED-BOAT ,P?VTYPE ,NONLANDBIT>
+  <PUT ,DEF1-RES 1 <REST ,DEF1 2>>
+  <PUT ,DEF1-RES 2 <REST ,DEF1 4>>
+  <PUT ,DEF2-RES 2 <REST ,DEF2B 2>>
+  <PUT ,DEF2-RES 3 <REST ,DEF2B 4>>
+  <PUT ,DEF3-RES 1 <REST ,DEF3A 2>>
+  <PUT ,DEF3-RES 3 <REST ,DEF3B 2>>
+  <SETG HERE ,WEST-OF-HOUSE>
+  <THIS-IS-IT ,MAILBOX>
+  <COND (<NOT <FSET? ,HERE ,TOUCHBIT>>
+    <V-VERSION>
+    <CRLF>)>
+  <SETG LIT T>
+  <SETG WINNER ,ADVENTURER>
+  <SETG PLAYER ,WINNER>
+  <MOVE ,WINNER ,HERE>
+  <V-LOOK>
+  <MAIN-LOOP>
+  <AGAIN>>
 ```
 
 </div>
@@ -285,6 +285,10 @@ Now, let's look at some of the more interesting aspects of Zork's source code. F
 ```zil
 <SYNTAX PLUGH = V-ADVENT>
 <SYNONYM PLUGH XYZZY>
+
+<ROUTINE V-ADVENT ()
+  <TELL "A hollow voice says " D ,PRSO "." CR>
+  <RTRUE>>
 ```
 
 </div>
@@ -303,6 +307,10 @@ Another interesting find is the inclusion of the *RAPE* command. Yes, you're rea
 ```zil
 <SYNTAX RAPE OBJECT (FIND ACTORBIT) = V-RAPE>
 <SYNONYM RAPE MOLEST>
+
+<ROUTINE V-RAPE ()
+  <TELL "What a (ahem!) strange idea." CR>
+  <RTRUE>>
 ```
 
 </div>
@@ -326,70 +334,40 @@ One piece of source code I have to address is something the gaming community alr
 
 ```zil
 <ROUTINE ITAKE ("OPTIONAL" (VB T) "AUX" CNT OBJ)
-	 #DECL ((VB) <OR ATOM FALSE> (CNT) FIX (OBJ) OBJECT)
-	 <COND %<COND (<==? ,ZORK-NUMBER 1>
-		       '(,DEAD
-		         <COND (.VB
-				<TELL
-"Your hand passes through its object." CR>)>
-		         <RFALSE>))
-		      (T
-		       '(<NULL-F>
-			 <RFALSE>))>
-	       (<NOT <FSET? ,PRSO ,TAKEBIT>>
-		<COND (.VB
-		       <TELL <PICK-ONE ,YUKS> CR>)>
-		<RFALSE>)
-	       %<COND (<==? ,ZORK-NUMBER 2>
-		       '(<AND <EQUAL? ,PRSO ,SPELL-VICTIM>
-		              <EQUAL? ,SPELL-USED ,W?FLOAT ,W?FREEZE>>
-		         <COND (<EQUAL? ,SPELL-USED ,W?FLOAT>
-		                <TELL
-"You can't reach that. It's floating above your head." CR>)
-		               (T
-		                <TELL "It seems rooted to the spot." CR>)>
-		         <RFALSE>))
-		      (T
-		       '(<NULL-F>
-			 <RFALSE>))>
-	       (<AND <FSET? <LOC ,PRSO> ,CONTBIT>
-		     <NOT <FSET? <LOC ,PRSO> ,OPENBIT>>>
-		;"Kludge for parser calling itake"
-		<RFALSE>)
-	       (<AND <NOT <IN? <LOC ,PRSO> ,WINNER>>
-		     <G? <+ <WEIGHT ,PRSO> <WEIGHT ,WINNER>> ,LOAD-ALLOWED>>
-		<COND (.VB
-		       <TELL "Your load is too heavy">
-		       <COND (<L? ,LOAD-ALLOWED ,LOAD-MAX>
-			      <TELL", especially in light of your condition.">)
-			     (T
-			      <TELL ".">)>
-		       <CRLF>)>
-		<RFATAL>)
-	       (<AND <VERB? TAKE>
-		     <G? <SET CNT <CCOUNT ,WINNER>> ,FUMBLE-NUMBER>
-		     <PROB <* .CNT ,FUMBLE-PROB>>>
-		<TELL
-"You're holding too many things already!" CR>
-		<RFALSE>)
-	       (T
-		<MOVE ,PRSO ,WINNER>
-		<FCLEAR ,PRSO ,NDESCBIT>
-		<FSET ,PRSO ,TOUCHBIT>
-		%<COND (<==? ,ZORK-NUMBER 2>
-			'<COND (<EQUAL? ,SPELL? ,S-FILCH>
-		                <COND (<RIPOFF ,PRSO ,WIZARD-CASE>
-			               <TELL
-"When you touch the " D ,PRSO " it immediately disappears!" CR>
-			               <RFALSE>)>)>)
-		       (T
-			'<NULL-F>)>
-		%<COND (<OR <==? ,ZORK-NUMBER 1>
-			    <==? ,ZORK-NUMBER 2>>
-			'<SCORE-OBJ ,PRSO>)
-		       (T
-			'<NULL-F>)>
-		<RTRUE>)>>
+  #DECL ((VB) <OR ATOM FALSE> (CNT) FIX (OBJ) OBJECT)
+  <COND (,DEAD
+    <COND (.VB
+        <TELL "Your hand passes through its object." CR>)>
+      <RFALSE>)
+    (NOT <FSET? ,PRSO ,TAKEBIT>>
+    <COND (.VB
+        <TELL <PICK-ONE ,YUKS> CR>)>
+      <RFALSE>)
+    (<AND <FSET? <LOC ,PRSO> ,CONTBIT>
+    <NOT <FSET? <LOC ,PRSO> ,OPENBIT>>>
+      ; "Kludge for parser calling itake"
+      <RFALSE>)
+    (<AND <NOT <IN? <LOC ,PRSO> ,WINNER>>
+    <G? <+ <WEIGHT ,PRSO> <WEIGHT ,WINNER>> ,LOAD-ALLOWED>>
+      <COND (.VB
+        <TELL "Your load is too heavy">
+        <COND (<L? ,LOAD-ALLOWED ,LOAD-MAX>
+            <TELL ", especially in light of your condition.">)
+          (T
+            <TELL ".">)>
+        <CRLF>)>
+      <RFATAL>)
+    (<AND <VERB? TAKE>
+    <G? <SET CNT <CCOUNT ,WINNER>> ,FUMBLE-NUMBER>
+      <PROB <* .CNT ,FUMBLE-PROB>>>
+      <TELL "You're holding too many things already!" CR>
+      <RFALSE>)
+    (T
+      <MOVE ,PRSO ,WINNER>
+      <FCLEAR ,PRSO ,NDESCBIT>
+      <FSET ,PRSO ,TOUCHBIT>
+      <SCORE-OBJ ,PRSO>
+      <RTRUE>)>>
 ```
 
 </div>
@@ -429,25 +407,20 @@ Besides easter eggs, inappropriate game commands, and trolling game mechanics, t
 <div class="with-line-numbers">
 
 ```zil
-       <COND (<AND <ZERO? .LEN> .GCHECK>
-	      <COND (.VRB
-		     ;"next added 1/2/85 by JW"
-		     <SETG P-SLOCBITS .XBITS>
-		     <COND (<OR ,LIT <VERB? TELL ;WHERE ;WHAT ;WHO>>
-			    ;"Changed 6/10/83 - MARC"
-			    <OBJ-FOUND ,NOT-HERE-OBJECT .TBL>
-			    <SETG P-XNAM ,P-NAM>
-			    <SETG P-XADJ ,P-ADJ>
-			    <SETG P-XADJN ,P-ADJN>
-			    <SETG P-NAM <>>
-			    <SETG P-ADJ <>>
-			    <SETG P-ADJN <>>
-			    <RTRUE>)
-			   (T <TELL "It's too dark to see!" CR>)>)>
-	      <SETG P-NAM <>>
-	      <SETG P-ADJ <>>
-	      <RFALSE>)
-	     (<ZERO? .LEN> <SET GCHECK T> <AGAIN>)>
+<COND (. VRB
+  ; "next added 1/2/85 by JW"
+  <SETG P-SLOCBITS .XBITS>
+  <COND (<OR ,LIT <VERB? TELL ;WHERE ;WHAT ;WHO>>
+  ; "Changed 6/10/83 - MARC"
+  <OBJ-FOUND ,NOT-HERE-OBJECT .TBL>
+  <SETG P-XNAM ,P-NAM>
+  <SETG P-XADJ ,P-ADJ>
+  <SETG P-XADJN ,P-ADJN>
+  <SETG P-NAM <>>
+  <SETG P-ADJ <>>
+  <SETG P-ADJN <>>
+  <RTRUE>)
+  (T <TELL "It's too dark to see!" CR>)>)>
 ```
 
 </div>
