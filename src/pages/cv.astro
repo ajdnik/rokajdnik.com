@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { SITE_TITLE, SITE_AUTHOR } from "../consts";
+import CheckCircle from "../components/icons/CheckCircle.astro";
 ---
 
 <BaseLayout
@@ -141,17 +142,11 @@ import { SITE_TITLE, SITE_AUTHOR } from "../consts";
       
       <ul class="space-y-3">
         <li class="flex items-start gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent shrink-0 mt-1">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
+          <CheckCircle class="text-accent shrink-0 mt-1" />
           <span class="opacity-90">Certified ScrumMaster (CSM) - Scrum Alliance</span>
         </li>
         <li class="flex items-start gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent shrink-0 mt-1">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
+          <CheckCircle class="text-accent shrink-0 mt-1" />
           <span class="opacity-90">Managing Multiple Generations - LinkedIn Learning</span>
         </li>
       </ul>

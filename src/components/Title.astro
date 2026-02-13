@@ -1,5 +1,7 @@
 ---
 import { formatDate } from "../utils/formatDate";
+import Calendar from "./icons/Calendar.astro";
+import Clock from "./icons/Clock.astro";
 const { frontmatter, readTime } = Astro.props;
 ---
 
@@ -7,21 +9,13 @@ const { frontmatter, readTime } = Astro.props;
   <h1 class="blog-title">{frontmatter.title}</h1>
   <div class="flex flex-wrap items-center gap-6 py-3 text-sm opacity-70">
     <div class="flex items-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 2v4" />
-        <path d="M16 2v4" />
-        <rect width="18" height="18" x="3" y="4" rx="2" />
-        <path d="M3 10h18" />
-      </svg>
+      <Calendar />
       <span>
         {formatDate(frontmatter.date)}
       </span>
     </div>
     <div class="flex items-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
+      <Clock />
       <span>{readTime} min read</span>
     </div>
   </div>
