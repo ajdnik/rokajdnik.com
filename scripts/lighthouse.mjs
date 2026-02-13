@@ -148,6 +148,7 @@ async function main() {
     console.log(
       `\x1b[32mAll scores meet the threshold (${THRESHOLD}).\x1b[0m\n`,
     );
+    process.exit(0);
   } else {
     console.log(
       `\x1b[33mSome scores are below the threshold (${THRESHOLD}).\x1b[0m\n`,
