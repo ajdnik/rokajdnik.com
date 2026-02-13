@@ -26,7 +26,7 @@ import commandBreakdown from '../assets/images/blog/zork-the-great-inner-working
 import WhiteHouseDiagram from '../components/WhiteHouseDiagram.astro';
 import ObjectTreeDiagram from '../components/ObjectTreeDiagram.astro';
 import attackSyntaxBreakdown from '../assets/images/blog/zork-the-great-inner-workings/attack-syntax-breakdown.webp';
-import gameLoop from '../assets/images/blog/zork-the-great-inner-workings/game-loop.webp';
+import GameLoopDiagram from '../components/GameLoopDiagram.astro';
 import github from '../assets/images/blog/zork-the-great-inner-workings/github.webp';
 
 Roughly a year ago, during the summer of 2019, I got an idea. I was setting up a [Kubernetes](https://en.wikipedia.org/wiki/Kubernetes) cluster, and as I usually do, I set up a mock web server using [Nginx](https://en.wikipedia.org/wiki/Nginx) to test out [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/), [SSL](https://en.wikipedia.org/wiki/Transport_Layer_Security), and domain settings. Then it hit me, wouldn't it be great if instead of a boring webserver I would use a web game as my testing service and then leave it in the cluster as sort of a calling card. I know, I can be childish, sometimes. If you're unfamiliar with Kubernetes, Nginx and SSL, don't worry, they have nothing to do with Zork. I'm just trying to rationalize the madness of going through and studying over 15 thousand lines of code that comprise the game of Zork. Which I did because I thought implementing Zork as a web game would be easy. Little did I know…
@@ -229,8 +229,8 @@ def ExecuteActions(PRSA, PRSO, PRSI):
 
 After the game executes those actions and outputs the results it loops back to obtaining new player input and the loop continues. The diagram, shown below, demonstrates a simplified loop where the player inputs text which gets parsed into PRSA, PRSO, and PRSI by using the object tree and syntax table structures. And lastly, syntax or game object actions get executed which results in text being printed out to the player.
 
-<figure class="full-width">
-  <Image src={gameLoop} alt="Simplified Zork I game loop" />
+<figure>
+  <GameLoopDiagram />
   <figcaption>Simplified Zork I game loop.</figcaption>
 </figure>
 

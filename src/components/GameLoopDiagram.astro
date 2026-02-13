@@ -1,0 +1,395 @@
+<div class="gl-diagram">
+  <!-- Loop arrow on the left -->
+  <div class="gl-loop-line"></div>
+
+  <!-- Main vertical flow -->
+  <div class="gl-content">
+    <!-- Box 1: GET PLAYER INPUT -->
+    <div class="gl-box" data-gl-box="first">
+      <h3>1. Get Player Input</h3>
+      <div class="gl-text-block">
+        <code>&gt;attack the mailbox with the elvish sword</code>
+      </div>
+    </div>
+
+    <div class="gl-arrow"><div class="gl-arrow-line"></div></div>
+
+    <!-- Box 2: PARSE PLAYER INPUT -->
+    <div class="gl-box">
+      <h3>2. Parse Player Input</h3>
+      <div class="gl-sub-grid">
+        <div class="gl-sub-block">
+          <span class="gl-label">PRSO</span>
+          <pre class="gl-code"><code><span class="code-line">&lt;<span class="syn-kw">OBJECT</span> MAILBOX</span>
+<span class="code-line">    (<span class="syn-kw">IN</span> WEST-OF-HOUSE)</span>
+<span class="code-line">    (<span class="syn-kw">SYNONYM</span> MAILBOX BOX)</span>
+<span class="code-line">    (<span class="syn-kw">ADJECTIVE</span> SMALL)</span>
+<span class="code-line">    (<span class="syn-kw">DESC</span> <span class="syn-str">"small mailbox"</span>)</span>
+<span class="code-line">    (<span class="syn-kw">FLAGS</span> CONTBIT TRYTAKEBIT)</span>
+<span class="code-line">    (<span class="syn-kw">CAPACITY</span> <span class="syn-num">10</span>)</span>
+<span class="code-line">    (<span class="syn-kw">ACTION</span> MAILBOX-F)&gt;</span>
+</code></pre>
+        </div>
+        <div class="gl-sub-block">
+          <span class="gl-label">PRSI</span>
+          <pre class="gl-code"><code><span class="code-line">&lt;<span class="syn-kw">OBJECT</span> SWORD</span>
+<span class="code-line">    (<span class="syn-kw">IN</span> LIVING-ROOM)</span>
+<span class="code-line">    (<span class="syn-kw">SYNONYM</span> SWORD ORCRIST GLAMDRING BLADE)</span>
+<span class="code-line">    (<span class="syn-kw">ADJECTIVE</span> ELVISH OLD ANTIQUE)</span>
+<span class="code-line">    (<span class="syn-kw">DESC</span> <span class="syn-str">"elvish sword"</span>)</span>
+<span class="code-line">    (<span class="syn-kw">FLAGS</span> TAKEBIT WEAPONBIT TRYTAKEBIT)</span>
+<span class="code-line">    (<span class="syn-kw">ACTION</span> SWORD-FCN)</span>
+<span class="code-line">    (<span class="syn-kw">FDESC</span></span>
+<span class="code-line">      <span class="syn-str">"Above the trophy case hangs an elvish</span></span>
+<span class="code-line">      <span class="syn-str"> sword of great antiquity."</span>)</span>
+<span class="code-line">    (<span class="syn-kw">SIZE</span> <span class="syn-num">30</span>)</span>
+<span class="code-line">    (<span class="syn-kw">TVALUE</span> <span class="syn-num">5</span>)&gt;</span>
+</code></pre>
+        </div>
+      </div>
+      <div class="gl-sub-block gl-prsa">
+        <span class="gl-label">PRSA</span>
+        <pre class="gl-code"><code><span class="code-line">&lt;<span class="syn-kw">SYNTAX</span> ATTACK OBJECT (FIND ACTORBIT) (ON-GROUND IN-ROOM)</span>
+<span class="code-line">    WITH OBJECT (FIND WEAPONBIT) (HELD CARRIED HAVE) = V-ATTACK&gt;</span>
+</code></pre>
+      </div>
+    </div>
+
+    <div class="gl-arrow"><div class="gl-arrow-line"></div></div>
+
+    <!-- Box 3: EXECUTE ACTIONS -->
+    <div class="gl-box">
+      <h3>3. Execute Actions</h3>
+      <div class="gl-sub-block">
+        <pre class="gl-code"><code><span class="code-line">&lt;<span class="syn-kw">ROUTINE</span> MAILBOX-F ()</span>
+<span class="code-line">  &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">AND</span> &lt;<span class="syn-kw">VERB?</span> TAKE&gt; &lt;<span class="syn-kw">EQUAL?</span> ,PRSO ,MAILBOX&gt;&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">TELL</span> <span class="syn-str">"It is securely anchored."</span> CR&gt;)&gt;&gt;</span>
+</code></pre>
+      </div>
+      <div class="gl-sub-block">
+        <pre class="gl-code"><code><span class="code-line">&lt;<span class="syn-kw">ROUTINE</span> SWORD-FCN (<span class="syn-str">"AUX"</span> G)</span>
+<span class="code-line">  &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">AND</span> &lt;<span class="syn-kw">VERB?</span> TAKE&gt; &lt;<span class="syn-kw">EQUAL?</span> ,WINNER</span>
+<span class="code-line">      ,ADVENTURER&gt;&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">ENABLE</span> &lt;<span class="syn-kw">QUEUE</span> I-SWORD -1&gt;&gt;</span>
+<span class="code-line">    &lt;&gt;)</span>
+<span class="code-line">   (&lt;<span class="syn-kw">VERB?</span> EXAMINE&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">EQUAL?</span> &lt;<span class="syn-kw">SET</span> G &lt;<span class="syn-kw">GETP</span> ,SWORD ,P?TVALUE&gt;&gt; <span class="syn-num">1</span>&gt;</span>
+<span class="code-line">      &lt;<span class="syn-kw">TELL</span></span>
+<span class="code-line">       <span class="syn-str">"Your sword is glowing with a faint blue glow."</span> CR&gt;)</span>
+<span class="code-line">     (&lt;<span class="syn-kw">EQUAL?</span> .G <span class="syn-num">2</span>&gt;</span>
+<span class="code-line">      &lt;<span class="syn-kw">TELL</span></span>
+<span class="code-line">       <span class="syn-str">"Your sword is glowing very brightly."</span> CR&gt;)&gt;)&gt;&gt;</span>
+</code></pre>
+      </div>
+      <div class="gl-sub-block">
+        <pre class="gl-code"><code><span class="code-line">&lt;<span class="syn-kw">ROUTINE</span> V-ATTACK ()</span>
+<span class="code-line">  &lt;<span class="syn-kw">COND</span> (&lt;<span class="syn-kw">NOT</span> &lt;<span class="syn-kw">FSET?</span> ,PRSO ,ACTORBIT&gt;&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">TELL</span></span>
+<span class="code-line">     <span class="syn-str">"I've known strange people, but fighting a "</span> D ,PRSO <span class="syn-str">"?"</span> CR&gt;)</span>
+<span class="code-line">   (&lt;<span class="syn-kw">OR</span> &lt;<span class="syn-kw">NOT</span> ,PRSI&gt;</span>
+<span class="code-line">       &lt;<span class="syn-kw">EQUAL?</span> ,PRSI ,HANDS&gt;&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">TELL</span></span>
+<span class="code-line">     <span class="syn-str">"Trying to attack a "</span> D ,PRSO <span class="syn-str">" with your bare hands is suicidal."</span> CR&gt;)</span>
+<span class="code-line">   (&lt;<span class="syn-kw">NOT</span> &lt;<span class="syn-kw">IN?</span> ,PRSI ,WINNER&gt;&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">TELL</span> <span class="syn-str">"You aren't even holding the "</span> D ,PRSI <span class="syn-str">"."</span> CR&gt;)</span>
+<span class="code-line">   (&lt;<span class="syn-kw">NOT</span> &lt;<span class="syn-kw">FSET?</span> ,PRSI ,WEAPONBIT&gt;&gt;</span>
+<span class="code-line">    &lt;<span class="syn-kw">TELL</span></span>
+<span class="code-line">     <span class="syn-str">"Trying to attack the "</span> D ,PRSO <span class="syn-str">" with a "</span> D ,PRSI <span class="syn-str">" is suicidal."</span> CR&gt;)</span>
+<span class="code-line">   (T</span>
+<span class="code-line">     &lt;<span class="syn-kw">HERO-BLOW</span>&gt;)&gt;&gt;</span>
+</code></pre>
+      </div>
+    </div>
+
+    <div class="gl-arrow"><div class="gl-arrow-line"></div></div>
+
+    <!-- Box 4: OUTPUT RESULTS -->
+    <div class="gl-box" data-gl-box="last">
+      <h3>4. Output Results</h3>
+      <div class="gl-text-block">
+        <code>I've known strange people, but fighting a small mailbox?</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* === Container === */
+  .gl-diagram {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    background-color: color-mix(in srgb, var(--color-background) 94%, var(--color-foreground) 6%);
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--color-foreground) 8%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 12px 12px;
+    background-position: 0 0;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    box-shadow: none;
+    padding: 1rem 1rem 1rem 2.5rem;
+  }
+
+  /* === Loop Arrow === */
+  .gl-loop-line {
+    position: absolute;
+    left: 0.75rem;
+    width: 1rem;
+    border: 2px solid color-mix(in srgb, var(--color-foreground) 45%, transparent);
+    border-right: none;
+    border-radius: 0.5rem 0 0 0.5rem;
+  }
+
+  .gl-loop-line::after {
+    content: "";
+    position: absolute;
+    top: -6px;
+    right: -5px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 5px solid color-mix(in srgb, var(--color-foreground) 45%, transparent);
+  }
+
+  /* === Content Flow === */
+  .gl-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* === Boxes === */
+  .gl-box {
+    padding: 0.6rem 1rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    background-color: color-mix(in srgb, var(--color-background) 50%, transparent);
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .gl-box h3 {
+    margin: 0;
+    padding-top: 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-accent);
+  }
+
+  /* === Text Blocks (input/output) === */
+  .gl-text-block {
+    padding: 0.5rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--color-background) 94%, var(--color-foreground) 6%);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .gl-text-block code {
+    background: transparent !important;
+    color: inherit;
+    font-size: 0.75rem;
+    padding: 0;
+    font-weight: 400;
+  }
+
+  /* === Sub-grid (PRSO / PRSI side by side) === */
+  .gl-sub-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .gl-sub-block {
+    width: 100%;
+  }
+
+  .gl-sub-block + .gl-sub-block {
+    margin-top: 0.5rem;
+  }
+
+  .gl-prsa {
+    margin-top: 0.5rem;
+  }
+
+  .gl-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: color-mix(in srgb, var(--color-foreground) 60%, transparent);
+    margin-bottom: 0.2rem;
+    font-family: var(--font-sans);
+  }
+
+  /* === Code Blocks === */
+  .gl-code {
+    margin: 0;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--color-background) 94%, var(--color-foreground) 6%);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--color-foreground) 85%, transparent);
+    text-align: left;
+    white-space: pre;
+    overflow: hidden;
+    opacity: 1;
+    counter-reset: code-line;
+  }
+
+  .gl-code code {
+    background: transparent !important;
+    color: inherit;
+    opacity: 1;
+    font-size: 0.6rem;
+    line-height: 1;
+    padding: 0;
+    font-weight: 400;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .gl-code .code-line {
+    display: block;
+    counter-increment: code-line;
+  }
+
+  .gl-code .code-line::before {
+    content: counter(code-line);
+    display: inline-block;
+    min-width: 2ch;
+    margin-right: 0.5rem;
+    color: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+    text-align: right;
+  }
+
+  /* === Syntax Highlighting === */
+  .gl-code .syn-kw {
+    color: var(--color-accent);
+  }
+
+  .gl-code .syn-str {
+    color: color-mix(in srgb, #22c55e 70%, var(--color-foreground) 30%);
+  }
+
+  .gl-code .syn-num {
+    color: color-mix(in srgb, #ef4444 70%, var(--color-foreground) 30%);
+  }
+
+  /* === Arrows === */
+  .gl-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 0;
+  }
+
+  .gl-arrow-line {
+    width: 2px;
+    height: 1rem;
+    background-color: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+    position: relative;
+  }
+
+  .gl-arrow-line::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid color-mix(in srgb, var(--color-foreground) 45%, transparent);
+  }
+
+  /* === Desktop Layout === */
+  @media (min-width: 768px) {
+    .gl-diagram {
+      padding: 2rem 2rem 2rem 3.5rem;
+    }
+
+    .gl-loop-line {
+      left: 1rem;
+      width: 1.5rem;
+    }
+
+    .gl-loop-line::after {
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 6px solid color-mix(in srgb, var(--color-foreground) 45%, transparent);
+      top: -7px;
+      right: -6px;
+    }
+
+    .gl-box h3 {
+      font-size: 1rem;
+    }
+
+    .gl-text-block {
+      font-size: 0.85rem;
+    }
+
+    .gl-text-block code {
+      font-size: 0.85rem;
+    }
+
+    .gl-sub-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .gl-sub-grid .gl-sub-block + .gl-sub-block {
+      margin-top: 0;
+    }
+
+    .gl-code {
+      font-size: 0.65rem;
+    }
+
+    .gl-code code {
+      font-size: 0.65rem;
+    }
+  }
+</style>
+
+<script>
+  function positionLoopArrow() {
+    document.querySelectorAll('.gl-diagram').forEach((diagram) => {
+      const loop = diagram.querySelector('.gl-loop-line') as HTMLElement;
+      const first = diagram.querySelector('[data-gl-box="first"]') as HTMLElement;
+      const last = diagram.querySelector('[data-gl-box="last"]') as HTMLElement;
+      if (!loop || !first || !last) return;
+
+      const containerRect = diagram.getBoundingClientRect();
+      const firstRect = first.getBoundingClientRect();
+      const lastRect = last.getBoundingClientRect();
+
+      const firstCenter = firstRect.top + firstRect.height / 2 - containerRect.top;
+      const lastCenter = lastRect.top + lastRect.height / 2 - containerRect.top;
+
+      loop.style.top = `${firstCenter}px`;
+      loop.style.bottom = `${containerRect.height - lastCenter}px`;
+    });
+  }
+
+  positionLoopArrow();
+  window.addEventListener('resize', positionLoopArrow);
+  document.addEventListener('astro:after-swap', positionLoopArrow);
+</script>
