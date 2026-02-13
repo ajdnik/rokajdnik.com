@@ -26,7 +26,6 @@ import commandBreakdown from '../assets/images/blog/zork-the-great-inner-working
 import whiteHouse from '../assets/images/blog/zork-the-great-inner-workings/white-house.webp';
 import objectTree from '../assets/images/blog/zork-the-great-inner-workings/object-tree.webp';
 import attackSyntaxBreakdown from '../assets/images/blog/zork-the-great-inner-workings/attack-syntax-breakdown.webp';
-import actionExecution from '../assets/images/blog/zork-the-great-inner-workings/action-execution.webp';
 import gameLoop from '../assets/images/blog/zork-the-great-inner-workings/game-loop.webp';
 import github from '../assets/images/blog/zork-the-great-inner-workings/github.webp';
 
@@ -213,10 +212,20 @@ Once the parser finds PRSO and PRSI and determines the verb in the player's inpu
 
 If the syntax structure matches the player's input and PRSO and PRSI match based on the flags defined in the syntax, then that syntax is set to PRSA and the parser has completed its job. After parsing the game executes specific in-game actions based on the values of PRSA, PRSO, and PRSI. The pseudo-code shown below demonstrates the general algorithm.
 
-<figure>
-  <Image src={actionExecution} alt="Approximation of the action execution logic written in Python" />
-  <figcaption>Approximation of the action execution logic written in Python.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```python
+def ExecuteActions(PRSA, PRSO, PRSI):
+  if PRSI.Action():
+    return True
+  if PRSO.Action():
+    return True
+  if PRSA.Action():
+    return True
+  return False
+```
+
+</div>
 
 After the game executes those actions and outputs the results it loops back to obtaining new player input and the loop continues. The diagram, shown below, demonstrates a simplified loop where the player inputs text which gets parsed into PRSA, PRSO, and PRSI by using the object tree and syntax table structures. And lastly, syntax or game object actions get executed which results in text being printed out to the player.
 
