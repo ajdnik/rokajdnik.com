@@ -91,8 +91,8 @@
     images.forEach((img) => {
       const imgElement = img as HTMLImageElement;
       
-      // Skip cover images
-      if (imgElement.closest('.cover-image')) return;
+      // Skip cover images and images with data-no-lightbox
+      if (imgElement.closest('.cover-image') || imgElement.hasAttribute('data-no-lightbox')) return;
       
       imgElement.style.cursor = 'pointer';
       

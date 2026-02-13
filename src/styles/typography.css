@@ -224,7 +224,7 @@
     figure {
       @apply my-8 select-none flex flex-col items-center;
     }
-    figure img {
+    figure img:not([data-no-lightbox]) {
       @apply cursor-pointer;
     }
     .chart-container,
@@ -240,7 +240,10 @@
 
     /* media */
     img {
-      @apply rounded-xl transition-all duration-150 ease-in-out cursor-pointer hover:brightness-90 hover:scale-[1.01];
+      @apply rounded-xl transition-all duration-150 ease-in-out;
+    }
+    img:not([data-no-lightbox]) {
+      @apply cursor-pointer hover:brightness-90 hover:scale-[1.01];
     }
     iframe {
       @apply ring-accent my-8 ring-1 select-none;

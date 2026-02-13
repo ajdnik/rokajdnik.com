@@ -205,7 +205,8 @@ figure img,
 .markdown img {
   cursor: pointer !important;
 }
-.cover-image img {
+.cover-image img,
+img[data-no-lightbox] {
   cursor: default !important;
 }
 
