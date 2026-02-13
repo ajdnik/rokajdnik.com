@@ -6,6 +6,8 @@ import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import remarkGfm from "remark-gfm";
 import rehypeTableWrapper from "./src/plugins/rehype-table-wrapper.mjs";
+import lightTheme from "./src/themes/light.json";
+import darkTheme from "./src/themes/dark.json";
 
 // https://astro.build/config
 export default defineConfig({
@@ -23,8 +25,8 @@ export default defineConfig({
     shikiConfig: {
       defaultColor: false,
       themes: {
-        light: "github-light-high-contrast",
-        dark: "github-dark",
+        light: lightTheme,
+        dark: darkTheme,
       },
       wrap: true,
     },
