@@ -1,13 +1,14 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import PostCard from "../../../components/PostCard.astro";
+import type { GetStaticPaths } from "astro";
 import { getCollection } from "astro:content";
 import Pagination from "../../../components/Pagination.astro";
 import type { BlogType } from "../../../content.config";
 import { formatDate } from "../../../utils/formatDate";
 import { SITE_TITLE, SITE_AUTHOR } from "../../../consts";
 
-export async function getStaticPaths({ paginate }: { paginate: any }) {
+export const getStaticPaths = (async ({ paginate }) => {
   const blogs: BlogType[] = await getCollection("blogs");
   const tags = [...new Set(blogs.flatMap((blog) => blog.data.tags))];
 
@@ -23,7 +24,7 @@ export async function getStaticPaths({ paginate }: { paginate: any }) {
       pageSize: 8,
     });
   });
-}
+}) satisfies GetStaticPaths;
 
 const { page } = Astro.props as { page: { data: BlogType[] } };
 const { tag } = Astro.params as { tag: string };

@@ -1,4 +1,5 @@
 ---
+import type { GetStaticPaths } from "astro";
 import { getCollection } from "astro:content";
 import type { BlogType } from "../../../content.config";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
@@ -8,7 +9,7 @@ import { formatDate } from "../../../utils/formatDate";
 import { SITE_TITLE, SITE_AUTHOR } from "../../../consts";
 import Year from "../../../components/Year.astro";
 
-export async function getStaticPaths({ paginate }: { paginate: any }) {
+export const getStaticPaths = (async ({ paginate }) => {
   const blogs: BlogType[] = await getCollection("blogs");
   const years = [
     ...new Set(blogs.map((blog) => new Date(blog.data.date).getFullYear())),
@@ -28,7 +29,7 @@ export async function getStaticPaths({ paginate }: { paginate: any }) {
       props: { years },
     });
   });
-}
+}) satisfies GetStaticPaths;
 
 const { page, years } = Astro.props as { page: { data: BlogType[] }; years: number[] };
 const { year } = Astro.params as { year: string };
