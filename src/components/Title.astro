@@ -2,6 +2,16 @@
 import { formatDate } from "../utils/formatDate";
 import Calendar from "./icons/Calendar.astro";
 import Clock from "./icons/Clock.astro";
+
+interface Props {
+  frontmatter: {
+    title: string;
+    date: Date;
+    tags: string[];
+  };
+  readTime: number;
+}
+
 const { frontmatter, readTime } = Astro.props;
 ---
 
