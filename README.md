@@ -1,6 +1,7 @@
 # rokajdnik.com
 
 [![E2E Tests](https://github.com/ajdnik/rokajdnik.com/actions/workflows/e2e.yml/badge.svg)](https://github.com/ajdnik/rokajdnik.com/actions/workflows/e2e.yml)
+[![Lighthouse](https://github.com/ajdnik/rokajdnik.com/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/ajdnik/rokajdnik.com/actions/workflows/lighthouse.yml)
 [![Deploy to GitHub Pages](https://github.com/ajdnik/rokajdnik.com/actions/workflows/deploy.yml/badge.svg)](https://github.com/ajdnik/rokajdnik.com/actions/workflows/deploy.yml)
 
 Personal blog and portfolio website built with Astro.
@@ -62,7 +63,15 @@ Run tests with the interactive UI:
 npm run test:e2e:ui
 ```
 
-Tests also run automatically on every push and pull request via the [E2E Tests](https://github.com/ajdnik/rokajdnik.com/actions/workflows/e2e.yml) workflow.
+Run Lighthouse performance audit:
+
+```bash
+npm run test:lighthouse
+```
+
+This builds the site, runs Lighthouse against key pages, and reports scores for Performance, Accessibility, Best Practices, and SEO. The process exits with a non-zero code if any score falls below the threshold defined in `scripts/lighthouse.mjs`.
+
+Tests and Lighthouse audits also run automatically on every push and pull request via the [E2E Tests](https://github.com/ajdnik/rokajdnik.com/actions/workflows/e2e.yml) and [Lighthouse](https://github.com/ajdnik/rokajdnik.com/actions/workflows/lighthouse.yml) workflows.
 
 ## Deployment
 
