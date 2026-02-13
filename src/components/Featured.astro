@@ -1,18 +1,11 @@
 ---
 import { getCollection } from "astro:content";
 import type { BlogType } from "../content.config";
+import { withReadTime } from "../utils/readTime";
 import FeatureCard from "./FeatureCard.astro";
 
 const blogs: BlogType[] = await getCollection("blogs");
-const blogs_ = blogs.map((blog) => {
-  const words = (blog.body ?? "").split(/\s+/).filter(Boolean).length;
-  const minutes = Math.ceil(words / 200);
-  return {
-    ...blog,
-    data: { ...blog.data, readTime: minutes },
-  };
-});
-const featuredBlogs = blogs_
+const featuredBlogs = withReadTime(blogs)
   .filter((blog: BlogType) => blog.data.featured === true)
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---

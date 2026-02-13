@@ -3,6 +3,7 @@ import { render, getCollection } from "astro:content";
 import type { ImageMetadata } from "astro";
 import BlogLayout from "../layouts/BlogLayout.astro";
 import type { BlogType } from "../content.config";
+import { withReadTime } from "../utils/readTime";
 
 type SeriesEntry = {
   slug: string;
@@ -24,12 +25,7 @@ type SeriesInfo = {
 
 export async function getStaticPaths() {
   const blogs: BlogType[] = await getCollection("blogs");
-  const blogs_ = blogs.map((blog) => {
-    const words = (blog.body ?? "").split(/\s+/).filter(Boolean).length;
-    const minutes = Math.ceil(words / 200);
-
-    return { ...blog, data: { ...blog.data, readTime: minutes } };
-  });
+  const blogs_ = withReadTime(blogs);
 
   const seriesGroups = new Map<string, BlogType[]>();
   for (const blog of blogs_) {
