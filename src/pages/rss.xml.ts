@@ -1,6 +1,7 @@
 import rss from "@astrojs/rss";
 import { getCollection } from "astro:content";
 import type { APIContext } from "astro";
+import { SITE_TITLE, SITE_DESCRIPTION } from "../consts";
 
 export async function GET(context: APIContext) {
   if (!context.site) {
@@ -11,8 +12,8 @@ export async function GET(context: APIContext) {
 
   const blogs = await getCollection("blogs");
   return rss({
-    title: "Rok Ajdnik",
-    description: "Personal blog and portfolio of Rok Ajdnik",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     site: context.site,
     trailingSlash: false,
     items: blogs.map((blog) => ({

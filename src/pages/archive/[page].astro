@@ -5,6 +5,7 @@ import PostCard from "../../components/PostCard.astro";
 import Pagination from "../../components/Pagination.astro";
 import type { BlogType } from "../../content.config";
 import { formatDate } from "../../utils/formatDate";
+import { SITE_TITLE, SITE_AUTHOR } from "../../consts";
 import Year from "../../components/Year.astro";
 
 const blogs = await getCollection("blogs");
@@ -29,9 +30,9 @@ const { page } = Astro.props as { page: { data: BlogType[] } };
 ---
 
 <BaseLayout
-  title="Archive | Rok Ajdnik"
+  title={`Archive | ${SITE_TITLE}`}
   description="All blog posts"
-  author="Rok Ajdnik"
+  author={SITE_AUTHOR}
   url="/archive"
 >
   <section class="center">

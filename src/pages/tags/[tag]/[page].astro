@@ -5,6 +5,7 @@ import { getCollection } from "astro:content";
 import Pagination from "../../../components/Pagination.astro";
 import type { BlogType } from "../../../content.config";
 import { formatDate } from "../../../utils/formatDate";
+import { SITE_TITLE, SITE_AUTHOR } from "../../../consts";
 
 export async function getStaticPaths({ paginate }: { paginate: any }) {
   const blogs: BlogType[] = await getCollection("blogs");
@@ -29,9 +30,9 @@ const { tag } = Astro.params as { tag: string };
 ---
 
 <BaseLayout
-  title={`${tag} | Rok Ajdnik`}
+  title={`${tag} | ${SITE_TITLE}`}
   description={`Posts tagged with ${tag}`}
-  author="Rok Ajdnik"
+  author={SITE_AUTHOR}
   url={`/tags/${tag}`}
 >
   <section class="center">

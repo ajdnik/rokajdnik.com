@@ -5,6 +5,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import PostCard from "../../../components/PostCard.astro";
 import Pagination from "../../../components/Pagination.astro";
 import { formatDate } from "../../../utils/formatDate";
+import { SITE_TITLE, SITE_AUTHOR } from "../../../consts";
 import Year from "../../../components/Year.astro";
 
 const blogs: BlogType[] = await getCollection("blogs");
@@ -38,9 +39,9 @@ const { year } = Astro.params as { year: string };
 ---
 
 <BaseLayout
-  title={`Archive ${year} | Rok Ajdnik`}
+  title={`Archive ${year} | ${SITE_TITLE}`}
   description={`Blog posts from ${year}`}
-  author="Rok Ajdnik"
+  author={SITE_AUTHOR}
   url={`/archive/${year}`}
 >
   <section class="center">

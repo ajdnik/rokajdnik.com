@@ -2,15 +2,16 @@
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import type { BlogType } from "../../content.config";
+import { SITE_TITLE, SITE_AUTHOR } from "../../consts";
 
 const blogs: BlogType[] = await getCollection("blogs");
 const tags = [...new Set(blogs.map((blog) => blog.data.tags).flat())].sort();
 ---
 
 <BaseLayout
-  title="Tags | Rok Ajdnik"
+  title={`Tags | ${SITE_TITLE}`}
   description="Browse posts by tag"
-  author="Rok Ajdnik"
+  author={SITE_AUTHOR}
   url="/tags"
 >
   <section class="center">

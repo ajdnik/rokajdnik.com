@@ -1,4 +1,6 @@
 ---
+import { SITE_TITLE, SITE_DESCRIPTION, SITE_AUTHOR } from "../consts";
+
 export interface Props {
   title: string;
   description?: string;
@@ -10,9 +12,9 @@ export interface Props {
 }
 
 const {
-  title = "Rok Ajdnik",
-  description = "Personal blog and portfolio of Rok Ajdnik",
-  author = "Rok Ajdnik",
+  title = SITE_TITLE,
+  description = SITE_DESCRIPTION,
+  author = SITE_AUTHOR,
   canonicalURL: rawCanonicalURL,
   pubDate,
   image,

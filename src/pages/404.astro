@@ -1,8 +1,9 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { SITE_AUTHOR } from "../consts";
 ---
 
-<BaseLayout title="404 | Not Found" description="Page not found" author="Rok Ajdnik" url="/404">
+<BaseLayout title="404 | Not Found" description="Page not found" author={SITE_AUTHOR} url="/404">
   <section class="center flex flex-col items-center justify-center py-20">
     <h1 class="heading text-8xl">404</h1>
     <p class="paragraph text-center">The page you requested cannot be found!</p>

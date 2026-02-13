@@ -2,12 +2,13 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Introduction from "../components/Introduction.astro";
 import Featured from "../components/Featured.astro";
+import { SITE_TITLE, SITE_DESCRIPTION, SITE_AUTHOR } from "../consts";
 ---
 
 <BaseLayout
-  title="Rok Ajdnik"
-  description="Personal blog and portfolio of Rok Ajdnik"
-  author="Rok Ajdnik"
+  title={SITE_TITLE}
+  description={SITE_DESCRIPTION}
+  author={SITE_AUTHOR}
   url="/"
 >
   <Introduction />

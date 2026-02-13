@@ -1,11 +1,12 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { SITE_TITLE, SITE_AUTHOR } from "../consts";
 ---
 
 <BaseLayout
-  title="CV | Rok Ajdnik"
-  description="Curriculum Vitae of Rok Ajdnik - Director of Software Engineering"
-  author="Rok Ajdnik"
+  title={`CV | ${SITE_TITLE}`}
+  description={`Curriculum Vitae of ${SITE_AUTHOR} - Director of Software Engineering`}
+  author={SITE_AUTHOR}
   url="/cv"
 >
   <section class="center">
