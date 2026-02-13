@@ -22,6 +22,14 @@ const PAGES = [
   { path: "/404", name: "404" },
 ];
 
+const MODES = [
+  { name: "light", chromeFlags: [] },
+  {
+    name: "dark",
+    chromeFlags: ["--blink-settings=preferredColorScheme=2"],
+  },
+];
+
 async function waitForServer(url, timeout = 30_000) {
   const start = Date.now();
   while (Date.now() - start < timeout) {
@@ -64,26 +72,33 @@ async function main() {
   const chromePath = chromium.executablePath();
   const results = [];
 
-  for (const page of PAGES) {
-    const url = `${BASE_URL}${page.path}`;
-    const chrome = await launch({
-      chromePath,
-      chromeFlags: ["--headless", "--no-sandbox", "--disable-gpu"],
-    });
+  for (const mode of MODES) {
+    for (const page of PAGES) {
+      const url = `${BASE_URL}${page.path}`;
+      const chrome = await launch({
+        chromePath,
+        chromeFlags: [
+          "--headless",
+          "--no-sandbox",
+          "--disable-gpu",
+          ...mode.chromeFlags,
+        ],
+      });
 
-    const { lhr } = await lighthouse(url, {
-      port: chrome.port,
-      output: "json",
-      logLevel: "error",
-    });
+      const { lhr } = await lighthouse(url, {
+        port: chrome.port,
+        output: "json",
+        logLevel: "error",
+      });
 
-    const scores = {};
-    for (const [key, category] of Object.entries(lhr.categories)) {
-      scores[key] = Math.round(category.score * 100);
+      const scores = {};
+      for (const [key, category] of Object.entries(lhr.categories)) {
+        scores[key] = Math.round(category.score * 100);
+      }
+      results.push({ ...page, mode: mode.name, scores });
+
+      await chrome.kill();
     }
-    results.push({ ...page, scores });
-
-    await chrome.kill();
   }
 
   server.kill();
@@ -91,27 +106,32 @@ async function main() {
   // Print table
   const categories = Object.keys(results[0].scores);
   const nameWidth = 24;
+  const modeWidth = 8;
   const colWidth = 18;
-
-  console.log();
-  console.log(
-    "Page".padEnd(nameWidth) +
-      categories.map((c) => formatName(c).padStart(colWidth)).join(""),
-  );
-  console.log("\u2500".repeat(nameWidth + categories.length * colWidth));
 
   let allPassed = true;
 
-  for (const r of results) {
-    let line = r.name.padEnd(nameWidth);
-    for (const cat of categories) {
-      const score = r.scores[cat];
-      const color =
-        score >= 90 ? "\x1b[32m" : score >= 50 ? "\x1b[33m" : "\x1b[31m";
-      line += `${color}${String(score).padStart(colWidth)}\x1b[0m`;
-      if (score < THRESHOLD) allPassed = false;
+  for (const mode of MODES) {
+    const modeResults = results.filter((r) => r.mode === mode.name);
+
+    console.log(`\n  ${mode.name.toUpperCase()} MODE`);
+    console.log(
+      "Page".padEnd(nameWidth) +
+        categories.map((c) => formatName(c).padStart(colWidth)).join(""),
+    );
+    console.log("\u2500".repeat(nameWidth + categories.length * colWidth));
+
+    for (const r of modeResults) {
+      let line = r.name.padEnd(nameWidth);
+      for (const cat of categories) {
+        const score = r.scores[cat];
+        const color =
+          score >= 90 ? "\x1b[32m" : score >= 50 ? "\x1b[33m" : "\x1b[31m";
+        line += `${color}${String(score).padStart(colWidth)}\x1b[0m`;
+        if (score < THRESHOLD) allPassed = false;
+      }
+      console.log(line);
     }
-    console.log(line);
   }
 
   console.log();
