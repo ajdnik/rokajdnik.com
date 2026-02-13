@@ -5,6 +5,7 @@
     { "include": "#strings" },
     { "include": "#storage" },
     { "include": "#keywords" },
+    { "include": "#properties" },
     { "include": "#numbers" },
     { "include": "#global-variables" },
     { "include": "#local-variables" }
@@ -37,7 +38,15 @@
       "patterns": [
         {
           "name": "keyword.control.zil",
-          "match": "\\b(DEFINE|ROUTINE|COND|TELL|REPEAT|SET|RETURN|AGAIN|RTRUE|RFALSE|PRINTI|PRINTR|PRINT|PRINTN|PUTB|PUTP|READ|SREAD|GETB|GETP|ZERO\\?|EQUAL\\?|OR|AND|NOT|MOVE|REMOVE|LOC|CRLF|QUIT|ADD|SUB|MUL|INC|DEC|JUMP|OBJECT|ROOM|GLOBAL|SETG|FIRST\\?|NEXT\\?|IN\\?|FSET\\?|LESS\\?|GRTR\\?|APPLY|PROG|BIND|MAPF|VERSION)\\b"
+          "match": "\\b(DEFINE|ROUTINE|COND|TELL|REPEAT|SET|RETURN|AGAIN|RTRUE|RFALSE|PRINTI|PRINTR|PRINT|PRINTN|PUTB|PUTP|READ|SREAD|GETB|GETP|ZERO\\?|EQUAL\\?|OR|AND|NOT|MOVE|REMOVE|LOC|CRLF|QUIT|ADD|SUB|MUL|INC|DEC|JUMP|OBJECT|ROOM|GLOBAL|SETG|FIRST\\?|NEXT\\?|IN\\?|FSET\\?|LESS\\?|GRTR\\?|APPLY|PROG|BIND|MAPF|VERSION|SYNTAX|BUZZ|DIRECTIONS|SYNONYM|IN|ADJECTIVE|DESC|FLAGS|CAPACITY|ACTION|FDESC|LDESC|TEXT|SIZE|VALUE|TVALUE|STRENGTH|DESCFCN|VTYPE)\\b(?!-)"
+        }
+      ]
+    },
+    "properties": {
+      "patterns": [
+        {
+          "name": "entity.name.type.zil",
+          "match": "(?<=\\()(?:FIND|HELD|CARRIED|ON-GROUND|IN-ROOM|HAVE|TAKE|MANY|NORTH|SOUTH|EAST|WEST|NE|NW|SE|SW|UP|DOWN)\\b"
         }
       ]
     },

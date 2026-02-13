@@ -23,20 +23,12 @@ cover:
 ---
 import { Image } from 'astro:assets';
 import commandBreakdown from '../assets/images/blog/zork-the-great-inner-workings/command-breakdown.webp';
-import mailbox from '../assets/images/blog/zork-the-great-inner-workings/mailbox.webp';
 import whiteHouse from '../assets/images/blog/zork-the-great-inner-workings/white-house.webp';
 import objectTree from '../assets/images/blog/zork-the-great-inner-workings/object-tree.webp';
-import attackSyntax from '../assets/images/blog/zork-the-great-inner-workings/attack-syntax.webp';
-import lookSyntax from '../assets/images/blog/zork-the-great-inner-workings/look-syntax.webp';
 import attackSyntaxBreakdown from '../assets/images/blog/zork-the-great-inner-workings/attack-syntax-breakdown.webp';
 import actionExecution from '../assets/images/blog/zork-the-great-inner-workings/action-execution.webp';
 import gameLoop from '../assets/images/blog/zork-the-great-inner-workings/game-loop.webp';
 import github from '../assets/images/blog/zork-the-great-inner-workings/github.webp';
-import goEntrypoint from '../assets/images/blog/zork-the-great-inner-workings/go-entrypoint.webp';
-import xyzzy from '../assets/images/blog/zork-the-great-inner-workings/xyzzy.webp';
-import rape from '../assets/images/blog/zork-the-great-inner-workings/rape.webp';
-import itake from '../assets/images/blog/zork-the-great-inner-workings/itake.webp';
-import comments from '../assets/images/blog/zork-the-great-inner-workings/comments.webp';
 
 Roughly a year ago, during the summer of 2019, I got an idea. I was setting up a [Kubernetes](https://en.wikipedia.org/wiki/Kubernetes) cluster, and as I usually do, I set up a mock web server using [Nginx](https://en.wikipedia.org/wiki/Nginx) to test out [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/), [SSL](https://en.wikipedia.org/wiki/Transport_Layer_Security), and domain settings. Then it hit me, wouldn't it be great if instead of a boring webserver I would use a web game as my testing service and then leave it in the cluster as sort of a calling card. I know, I can be childish, sometimes. If you're unfamiliar with Kubernetes, Nginx and SSL, don't worry, they have nothing to do with Zork. I'm just trying to rationalize the madness of going through and studying over 15 thousand lines of code that comprise the game of Zork. Which I did because I thought implementing Zork as a web game would be easy. Little did I know…
 
@@ -117,10 +109,20 @@ PRSA="attack" PRSO="mailbox" PRSI="elvish sword"
 
 To be fully transparent, this is only a simplified description of how the parser works. But it's enough to explain the next mechanism that comprises the game's architecture which is **a game object**.
 
-<figure>
-  <Image src={mailbox} alt="Zork I ZIL source code definition of the MAILBOX object" />
-  <figcaption>Zork I ZIL source code definition of the MAILBOX object.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```zil
+<OBJECT MAILBOX
+	(IN WEST-OF-HOUSE)
+	(SYNONYM MAILBOX BOX)
+	(ADJECTIVE SMALL)
+	(DESC "small mailbox")
+	(FLAGS CONTBIT TRYTAKEBIT)
+	(CAPACITY 10)
+	(ACTION MAILBOX-F)>
+```
+
+</div>
 
 Game objects can be anything, from a location such as the [White House](https://zork.fandom.com/wiki/White_house) to objects such as the [Mailbox](https://zork.fandom.com/wiki/Mailbox), essentially everywhere the player can go, anything they can take or attack with, everything is a game object. Each object has properties such as a name, a description, an action, a list of adjectives that describe it, etc.
 
@@ -167,17 +169,38 @@ On the table is an elongated brown sack, smelling of hot peppers.
 
 The parser uses the game's object tree to locate relevant objects which were referenced in the player's input. Once the algorithm unambiguously determines which object or objects were referenced in the input the variables PRSO and PRSI are populated with those objects. And lastly, the parser needs to populate the PRSA variable but for that, it uses another mechanism called **the syntax**.
 
-<figure class="full-width">
-  <Image src={attackSyntax} alt="Syntax definition for the ATTACK action" />
-  <figcaption>Syntax definition for the ATTACK action.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```zil
+<SYNTAX ATTACK OBJECT (FIND ACTORBIT) (ON-GROUND IN-ROOM)
+	WITH OBJECT (FIND WEAPONBIT) (HELD CARRIED HAVE) = V-ATTACK>
+<SYNONYM ATTACK FIGHT HURT INJURE HIT>
+```
+
+</div>
 
 The syntax is a table structure where Zork defines its actions. As seen in the source code above it uses a format: "Verb preposition Direct object preposition Indirect object", where prepositions and objects are optional.
 
-<figure class="full-width">
-  <Image src={lookSyntax} alt="Syntax definitions for LOOK actions taken from Zork I ZIL source" />
-  <figcaption>Syntax definitions for LOOK actions taken from Zork I ZIL source.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```zil
+<SYNTAX LOOK = V-LOOK>
+<SYNTAX LOOK AROUND OBJECT (FIND RMUNGBIT) = V-LOOK>
+<SYNTAX LOOK UP OBJECT (FIND RMUNGBIT) = V-LOOK>
+<SYNTAX LOOK DOWN OBJECT (FIND RMUNGBIT) = V-LOOK>
+<SYNTAX LOOK AT OBJECT (HELD CARRIED ON-GROUND IN-ROOM MANY) = V-EXAMINE>
+<SYNTAX LOOK ON OBJECT = V-LOOK-ON>
+<SYNTAX LOOK WITH OBJECT (HELD CARRIED ON-GROUND IN-ROOM MANY) = V-LOOK-INSIDE>
+<SYNTAX LOOK UNDER OBJECT = V-LOOK-UNDER>
+<SYNTAX LOOK BEHIND OBJECT = V-LOOK-BEHIND>
+<SYNTAX LOOK IN OBJECT (HELD CARRIED ON-GROUND IN-ROOM MANY) = V-LOOK-INSIDE>
+<SYNTAX LOOK AT OBJECT (HELD CARRIED ON-GROUND IN-ROOM)
+	WITH OBJECT = V-READ PRE-READ>
+<SYNTAX LOOK FOR OBJECT = V-FIND>
+<SYNONYM LOOK L STARE GAZE>
+```
+
+</div>
 
 The snippet above shows different syntax definitions for the *LOOK* action. Some have objects and prepositions defined while others don't. Each syntax also has a callback function defined (*V-LOOK*, *V-EXAMINE*, *V-LOOK-INSIDE*, …). The callback functions are similar to object actions, meaning they get executed if the syntax is matched to the player's input. The attack syntax example, shown above, can be broken down as follows:
 
@@ -217,10 +240,37 @@ Now that we have a general understanding of how the game works let's look at its
 
 Looking at the file structure above, any software engineer could make a reasonable guess that the game starts in gmain.zil since main is a common software [entry point](https://en.wikipedia.org/wiki/Entry_point). They would be wrong. The game execution starts in the [*GO*](https://github.com/historicalsource/zork1/blob/master/1dungeon.zil#L2637) function which is located in 1dungeon.zil. The function takes care of some setup logic and in the end starts the game's main loop, whose function is located in gmain.zil.
 
-<figure>
-  <Image src={goEntrypoint} alt="The entry point to the Zork I game" />
-  <figcaption>The entry point to the Zork I game.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```zil
+<ROUTINE GO ()
+	<ENABLE <QUEUE I-FIGHT -1>>
+	<QUEUE I-SWORD -1>
+	<ENABLE <QUEUE I-THIEF -1>>
+	<QUEUE I-CANDLES 40>
+	<QUEUE I-LANTERN 200>
+	<PUTP ,INFLATED-BOAT ,P?VTYPE ,NONLANDBIT>
+	<PUT ,DEF1-RES 1 <REST ,DEF1 2>>
+	<PUT ,DEF1-RES 2 <REST ,DEF1 4>>
+	<PUT ,DEF2-RES 2 <REST ,DEF2B 2>>
+	<PUT ,DEF2-RES 3 <REST ,DEF2B 4>>
+	<PUT ,DEF3-RES 1 <REST ,DEF3A 2>>
+	<PUT ,DEF3-RES 3 <REST ,DEF3B 2>>
+	<SETG HERE ,WEST-OF-HOUSE>
+	<THIS-IS-IT ,MAILBOX>
+	<COND (<NOT <FSET? ,HERE ,TOUCHBIT>>
+	       <V-VERSION>
+	       <CRLF>)>
+	<SETG LIT T>
+	<SETG WINNER ,ADVENTURER>
+	<SETG PLAYER ,WINNER>
+	<MOVE ,WINNER ,HERE>
+	<V-LOOK>
+	<MAIN-LOOP>
+	<AGAIN>>
+```
+
+</div>
 
 The [*MAIN-LOOP*](https://github.com/historicalsource/zork1/blob/master/gmain.zil#L38) function essentially performs the loop I described in the previous chapter, where the player's input is parsed and the game finds the appropriate syntax and game objects being referred to in said input. Afterward, actions for the matching syntax and game objects are executed. The *MAIN-LOOP* calls the [*PARSER*](https://github.com/historicalsource/zork1/blob/master/gparser.zil#L109) function to parse the input and afterward, it executes the actions by calling the [*PERFORM*](https://github.com/historicalsource/zork1/blob/master/gmain.zil#L235) function. The *PARSER* function is located in gparser.zil along with a ton of helper functions and the *PERFORM* function is located in gmain.zil.
 
@@ -230,10 +280,14 @@ The repository also contains a compiled version of the game in [z3](https://file
 
 Now, let's look at some of the more interesting aspects of Zork's source code. Firstly, let's start with the [xyzzy](https://en.wikipedia.org/wiki/Xyzzy_(computing)) easter egg. The *XYZZY* command was added to Zork as an easter egg or a nod to the [Colossal Cave Adventure](https://en.wikipedia.org/wiki/Colossal_Cave_Adventure), which was the first text-based adventure game.
 
-<figure>
-  <Image src={xyzzy} alt="XYZZY syntax definition" />
-  <figcaption>XYZZY syntax definition.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```zil
+<SYNTAX PLUGH = V-ADVENT>
+<SYNONYM PLUGH XYZZY>
+```
+
+</div>
 
 Executing the command at any point in the game would always produce the same response:
 
@@ -244,10 +298,14 @@ A hollow voice says "Fool."
 
 Another interesting find is the inclusion of the *RAPE* command. Yes, you're reading that correctly, it's not a typo. The command didn't really do anything and was most likely put there by the authors for comedic effect, but it's certainly something that wouldn't be found in today's games.
 
-<figure>
-  <Image src={rape} alt="RAPE command syntax definition" />
-  <figcaption>RAPE command syntax definition.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```zil
+<SYNTAX RAPE OBJECT (FIND ACTORBIT) = V-RAPE>
+<SYNONYM RAPE MOLEST>
+```
+
+</div>
 
 Again, similar to the *XYZZY* command the player could execute the command at any point in-game and receive the same response.
 
@@ -264,10 +322,77 @@ To me, especially considering the problems in the present gaming culture[^2], th
 
 One piece of source code I have to address is something the gaming community already discovered back in 2017[^3]. Back then they didn't have access to the original ZIL code so they used the decompiled Z-code to decode this trolling logic. The game has an interesting inventory management logic. Essentially whenever a player tries to put an object into their inventory the [*ITAKE*](https://github.com/historicalsource/zork1/blob/master/gverbs.zil#L1900) function is executed.
 
-<figure>
-  <Image src={itake} alt="Games TAKE logic" />
-  <figcaption>Games TAKE logic.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```zil
+<ROUTINE ITAKE ("OPTIONAL" (VB T) "AUX" CNT OBJ)
+	 #DECL ((VB) <OR ATOM FALSE> (CNT) FIX (OBJ) OBJECT)
+	 <COND %<COND (<==? ,ZORK-NUMBER 1>
+		       '(,DEAD
+		         <COND (.VB
+				<TELL
+"Your hand passes through its object." CR>)>
+		         <RFALSE>))
+		      (T
+		       '(<NULL-F>
+			 <RFALSE>))>
+	       (<NOT <FSET? ,PRSO ,TAKEBIT>>
+		<COND (.VB
+		       <TELL <PICK-ONE ,YUKS> CR>)>
+		<RFALSE>)
+	       %<COND (<==? ,ZORK-NUMBER 2>
+		       '(<AND <EQUAL? ,PRSO ,SPELL-VICTIM>
+		              <EQUAL? ,SPELL-USED ,W?FLOAT ,W?FREEZE>>
+		         <COND (<EQUAL? ,SPELL-USED ,W?FLOAT>
+		                <TELL
+"You can't reach that. It's floating above your head." CR>)
+		               (T
+		                <TELL "It seems rooted to the spot." CR>)>
+		         <RFALSE>))
+		      (T
+		       '(<NULL-F>
+			 <RFALSE>))>
+	       (<AND <FSET? <LOC ,PRSO> ,CONTBIT>
+		     <NOT <FSET? <LOC ,PRSO> ,OPENBIT>>>
+		;"Kludge for parser calling itake"
+		<RFALSE>)
+	       (<AND <NOT <IN? <LOC ,PRSO> ,WINNER>>
+		     <G? <+ <WEIGHT ,PRSO> <WEIGHT ,WINNER>> ,LOAD-ALLOWED>>
+		<COND (.VB
+		       <TELL "Your load is too heavy">
+		       <COND (<L? ,LOAD-ALLOWED ,LOAD-MAX>
+			      <TELL", especially in light of your condition.">)
+			     (T
+			      <TELL ".">)>
+		       <CRLF>)>
+		<RFATAL>)
+	       (<AND <VERB? TAKE>
+		     <G? <SET CNT <CCOUNT ,WINNER>> ,FUMBLE-NUMBER>
+		     <PROB <* .CNT ,FUMBLE-PROB>>>
+		<TELL
+"You're holding too many things already!" CR>
+		<RFALSE>)
+	       (T
+		<MOVE ,PRSO ,WINNER>
+		<FCLEAR ,PRSO ,NDESCBIT>
+		<FSET ,PRSO ,TOUCHBIT>
+		%<COND (<==? ,ZORK-NUMBER 2>
+			'<COND (<EQUAL? ,SPELL? ,S-FILCH>
+		                <COND (<RIPOFF ,PRSO ,WIZARD-CASE>
+			               <TELL
+"When you touch the " D ,PRSO " it immediately disappears!" CR>
+			               <RFALSE>)>)>)
+		       (T
+			'<NULL-F>)>
+		%<COND (<OR <==? ,ZORK-NUMBER 1>
+			    <==? ,ZORK-NUMBER 2>>
+			'<SCORE-OBJ ,PRSO>)
+		       (T
+			'<NULL-F>)>
+		<RTRUE>)>>
+```
+
+</div>
 
 The function checks if the item can be safely put into the player's inventory. It does this by performing five checks where if one of them fails the object can't be taken by the player. On line 3 it checks if the player is dead, on line 7 it checks if the object can be taken, on line 11 it checks if the object is located within a closed container, on line 15 it checks if the item exceeds the inventory load allowed, and then the pièce de résistance, on line 25 it checks the number of items currently held in inventory and if that number is greater than 7 it randomly returns "You're holding too many things already!". What this means is that during gameplay if you see this response you can retry taking it and if the random number generator is on your side you'll be able to pick it up. Using the randomness approach, the developers successfully trolled the game's players into guessing what the maximum number of items they could carry was.
 
@@ -301,10 +426,31 @@ Taken.
 
 Besides easter eggs, inappropriate game commands, and trolling game mechanics, the source code also contains interesting comments. Some of the comments show unused code which was commented out, and other comments show how developers tracked changes before [source version control](https://en.wikipedia.org/wiki/Version_control) became popular.
 
-<figure>
-  <Image src={comments} alt="Change tracking using comments" />
-  <figcaption>Change tracking using comments.</figcaption>
-</figure>
+<div class="with-line-numbers">
+
+```zil
+       <COND (<AND <ZERO? .LEN> .GCHECK>
+	      <COND (.VRB
+		     ;"next added 1/2/85 by JW"
+		     <SETG P-SLOCBITS .XBITS>
+		     <COND (<OR ,LIT <VERB? TELL ;WHERE ;WHAT ;WHO>>
+			    ;"Changed 6/10/83 - MARC"
+			    <OBJ-FOUND ,NOT-HERE-OBJECT .TBL>
+			    <SETG P-XNAM ,P-NAM>
+			    <SETG P-XADJ ,P-ADJ>
+			    <SETG P-XADJN ,P-ADJN>
+			    <SETG P-NAM <>>
+			    <SETG P-ADJ <>>
+			    <SETG P-ADJN <>>
+			    <RTRUE>)
+			   (T <TELL "It's too dark to see!" CR>)>)>
+	      <SETG P-NAM <>>
+	      <SETG P-ADJ <>>
+	      <RFALSE>)
+	     (<ZERO? .LEN> <SET GCHECK T> <AGAIN>)>
+```
+
+</div>
 
 This source code excerpt was taken from [*GET-OBJECT*](https://github.com/historicalsource/zork1/blob/master/gparser.zil#L1040) function located in gparser.zil. We can also make an educated guess that MARC refers to [Marc Blank](https://en.wikipedia.org/wiki/Marc_Blank), who was one of the initial creators of Zork, but I couldn't figure out who JW could be.
 
