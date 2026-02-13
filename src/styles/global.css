@@ -8,12 +8,14 @@
   --background: var(--color-zinc-800);
   --foreground: var(--color-zinc-300);
   --accent: var(--color-yellow-500);
+  --code-bg: #24292e;
 }
 
 .light {
   --background: var(--color-gray-100);
   --foreground: var(--color-gray-800);
   --accent: var(--color-blue-500);
+  --code-bg: #f6f8fa;
 }
 
 /* CODE BLOCK */
