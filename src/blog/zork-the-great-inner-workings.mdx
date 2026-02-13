@@ -24,7 +24,7 @@ cover:
 import { Image } from 'astro:assets';
 import commandBreakdown from '../assets/images/blog/zork-the-great-inner-workings/command-breakdown.webp';
 import WhiteHouseDiagram from '../components/WhiteHouseDiagram.astro';
-import objectTree from '../assets/images/blog/zork-the-great-inner-workings/object-tree.webp';
+import ObjectTreeDiagram from '../components/ObjectTreeDiagram.astro';
 import attackSyntaxBreakdown from '../assets/images/blog/zork-the-great-inner-workings/attack-syntax-breakdown.webp';
 import gameLoop from '../assets/images/blog/zork-the-great-inner-workings/game-loop.webp';
 import github from '../assets/images/blog/zork-the-great-inner-workings/github.webp';
@@ -150,7 +150,7 @@ It's right here! Are you blind or something?
 All the objects are located in **the object tree** which is a hierarchical data structure where the parent objects represent owners of their node objects. Essentially, if one object has a parent it means the object is located in/on its parent. An example would be if an object called "quantity of water" were located within an object called "glass bottle", the bottle object would be the parent of the water object, as shown in the image below. The parent object is defined in the *IN* property of the object. The *KITCHEN* object has a parent called ROOMS which isn't shown below. It's a top-level object within the object tree that contains all the game's rooms.
 
 <figure>
-  <Image src={objectTree} alt="Excerpt from the object tree showing how the hierarchy defines the object's placement within the game" />
+  <ObjectTreeDiagram />
   <figcaption>Excerpt from the object tree showing how the hierarchy defines the object's placement within the game.</figcaption>
 </figure>
 

@@ -1,0 +1,221 @@
+<div class="ot-diagram">
+  <div class="ot-block">
+    <h3>Room</h3>
+    <pre class="ot-code"><code><span class="code-line">&lt;<span class="syn-kw">ROOM</span> KITCHEN</span>
+<span class="code-line">    (<span class="syn-kw">IN</span> ROOMS)</span>
+<span class="code-line">    (<span class="syn-kw">DESC</span> <span class="syn-str">"Kitchen"</span>)</span>
+<span class="code-line">    (<span class="syn-kw">EAST</span> TO EAST-OF-HOUSE IF KITCHEN-WINDOW IS OPEN)</span>
+<span class="code-line">    (<span class="syn-kw">WEST</span> TO LIVING-ROOM)</span>
+<span class="code-line">    (<span class="syn-kw">OUT</span> TO EAST-OF-HOUSE IF KITCHEN-WINDOW IS OPEN)</span>
+<span class="code-line">    (<span class="syn-kw">UP</span> TO ATTIC)</span>
+<span class="code-line">    (<span class="syn-kw">DOWN</span> TO STUDIO IF FALSE-FLAG ELSE</span>
+<span class="code-line">      <span class="syn-str">"Only Santa Claus climbs down chimneys."</span>)</span>
+<span class="code-line">    (<span class="syn-kw">ACTION</span> KITCHEN-FCN)</span>
+<span class="code-line">    (<span class="syn-kw">FLAGS</span> RLANDBIT ONBIT SACREDBIT)</span>
+<span class="code-line">    (<span class="syn-kw">VALUE</span> <span class="syn-num">10</span>)</span>
+<span class="code-line">    (<span class="syn-kw">GLOBAL</span> KITCHEN-WINDOW CHIMNEY STAIRS)&gt;</span>
+</code></pre>
+  </div>
+
+  <div class="ot-arrow">
+    <div class="ot-arrow-line"></div>
+  </div>
+
+  <div class="ot-block">
+    <h3>Object</h3>
+    <pre class="ot-code"><code><span class="code-line">&lt;<span class="syn-kw">OBJECT</span> KITCHEN-TABLE</span>
+<span class="code-line">    (<span class="syn-kw">IN</span> <span class="syn-ref">KITCHEN</span>)</span>
+<span class="code-line">    (<span class="syn-kw">SYNONYM</span> TABLE)</span>
+<span class="code-line">    (<span class="syn-kw">ADJECTIVE</span> KITCHEN)</span>
+<span class="code-line">    (<span class="syn-kw">DESC</span> <span class="syn-str">"kitchen table"</span>)</span>
+<span class="code-line">    (<span class="syn-kw">FLAGS</span> NDESCBIT CONTBIT OPENBIT SURFACEBIT)</span>
+<span class="code-line">    (<span class="syn-kw">CAPACITY</span> <span class="syn-num">50</span>)&gt;</span>
+</code></pre>
+  </div>
+
+  <div class="ot-arrow">
+    <div class="ot-arrow-line"></div>
+  </div>
+
+  <div class="ot-block">
+    <h3>Object</h3>
+    <pre class="ot-code"><code><span class="code-line">&lt;<span class="syn-kw">OBJECT</span> BOTTLE</span>
+<span class="code-line">    (<span class="syn-kw">IN</span> <span class="syn-ref">KITCHEN-TABLE</span>)</span>
+<span class="code-line">    (<span class="syn-kw">SYNONYM</span> BOTTLE CONTAINER)</span>
+<span class="code-line">    (<span class="syn-kw">ADJECTIVE</span> CLEAR GLASS)</span>
+<span class="code-line">    (<span class="syn-kw">DESC</span> <span class="syn-str">"glass bottle"</span>)</span>
+<span class="code-line">    (<span class="syn-kw">FLAGS</span> TAKEBIT TRANSBIT CONTBIT)</span>
+<span class="code-line">    (<span class="syn-kw">ACTION</span> BOTTLE-FUNCTION)</span>
+<span class="code-line">    (<span class="syn-kw">FDESC</span> <span class="syn-str">"A bottle is sitting on the table."</span>)</span>
+<span class="code-line">    (<span class="syn-kw">CAPACITY</span> <span class="syn-num">4</span>)&gt;</span>
+</code></pre>
+  </div>
+
+  <div class="ot-arrow">
+    <div class="ot-arrow-line"></div>
+  </div>
+
+  <div class="ot-block">
+    <h3>Object</h3>
+    <pre class="ot-code"><code><span class="code-line">&lt;<span class="syn-kw">OBJECT</span> WATER</span>
+<span class="code-line">    (<span class="syn-kw">IN</span> <span class="syn-ref">BOTTLE</span>)</span>
+<span class="code-line">    (<span class="syn-kw">SYNONYM</span> WATER QUANTITY LIQUID H2O)</span>
+<span class="code-line">    (<span class="syn-kw">DESC</span> <span class="syn-str">"quantity of water"</span>)</span>
+<span class="code-line">    (<span class="syn-kw">FLAGS</span> TRYTAKEBIT TAKEBIT DRINKBIT)</span>
+<span class="code-line">    (<span class="syn-kw">ACTION</span> WATER-F)</span>
+<span class="code-line">    (<span class="syn-kw">SIZE</span> <span class="syn-num">4</span>)&gt;</span>
+</code></pre>
+  </div>
+</div>
+
+<style>
+  /* === Container === */
+  .ot-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    background-color: color-mix(in srgb, var(--color-background) 94%, var(--color-foreground) 6%);
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--color-foreground) 8%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 12px 12px;
+    background-position: 0 0;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    box-shadow: none;
+  }
+
+  /* === Blocks === */
+  .ot-block {
+    padding: 0.4rem 1.2rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    background-color: color-mix(in srgb, var(--color-background) 50%, transparent);
+    text-align: left;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .ot-block h3 {
+    margin: 0;
+    padding-top: 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-accent);
+  }
+
+  /* === Code Blocks === */
+  .ot-code {
+    margin: 0.4rem 0 0;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--color-background) 94%, var(--color-foreground) 6%);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--color-foreground) 85%, transparent);
+    text-align: left;
+    white-space: pre;
+    overflow: hidden;
+    opacity: 1;
+    counter-reset: code-line;
+  }
+
+  .ot-code code {
+    background: transparent !important;
+    color: inherit;
+    opacity: 1;
+    font-size: 0.65rem;
+    line-height: 1;
+    padding: 0;
+    font-weight: 400;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .ot-code .code-line {
+    display: block;
+    counter-increment: code-line;
+  }
+
+  .ot-code .code-line::before {
+    content: counter(code-line);
+    display: inline-block;
+    min-width: 2ch;
+    margin-right: 0.5rem;
+    color: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+    text-align: right;
+  }
+
+  /* === Syntax Highlighting === */
+  .ot-code .syn-kw {
+    color: var(--color-accent);
+  }
+
+  .ot-code .syn-str {
+    color: color-mix(in srgb, #22c55e 70%, var(--color-foreground) 30%);
+  }
+
+  .ot-code .syn-ref {
+    color: color-mix(in srgb, #f59e0b 80%, var(--color-foreground) 20%);
+  }
+
+  .ot-code .syn-num {
+    color: color-mix(in srgb, #ef4444 70%, var(--color-foreground) 30%);
+  }
+
+  /* === Arrows === */
+  .ot-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 0;
+  }
+
+  .ot-arrow-line {
+    width: 2px;
+    height: 1.5rem;
+    background-color: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+    position: relative;
+  }
+
+  .ot-arrow-line::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid color-mix(in srgb, var(--color-foreground) 45%, transparent);
+  }
+
+  /* === Desktop Layout === */
+  @media (min-width: 768px) {
+    .ot-diagram {
+      padding: 2rem;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .ot-block {
+      width: 100%;
+    }
+  }
+</style>
