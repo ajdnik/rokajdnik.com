@@ -10,6 +10,8 @@ export interface Props {
 
 import "@fontsource-variable/space-grotesk";
 import "@fontsource/ibm-plex-mono";
+import spaceGrotesk from "@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2?url";
+import ibmPlexMono from "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2?url";
 import Seo from "../components/Seo.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
@@ -25,6 +27,8 @@ const { title, description, author, url, pubDate, image } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href={spaceGrotesk} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={ibmPlexMono} as="font" type="font/woff2" crossorigin />
     <Seo
       title={title}
       description={description}
