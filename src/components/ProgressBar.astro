@@ -1,0 +1,25 @@
+---
+---
+
+<div class="bg-foreground/13 fixed top-0 left-0 z-50 h-1 w-full">
+  <div
+    id="scroll-progress"
+    class="bg-accent h-full transition-all duration-150 ease-in-out"
+    style="width: 0%"
+  />
+</div>
+
+<script>
+  const bar = document.getElementById("scroll-progress")!;
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      const { scrollTop, scrollHeight, clientHeight } =
+        document.documentElement;
+      const percent = (scrollTop / (scrollHeight - clientHeight)) * 100;
+      bar.style.width = `${percent}%`;
+    },
+    { passive: true },
+  );
+</script>

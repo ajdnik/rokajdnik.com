@@ -1,0 +1,140 @@
+---
+---
+
+<nav
+  id="toc-nav"
+  class="toc-sidebar"
+  style="display: none;"
+  aria-label="Table of contents"
+>
+  <ul id="toc-list" class="space-y-1"></ul>
+</nav>
+
+<script>
+  const nav = document.getElementById("toc-nav")!;
+  const list = document.getElementById("toc-list")!;
+
+  const article = document.querySelector("article");
+  const markdown = article?.querySelector(".markdown");
+
+  if (article && markdown) {
+    const elements = Array.from(
+      markdown.querySelectorAll("h2[id], h3[id]"),
+    ).filter(
+      (el) => !el.closest(".footnotes") && !el.classList.contains("sr-only"),
+    );
+
+    const headings = elements.map((el) => ({
+      id: el.id,
+      text: el.textContent?.replace(/^#\s*/, "") || "",
+      level: el.tagName === "H2" ? 2 : 3,
+    }));
+
+    if (headings.length >= 3) {
+      let activeId = "";
+
+      function setActive(id: string) {
+        if (id === activeId) return;
+        activeId = id;
+        list.querySelectorAll<HTMLButtonElement>("button").forEach((btn) => {
+          const isActive = btn.dataset.id === id;
+          btn.classList.toggle("toc-active", isActive);
+          if (isActive)
+            btn.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        });
+      }
+
+      function getActiveHeading(): string | null {
+        const scrollY = window.scrollY;
+        let active: string | null = null;
+        for (const el of elements) {
+          const top =
+            (el as HTMLElement).getBoundingClientRect().top + scrollY;
+          if (top <= scrollY + 100) {
+            active = el.id;
+          } else {
+            break;
+          }
+        }
+        return active;
+      }
+
+      // Build the ToC
+      headings.forEach((heading) => {
+        const li = document.createElement("li");
+        const button = document.createElement("button");
+        button.className = `toc-link ${heading.level === 3 ? "toc-indent" : ""}`;
+        button.textContent = heading.text;
+        button.dataset.id = heading.id;
+        button.addEventListener("click", () => {
+          document.getElementById(heading.id)?.scrollIntoView({ behavior: "smooth" });
+          setActive(heading.id);
+        });
+        li.appendChild(button);
+        list.appendChild(li);
+      });
+
+      // Show the nav (CSS classes handle responsive visibility)
+      nav.style.removeProperty("display");
+
+      // Position calculation
+      const topBoundary = article.querySelector("header hr");
+      const bottomBoundary =
+        markdown.querySelector(".footnotes") || markdown;
+
+      function updatePosition() {
+        if (!topBoundary) return;
+
+        const tocHeight = nav.offsetHeight;
+        const vh = window.innerHeight;
+        const idealTop = (vh - tocHeight) / 2;
+
+        const topRect = topBoundary.getBoundingClientRect();
+        const bottomRect = bottomBoundary.getBoundingClientRect();
+
+        const minTop = topRect.bottom;
+        const maxTop = bottomRect.top - tocHeight;
+
+        nav.style.top = `${Math.max(minTop, Math.min(idealTop, maxTop))}px`;
+      }
+
+      // IntersectionObserver for scroll spy
+      const headingEntries = new Map<string, IntersectionObserverEntry>();
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            headingEntries.set(entry.target.id, entry);
+          });
+
+          const visible: IntersectionObserverEntry[] = [];
+          headingEntries.forEach((entry) => {
+            if (entry.isIntersecting) visible.push(entry);
+          });
+
+          if (visible.length > 0) {
+            visible.sort(
+              (a, b) =>
+                a.boundingClientRect.top - b.boundingClientRect.top,
+            );
+            setActive(visible[0].target.id);
+          } else {
+            const active = getActiveHeading();
+            if (active) setActive(active);
+          }
+        },
+        { rootMargin: "-64px 0px -60% 0px", threshold: 0 },
+      );
+
+      elements.forEach((el) => observer.observe(el));
+
+      // Initial state
+      const initial = getActiveHeading();
+      if (initial) setActive(initial);
+
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, { passive: true });
+      window.addEventListener("resize", updatePosition, { passive: true });
+    }
+  }
+</script>

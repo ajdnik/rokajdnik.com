@@ -1,7 +1,7 @@
 ---
 import { Image } from "astro:assets";
-import ProgressBar from "../components/ProgressBar";
-import TableOfContents from "../components/TableOfContents";
+import ProgressBar from "../components/ProgressBar.astro";
+import TableOfContents from "../components/TableOfContents.astro";
 import BaseLayout from "./BaseLayout.astro";
 import Title from "../components/Title.astro";
 import Lightbox from "../components/Lightbox.astro";
@@ -17,7 +17,7 @@ const { frontmatter, readTime, series } = Astro.props;
   pubDate={frontmatter.date}
   image={frontmatter.cover?.src.src}
 >
-  <ProgressBar client:load />
+  <ProgressBar />
   {frontmatter.cover && (
     <figure class="cover-image">
       <Image src={frontmatter.cover.src} alt={frontmatter.cover.alt} />
@@ -33,6 +33,6 @@ const { frontmatter, readTime, series } = Astro.props;
       <slot />
     </section>
   </article>
-  <TableOfContents client:load />
+  <TableOfContents />
   <Lightbox />
 </BaseLayout>

@@ -1,0 +1,94 @@
+---
+---
+
+<button
+  id="theme-toggle"
+  aria-label="toggle theme"
+  class="hover:text-accent animation"
+>
+  <!-- Moon icon: shown in light mode (click to go dark) -->
+  <svg
+    class="block dark:hidden"
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+  </svg>
+  <!-- Sun icon: shown in dark mode (click to go light) -->
+  <svg
+    class="hidden dark:block"
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2" />
+    <path d="M12 20v2" />
+    <path d="m4.93 4.93 1.41 1.41" />
+    <path d="m17.66 17.66 1.41 1.41" />
+    <path d="M2 12h2" />
+    <path d="M20 12h2" />
+    <path d="m6.34 17.66-1.41 1.41" />
+    <path d="m19.07 4.93-1.41 1.41" />
+  </svg>
+</button>
+
+<script>
+  function applyTheme(newTheme: string) {
+    document.documentElement.classList.toggle("light", newTheme === "light");
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+    localStorage.setItem("theme", newTheme);
+  }
+
+  document
+    .getElementById("theme-toggle")!
+    .addEventListener("click", (event) => {
+      const currentTheme = document.documentElement.classList.contains("dark")
+        ? "dark"
+        : "light";
+      const newTheme = currentTheme === "dark" ? "light" : "dark";
+
+      const transition = (document as any).startViewTransition?.(() =>
+        applyTheme(newTheme),
+      );
+      if (!transition) return applyTheme(newTheme);
+
+      const x = event.clientX;
+      const y = event.clientY;
+
+      transition.ready.then(() => {
+        const path = [
+          `circle(0% at ${x}px ${y}px)`,
+          `circle(150% at ${x}px ${y}px)`,
+        ];
+
+        document.documentElement.animate(
+          {
+            clipPath: currentTheme === "dark" ? path : [...path].reverse(),
+          },
+          {
+            duration: 600,
+            easing: "ease-in-out",
+            fill: "forwards",
+            pseudoElement:
+              newTheme === "light"
+                ? "::view-transition-new(root)"
+                : "::view-transition-old(root)",
+          },
+        );
+      });
+    });
+</script>
