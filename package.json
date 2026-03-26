@@ -34,7 +34,7 @@
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.14",
-    "astro": "^5.15.8",
+    "astro": "^5.18.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "recharts": "^3.7.0",
