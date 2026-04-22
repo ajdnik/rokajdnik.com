@@ -24,7 +24,7 @@ export const getStaticPaths = (async ({ paginate }) => {
       );
 
     return paginate(filteredBlogs, {
-      params: { year },
+      params: { year: String(year) },
       pageSize: 8,
       props: { years },
     });

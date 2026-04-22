@@ -61,7 +61,7 @@ test.describe("CV page", () => {
   });
 
   test("displays LinkedIn CTA button", async ({ page }) => {
-    const linkedinCTA = page.locator('a', {
+    const linkedinCTA = page.locator("a", {
       hasText: "Connect on LinkedIn",
     });
     await expect(linkedinCTA).toBeVisible();

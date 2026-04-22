@@ -1,11 +1,4 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useState, useEffect, useRef } from "react";
 
 const data = [
@@ -73,7 +66,11 @@ export default function DivisibilityDistribution() {
   const accentColor = isDark ? "#eab308" : "#3b82f6";
 
   return (
-    <div ref={containerRef} className="chart-container" style={{ width: "100%", height: 250 }}>
+    <div
+      ref={containerRef}
+      className="chart-container"
+      style={{ width: "100%", height: 250 }}
+    >
       {width > 0 && (
         <BarChart
           width={width}
@@ -104,12 +101,15 @@ export default function DivisibilityDistribution() {
           <Tooltip
             content={<ChartTooltip />}
             cursor={{
-              fill: isDark
-                ? "rgba(255,255,255,0.05)"
-                : "rgba(0,0,0,0.05)",
+              fill: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
             }}
           />
-          <Bar dataKey="percentage" radius={[0, 4, 4, 0]} maxBarSize={36} fill={accentColor} />
+          <Bar
+            dataKey="percentage"
+            radius={[0, 4, 4, 0]}
+            maxBarSize={36}
+            fill={accentColor}
+          />
         </BarChart>
       )}
     </div>

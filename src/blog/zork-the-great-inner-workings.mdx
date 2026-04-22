@@ -21,13 +21,14 @@ cover:
   alt: "Zork cover art inside the matrix"
   caption: "Zork cover art inside the matrix. Zork cover art is the copyright of Infocom and The Matrix code is the copyright of Warner Bros. Pictures."
 ---
-import { Image } from 'astro:assets';
-import commandBreakdown from '../assets/images/blog/zork-the-great-inner-workings/command-breakdown.webp';
-import WhiteHouseDiagram from '../components/WhiteHouseDiagram.astro';
-import ObjectTreeDiagram from '../components/ObjectTreeDiagram.astro';
-import attackSyntaxBreakdown from '../assets/images/blog/zork-the-great-inner-workings/attack-syntax-breakdown.webp';
-import GameLoopDiagram from '../components/GameLoopDiagram.astro';
-import github from '../assets/images/blog/zork-the-great-inner-workings/github.webp';
+
+import { Image } from "astro:assets";
+import commandBreakdown from "../assets/images/blog/zork-the-great-inner-workings/command-breakdown.webp";
+import WhiteHouseDiagram from "../components/WhiteHouseDiagram.astro";
+import ObjectTreeDiagram from "../components/ObjectTreeDiagram.astro";
+import attackSyntaxBreakdown from "../assets/images/blog/zork-the-great-inner-workings/attack-syntax-breakdown.webp";
+import GameLoopDiagram from "../components/GameLoopDiagram.astro";
+import github from "../assets/images/blog/zork-the-great-inner-workings/github.webp";
 
 Roughly a year ago, during the summer of 2019, I got an idea. I was setting up a [Kubernetes](https://en.wikipedia.org/wiki/Kubernetes) cluster, and as I usually do, I set up a mock web server using [Nginx](https://en.wikipedia.org/wiki/Nginx) to test out [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/), [SSL](https://en.wikipedia.org/wiki/Transport_Layer_Security), and domain settings. Then it hit me, wouldn't it be great if instead of a boring webserver I would use a web game as my testing service and then leave it in the cluster as sort of a calling card. I know, I can be childish, sometimes. If you're unfamiliar with Kubernetes, Nginx and SSL, don't worry, they have nothing to do with Zork. I'm just trying to rationalize the madness of going through and studying over 15 thousand lines of code that comprise the game of Zork. Which I did because I thought implementing Zork as a web game would be easy. Little did I know…
 
@@ -39,11 +40,11 @@ In this article, I'll explain how I went about studying the Zork source code and
 
 Before delving into the architecture and source code it's worth noting that Zork had many incarnations and while the general architecture is the same across all of them, they differ in how that architecture was implemented.
 
-The first version of Zork was written from 1977 to 1979 and was developed in [MDL](https://en.wikipedia.org/wiki/MDL_(programming_language)), which was a functional language similar to [LISP](https://en.wikipedia.org/wiki/Lisp_(programming_language)). The game was developed exclusively for the [PDP-10](https://en.wikipedia.org/wiki/PDP-10) mainframe computer.
+The first version of Zork was written from 1977 to 1979 and was developed in [MDL](<https://en.wikipedia.org/wiki/MDL_(programming_language)>), which was a functional language similar to [LISP](<https://en.wikipedia.org/wiki/Lisp_(programming_language)>). The game was developed exclusively for the [PDP-10](https://en.wikipedia.org/wiki/PDP-10) mainframe computer.
 
 In 1978 some "madman"[^1] ported the source code into [FORTRAN](https://en.wikipedia.org/wiki/Fortran) which is an imperative programming language. That version was initially developed for the [PDP-11](https://en.wikipedia.org/wiki/PDP-11) mainframe but got compiled on numerous other systems since FORTRAN was much more portable than MDL.
 
-In 1981 the [original Zork developers](https://en.wikipedia.org/wiki/Implementer_(video_games)) decided to create a game development company and distribute Zork as their first game. Due to limitations, which you can read about in the first article, they had to separate Zork into three games, Zork I, II, and III. They also invented their own programming language [ZIL](http://www.ifwiki.org/index.php/ZIL) which was similar to MDL but was more portable which meant they were able to run Zork on [TRS-80](https://en.wikipedia.org/wiki/TRS-80) and [Apple II](https://en.wikipedia.org/wiki/Apple_II) computers.
+In 1981 the [original Zork developers](<https://en.wikipedia.org/wiki/Implementer_(video_games)>) decided to create a game development company and distribute Zork as their first game. Due to limitations, which you can read about in the first article, they had to separate Zork into three games, Zork I, II, and III. They also invented their own programming language [ZIL](http://www.ifwiki.org/index.php/ZIL) which was similar to MDL but was more portable which meant they were able to run Zork on [TRS-80](https://en.wikipedia.org/wiki/TRS-80) and [Apple II](https://en.wikipedia.org/wiki/Apple_II) computers.
 
 [Infocom](https://en.wikipedia.org/wiki/Infocom), which was the name of the company, made improvements to the Zork codebase over the years, such as fixing bugs. They also released Gold editions of Zork which contained in-game hints and in 1987 they released Mini-Zork which was an abridged version.
 
@@ -83,8 +84,13 @@ I've known strange people, but fighting a small mailbox?
 The game parses the player's input into three main variables PRSA, PRSI, and PRSO. The variables refer to an action, indirect object, and direct object respectively. A direct object is an object that the action acts upon, and an indirect object is an optional part of a sentence; it's the recipient of the action. The parser's job is to figure out which parts of the player's input are the PRSA, PRSI, and PRSO.
 
 <figure>
-  <Image src={commandBreakdown} alt="Breakdown of a command into the three main parsing variables" />
-  <figcaption>Breakdown of a command into the three main parsing variables.</figcaption>
+  <Image
+    src={commandBreakdown}
+    alt="Breakdown of a command into the three main parsing variables"
+  />
+  <figcaption>
+    Breakdown of a command into the three main parsing variables.
+  </figcaption>
 </figure>
 
 For the sake of completionism and to further demonstrate how the parser works, here's how it would determine the three variables for the player inputs shown above.
@@ -127,10 +133,13 @@ Game objects can be anything, from a location such as the [White House](https://
 
 <figure>
   <WhiteHouseDiagram />
-  <figcaption>Object definition of the WHITE-HOUSE object and its action definition (WHITE-HOUSE-F) on the right.</figcaption>
+  <figcaption>
+    Object definition of the WHITE-HOUSE object and its action definition
+    (WHITE-HOUSE-F) on the right.
+  </figcaption>
 </figure>
 
-Each object has an action property. That property contains a callback function that gets executed if the object is referenced in the player's input. When the action is executed, it normally outputs text to the player based on the context in which the object was referenced in the player's input. For instance, based on the code above, if the player is located in the kitchen, living room or the attic and they type the command `>find the white house` the game will output `Why not find your brains?`. The logic for that particular case is located in the *WHITE-HOUSE-F* action on lines 2–4. The game's response is witty since the player is already located within the house, so trying to find it is pointless. Below are some more examples of the player's input and how that input would be handled with the *WHITE-HOUSE-F* action.
+Each object has an action property. That property contains a callback function that gets executed if the object is referenced in the player's input. When the action is executed, it normally outputs text to the player based on the context in which the object was referenced in the player's input. For instance, based on the code above, if the player is located in the kitchen, living room or the attic and they type the command `>find the white house` the game will output `Why not find your brains?`. The logic for that particular case is located in the _WHITE-HOUSE-F_ action on lines 2–4. The game's response is witty since the player is already located within the house, so trying to find it is pointless. Below are some more examples of the player's input and how that input would be handled with the _WHITE-HOUSE-F_ action.
 
 ```
 West of House
@@ -147,14 +156,17 @@ You must be joking.
 It's right here! Are you blind or something?
 ```
 
-All the objects are located in **the object tree** which is a hierarchical data structure where the parent objects represent owners of their node objects. Essentially, if one object has a parent it means the object is located in/on its parent. An example would be if an object called "quantity of water" were located within an object called "glass bottle", the bottle object would be the parent of the water object, as shown in the image below. The parent object is defined in the *IN* property of the object. The *KITCHEN* object has a parent called ROOMS which isn't shown below. It's a top-level object within the object tree that contains all the game's rooms.
+All the objects are located in **the object tree** which is a hierarchical data structure where the parent objects represent owners of their node objects. Essentially, if one object has a parent it means the object is located in/on its parent. An example would be if an object called "quantity of water" were located within an object called "glass bottle", the bottle object would be the parent of the water object, as shown in the image below. The parent object is defined in the _IN_ property of the object. The _KITCHEN_ object has a parent called ROOMS which isn't shown below. It's a top-level object within the object tree that contains all the game's rooms.
 
 <figure>
   <ObjectTreeDiagram />
-  <figcaption>Excerpt from the object tree showing how the hierarchy defines the object's placement within the game.</figcaption>
+  <figcaption>
+    Excerpt from the object tree showing how the hierarchy defines the object's
+    placement within the game.
+  </figcaption>
 </figure>
 
-What this hierarchy means is that the *WATER* object is located in the *BOTTLE* object which is located on the *KITCHEN-TABLE* object, and lastly the *KITCHEN-TABLE* is located in the *KITCHEN* object which is also a room. Here's how this tree structure translates into the game's output. Some of the output below is defined in the object's actions and isn't seen in the definitions above.
+What this hierarchy means is that the _WATER_ object is located in the _BOTTLE_ object which is located on the _KITCHEN-TABLE_ object, and lastly the _KITCHEN-TABLE_ is located in the _KITCHEN_ object which is also a room. Here's how this tree structure translates into the game's output. Some of the output below is defined in the object's actions and isn't seen in the definitions above.
 
 ```
 Kitchen
@@ -201,14 +213,17 @@ The syntax is a table structure where Zork defines its actions. As seen in the s
 
 </div>
 
-The snippet above shows different syntax definitions for the *LOOK* action. Some have objects and prepositions defined while others don't. Each syntax also has a callback function defined (*V-LOOK*, *V-EXAMINE*, *V-LOOK-INSIDE*, …). The callback functions are similar to object actions, meaning they get executed if the syntax is matched to the player's input. The attack syntax example, shown above, can be broken down as follows:
+The snippet above shows different syntax definitions for the _LOOK_ action. Some have objects and prepositions defined while others don't. Each syntax also has a callback function defined (_V-LOOK_, _V-EXAMINE_, _V-LOOK-INSIDE_, …). The callback functions are similar to object actions, meaning they get executed if the syntax is matched to the player's input. The attack syntax example, shown above, can be broken down as follows:
 
 <figure class="full-width">
-  <Image src={attackSyntaxBreakdown} alt="Breakdown of ATTACK syntax definition" />
+  <Image
+    src={attackSyntaxBreakdown}
+    alt="Breakdown of ATTACK syntax definition"
+  />
   <figcaption>Breakdown of ATTACK syntax definition.</figcaption>
 </figure>
 
-Once the parser finds PRSO and PRSI and determines the verb in the player's input, it starts looking through the syntax table for an entry that matches the verb, as well as PRSO/PRSI combination. The flags that are defined for each object put restrictions on what kind of objects can be used in that syntax. In the case of the attack action above, the direct object needs to be a game character (*ACTORBIT*) such as a troll or a thief, and the indirect object needs to be a weapon and based on its location flags (*HELD*, *CARRIED*, *HAVE*) it needs to be in the possession of the player.
+Once the parser finds PRSO and PRSI and determines the verb in the player's input, it starts looking through the syntax table for an entry that matches the verb, as well as PRSO/PRSI combination. The flags that are defined for each object put restrictions on what kind of objects can be used in that syntax. In the case of the attack action above, the direct object needs to be a game character (_ACTORBIT_) such as a troll or a thief, and the indirect object needs to be a weapon and based on its location flags (_HELD_, _CARRIED_, _HAVE_) it needs to be in the possession of the player.
 
 If the syntax structure matches the player's input and PRSO and PRSI match based on the flags defined in the syntax, then that syntax is set to PRSA and the parser has completed its job. After parsing the game executes specific in-game actions based on the values of PRSA, PRSO, and PRSI. The pseudo-code shown below demonstrates the general algorithm.
 
@@ -234,7 +249,7 @@ After the game executes those actions and outputs the results it loops back to o
   <figcaption>Simplified Zork I game loop.</figcaption>
 </figure>
 
-The output that gets printed out is from the *V-ATTACK* action. It gets printed because the *MAILBOX* object doesn't have the *ACTORBIT* flag which is required to successfully execute an attack on something. In simpler terms, because the *MAILBOX* object isn't a game character it can't be attacked and the *V-ATTACK* action outputs a witty retort.
+The output that gets printed out is from the _V-ATTACK_ action. It gets printed because the _MAILBOX_ object doesn't have the _ACTORBIT_ flag which is required to successfully execute an attack on something. In simpler terms, because the _MAILBOX_ object isn't a game character it can't be attacked and the _V-ATTACK_ action outputs a witty retort.
 
 This description is a somewhat simplified architecture because it doesn't take into account a synonym table, part-of-speech tagging, and the fact that the parser supports clauses. I recommend reading through the source code and manuals to get a more detailed understanding of the architecture. But the description provided in this article should be a good starting off point when it comes to exploring the game's architecture and its source code.
 
@@ -247,7 +262,7 @@ Now that we have a general understanding of how the game works let's look at its
   <figcaption>Zork I GitHub repository files.</figcaption>
 </figure>
 
-Looking at the file structure above, any software engineer could make a reasonable guess that the game starts in gmain.zil since main is a common software [entry point](https://en.wikipedia.org/wiki/Entry_point). They would be wrong. The game execution starts in the [*GO*](https://github.com/historicalsource/zork1/blob/master/1dungeon.zil#L2637) function which is located in 1dungeon.zil. The function takes care of some setup logic and in the end starts the game's main loop, whose function is located in gmain.zil.
+Looking at the file structure above, any software engineer could make a reasonable guess that the game starts in gmain.zil since main is a common software [entry point](https://en.wikipedia.org/wiki/Entry_point). They would be wrong. The game execution starts in the [_GO_](https://github.com/historicalsource/zork1/blob/master/1dungeon.zil#L2637) function which is located in 1dungeon.zil. The function takes care of some setup logic and in the end starts the game's main loop, whose function is located in gmain.zil.
 
 <div class="with-line-numbers">
 
@@ -281,13 +296,13 @@ Looking at the file structure above, any software engineer could make a reasonab
 
 </div>
 
-The [*MAIN-LOOP*](https://github.com/historicalsource/zork1/blob/master/gmain.zil#L38) function essentially performs the loop I described in the previous chapter, where the player's input is parsed and the game finds the appropriate syntax and game objects being referred to in said input. Afterward, actions for the matching syntax and game objects are executed. The *MAIN-LOOP* calls the [*PARSER*](https://github.com/historicalsource/zork1/blob/master/gparser.zil#L109) function to parse the input and afterward, it executes the actions by calling the [*PERFORM*](https://github.com/historicalsource/zork1/blob/master/gmain.zil#L235) function. The *PARSER* function is located in gparser.zil along with a ton of helper functions and the *PERFORM* function is located in gmain.zil.
+The [_MAIN-LOOP_](https://github.com/historicalsource/zork1/blob/master/gmain.zil#L38) function essentially performs the loop I described in the previous chapter, where the player's input is parsed and the game finds the appropriate syntax and game objects being referred to in said input. Afterward, actions for the matching syntax and game objects are executed. The _MAIN-LOOP_ calls the [_PARSER_](https://github.com/historicalsource/zork1/blob/master/gparser.zil#L109) function to parse the input and afterward, it executes the actions by calling the [_PERFORM_](https://github.com/historicalsource/zork1/blob/master/gmain.zil#L235) function. The _PARSER_ function is located in gparser.zil along with a ton of helper functions and the _PERFORM_ function is located in gmain.zil.
 
 Besides the main game logic, game object definitions are located in 1dungeon.zil, the object's action definitions are located in 1actions.zil, syntax definitions are located in gsyntax.zil and syntax's action definitions are located in gverbs.zil. Lastly, gclock.zil contains a rudimentary implementation of a timer mechanism that the game uses to trigger time-based events. That covers all the major aspects of the game. Other files contain helper functions and additional game object definitions.
 
 The repository also contains a compiled version of the game in [z3](https://fileinfo.com/extension/z3) format. You can run the game using one of the many [Z-machine](https://en.wikipedia.org/wiki/Z-machine) interpreters out there. I recommend [Frotz](https://davidgriffith.gitlab.io/frotz/).
 
-Now, let's look at some of the more interesting aspects of Zork's source code. Firstly, let's start with the [xyzzy](https://en.wikipedia.org/wiki/Xyzzy_(computing)) easter egg. The *XYZZY* command was added to Zork as an easter egg or a nod to the [Colossal Cave Adventure](https://en.wikipedia.org/wiki/Colossal_Cave_Adventure), which was the first text-based adventure game.
+Now, let's look at some of the more interesting aspects of Zork's source code. Firstly, let's start with the [xyzzy](<https://en.wikipedia.org/wiki/Xyzzy_(computing)>) easter egg. The _XYZZY_ command was added to Zork as an easter egg or a nod to the [Colossal Cave Adventure](https://en.wikipedia.org/wiki/Colossal_Cave_Adventure), which was the first text-based adventure game.
 
 <div class="with-line-numbers">
 
@@ -309,7 +324,7 @@ Executing the command at any point in the game would always produce the same res
 A hollow voice says "Fool."
 ```
 
-Another interesting find is the inclusion of the *RAPE* command. Yes, you're reading that correctly, it's not a typo. The command didn't really do anything and was most likely put there by the authors for comedic effect, but it's certainly something that wouldn't be found in today's games.
+Another interesting find is the inclusion of the _RAPE_ command. Yes, you're reading that correctly, it's not a typo. The command didn't really do anything and was most likely put there by the authors for comedic effect, but it's certainly something that wouldn't be found in today's games.
 
 <div class="with-line-numbers">
 
@@ -324,7 +339,7 @@ Another interesting find is the inclusion of the *RAPE* command. Yes, you're rea
 
 </div>
 
-Again, similar to the *XYZZY* command the player could execute the command at any point in-game and receive the same response.
+Again, similar to the _XYZZY_ command the player could execute the command at any point in-game and receive the same response.
 
 ```
 West of House
@@ -337,7 +352,7 @@ What a (ahem!) strange idea.
 
 To me, especially considering the problems in the present gaming culture[^2], the command is an interesting window into the gaming culture of the past and how this cultural behavior got passed on to the newer generations and potentiated.
 
-One piece of source code I have to address is something the gaming community already discovered back in 2017[^3]. Back then they didn't have access to the original ZIL code so they used the decompiled Z-code to decode this trolling logic. The game has an interesting inventory management logic. Essentially whenever a player tries to put an object into their inventory the [*ITAKE*](https://github.com/historicalsource/zork1/blob/master/gverbs.zil#L1900) function is executed.
+One piece of source code I have to address is something the gaming community already discovered back in 2017[^3]. Back then they didn't have access to the original ZIL code so they used the decompiled Z-code to decode this trolling logic. The game has an interesting inventory management logic. Essentially whenever a player tries to put an object into their inventory the [_ITAKE_](https://github.com/historicalsource/zork1/blob/master/gverbs.zil#L1900) function is executed.
 
 <div class="with-line-numbers">
 
@@ -434,14 +449,16 @@ Besides easter eggs, inappropriate game commands, and trolling game mechanics, t
 
 </div>
 
-This source code excerpt was taken from [*GET-OBJECT*](https://github.com/historicalsource/zork1/blob/master/gparser.zil#L1040) function located in gparser.zil. We can also make an educated guess that MARC refers to [Marc Blank](https://en.wikipedia.org/wiki/Marc_Blank), who was one of the initial creators of Zork, but I couldn't figure out who JW could be.
+This source code excerpt was taken from [_GET-OBJECT_](https://github.com/historicalsource/zork1/blob/master/gparser.zil#L1040) function located in gparser.zil. We can also make an educated guess that MARC refers to [Marc Blank](https://en.wikipedia.org/wiki/Marc_Blank), who was one of the initial creators of Zork, but I couldn't figure out who JW could be.
 
 The entire Zork I codebase consists of more than 15k lines of code so there are plenty more interesting comments, curious game logic, and offensive humor to be found. But we've gone through plenty in this article.
 
 ## Summary
 
-Exploring and examining the Zork I source code gave me the knowledge and confidence needed to port the game into a modern programming language. I've started porting the game into [Golang](https://en.wikipedia.org/wiki/Go_(programming_language)) and you can check out my project on [GitHub](https://github.com/ajdnik/gozork). It's still a work in progress and while I've ported the parser and the syntax I still have a lot of work to do. After I finish porting it to Golang I might rebuild the game in [React](https://en.wikipedia.org/wiki/React_(web_framework))/[Redux](https://en.wikipedia.org/wiki/Redux_(JavaScript_library)), I'm curious if a game such as this could be built entirely in a Redux architecture.
+Exploring and examining the Zork I source code gave me the knowledge and confidence needed to port the game into a modern programming language. I've started porting the game into [Golang](<https://en.wikipedia.org/wiki/Go_(programming_language)>) and you can check out my project on [GitHub](https://github.com/ajdnik/gozork). It's still a work in progress and while I've ported the parser and the syntax I still have a lot of work to do. After I finish porting it to Golang I might rebuild the game in [React](<https://en.wikipedia.org/wiki/React_(web_framework)>)/[Redux](<https://en.wikipedia.org/wiki/Redux_(JavaScript_library)>), I'm curious if a game such as this could be built entirely in a Redux architecture.
 
-[^1]: Tim Anderson. New Zork Times, pages 6–7, 11. (Winter 1985). *The History of Zork, First in a Series*
-[^2]: Mark Melnychuk. Regina Leader-Post. (Nov 25, 2014). *The word rape is sadly engrained in gaming culture* [https://leaderpost.com/entertainment/the-word-rape-is-sadly-engrained-in-gaming-culture](https://leaderpost.com/entertainment/the-word-rape-is-sadly-engrained-in-gaming-culture)
-[^3]: Logan Booker. Kotaku. (August 28, 2017). *Zork Source Code Is A Master Class In Game Developer Trolling* [https://www.kotaku.com.au/2017/08/zork-source-code-is-a-master-class-in-game-developer-trolling/](https://www.kotaku.com.au/2017/08/zork-source-code-is-a-master-class-in-game-developer-trolling/)
+[^1]: Tim Anderson. New Zork Times, pages 6–7, 11. (Winter 1985). _The History of Zork, First in a Series_
+
+[^2]: Mark Melnychuk. Regina Leader-Post. (Nov 25, 2014). _The word rape is sadly engrained in gaming culture_ [https://leaderpost.com/entertainment/the-word-rape-is-sadly-engrained-in-gaming-culture](https://leaderpost.com/entertainment/the-word-rape-is-sadly-engrained-in-gaming-culture)
+
+[^3]: Logan Booker. Kotaku. (August 28, 2017). _Zork Source Code Is A Master Class In Game Developer Trolling_ [https://www.kotaku.com.au/2017/08/zork-source-code-is-a-master-class-in-game-developer-trolling/](https://www.kotaku.com.au/2017/08/zork-source-code-is-a-master-class-in-game-developer-trolling/)
