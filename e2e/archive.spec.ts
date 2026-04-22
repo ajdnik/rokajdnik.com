@@ -6,7 +6,9 @@ test.describe("Archive page", () => {
   });
 
   test("displays year filter buttons", async ({ page }) => {
-    const yearButtons = page.locator('a.button[href^="/archive/"]').filter({ hasText: /\d{4}/ });
+    const yearButtons = page
+      .locator('a.button[href^="/archive/"]')
+      .filter({ hasText: /\d{4}/ });
     await expect(yearButtons).not.toHaveCount(0);
   });
 
@@ -34,7 +36,10 @@ test.describe("Archive page", () => {
   });
 
   test("clicking a year filters posts", async ({ page }) => {
-    const yearButton = page.locator('a.button[href^="/archive/"]').filter({ hasText: /\d{4}/ }).first();
+    const yearButton = page
+      .locator('a.button[href^="/archive/"]')
+      .filter({ hasText: /\d{4}/ })
+      .first();
     const href = await yearButton.getAttribute("href");
     await yearButton.click();
 
@@ -46,7 +51,10 @@ test.describe("Archive year page", () => {
   test("displays posts filtered by year", async ({ page }) => {
     // Navigate to archive first to get a valid year link
     await page.goto("/archive/1");
-    const yearButton = page.locator('a.button[href^="/archive/"]').filter({ hasText: /\d{4}/ }).first();
+    const yearButton = page
+      .locator('a.button[href^="/archive/"]')
+      .filter({ hasText: /\d{4}/ })
+      .first();
     const yearText = (await yearButton.textContent())?.trim();
     const href = await yearButton.getAttribute("href");
 

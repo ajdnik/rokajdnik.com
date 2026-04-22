@@ -44,9 +44,7 @@ test.describe("Progress bar", () => {
   test("width increases on scroll", async ({ page }) => {
     await page.goto("/fizzbuzz-madness-in-javascript");
 
-    const progressFill = page.locator(
-      ".bg-foreground\\/13.fixed.top-0 > div",
-    );
+    const progressFill = page.locator(".bg-foreground\\/13.fixed.top-0 > div");
 
     // Initially at top, width should be small
     const initialWidth = await progressFill.evaluate(

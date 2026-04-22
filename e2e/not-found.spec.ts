@@ -17,7 +17,7 @@ test.describe("404 page", () => {
   test("has a link back to homepage", async ({ page }) => {
     await page.goto("/404");
 
-    const homeLink = page.locator('a.button', { hasText: "Go Home" });
+    const homeLink = page.locator("a.button", { hasText: "Go Home" });
     await expect(homeLink).toBeVisible();
     await expect(homeLink).toHaveAttribute("href", "/");
   });
@@ -25,7 +25,7 @@ test.describe("404 page", () => {
   test("clicking Go Home navigates to homepage", async ({ page }) => {
     await page.goto("/404");
 
-    await page.locator('a.button', { hasText: "Go Home" }).click();
+    await page.locator("a.button", { hasText: "Go Home" }).click();
     await expect(page).toHaveURL("/");
   });
 });

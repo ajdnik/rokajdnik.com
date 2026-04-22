@@ -84,7 +84,7 @@ test.describe("Blog post with series", () => {
   test("series nav shows 'Next article' on first post", async ({ page }) => {
     await page.goto("/zork-the-great-underground-empire");
 
-    const nextLink = page.locator('a', { hasText: "Next article" });
+    const nextLink = page.locator("a", { hasText: "Next article" });
     await expect(nextLink).toBeVisible();
     await expect(nextLink).toHaveAttribute(
       "href",
@@ -92,12 +92,10 @@ test.describe("Blog post with series", () => {
     );
   });
 
-  test("series nav shows 'First article' on second post", async ({
-    page,
-  }) => {
+  test("series nav shows 'First article' on second post", async ({ page }) => {
     await page.goto("/zork-the-great-inner-workings");
 
-    const firstLink = page.locator('a', { hasText: "First article" });
+    const firstLink = page.locator("a", { hasText: "First article" });
     await expect(firstLink).toBeVisible();
     await expect(firstLink).toHaveAttribute(
       "href",
@@ -108,7 +106,7 @@ test.describe("Blog post with series", () => {
   test("navigating between series posts works", async ({ page }) => {
     await page.goto("/zork-the-great-underground-empire");
 
-    await page.locator('a', { hasText: "Next article" }).click();
+    await page.locator("a", { hasText: "Next article" }).click();
     await expect(page).toHaveURL("/zork-the-great-inner-workings");
     await expect(page.locator("h1.blog-title")).toContainText(
       "Zork: The Great Inner Workings",
