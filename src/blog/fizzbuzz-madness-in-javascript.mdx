@@ -12,15 +12,16 @@ cover:
   alt: "FizzBuzz Madness in JavaScript article cover"
   caption: "AI Generated cover image for FizzBuzz Madness in JavaScript article"
 ---
-import DivisibilityDistribution from '../components/DivisibilityDistribution.tsx';
+
+import DivisibilityDistribution from "../components/DivisibilityDistribution.tsx";
 
 If you asked a kid what FizzBuzz is, they'd probably tell you it's a game they played at school. The teacher would corral them into a circle, and they'd start counting numbers out loud in a clockwise fashion. For every number divisible by 3, they'd say "Fizz." For every number divisible by 5, they'd say "Buzz." And for every number divisible by both, they'd say "FizzBuzz."[^1] The purpose of the game is to teach kids about divisibility in a fun, interactive way. Ask the same question to a college senior, and they'd probably explain the rules differently, pointing out how you should take a shot if you get a number wrong.
 Ask a programmer, though, and they'll tell you it's a silly coding question from job interviews. They'd describe it something like this:
 
-> Given a positive integer N, return an array of strings with all the integers from 1 to N. 
- But for multiples of 3 the array should have "Fizz" instead of the number. 
- For the multiples of 5, the array should have "Buzz" instead of the number. 
- For numbers which are multiple of 3 and 5 both, the array should have "FizzBuzz" instead of the number.[^2]
+> Given a positive integer N, return an array of strings with all the integers from 1 to N.
+> But for multiples of 3 the array should have "Fizz" instead of the number.
+> For the multiples of 5, the array should have "Buzz" instead of the number.
+> For numbers which are multiple of 3 and 5 both, the array should have "FizzBuzz" instead of the number.[^2]
 
 The purpose of this task is to test elementary knowledge of conditional statements, loops, and basic data structures. Interviewees aren't expected to write an optimized algorithm, just to demonstrate fundamental programming knowledge. Given how simple this problem is, I thought it would be a great way to explore Node.JS internals, specifically the V8 engine[^3], and see how far we can push this algorithm's performance.
 
@@ -32,10 +33,10 @@ Let's start with the simplest approach, follow the original FizzBuzz instruction
 const fizzBuzzNaive = (N) => {
   const arr = [];
   for (let i = 1; i <= N; i++) {
-    let output = '';
-    if (i % 3 === 0) output += 'Fizz';
-    if (i % 5 === 0) output += 'Buzz';
-    if (output === '') arr.push(i);
+    let output = "";
+    if (i % 3 === 0) output += "Fizz";
+    if (i % 5 === 0) output += "Buzz";
+    if (output === "") arr.push(i);
     else arr.push(output);
   }
   return arr;
@@ -56,8 +57,8 @@ Running the benchmark against `fizzBuzzNaive` produces the following results:
 
 <figure>
 
-| Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
-|------|-----|-----|-----|-----|-----|---------|---------|---------|
+| Name  | Min      | Max       | Avg      | P75      | P99      | Min mem  | Max mem   | Avg mem   |
+| ----- | -------- | --------- | -------- | -------- | -------- | -------- | --------- | --------- |
 | Naive | 34.25 µs | 161.17 µs | 38.20 µs | 35.92 µs | 67.29 µs | 66.05 kb | 451.09 kb | 255.49 kb |
 
 <figcaption>Benchmark results for the naive FizzBuzz implementation with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
@@ -101,10 +102,10 @@ In the naive implementation, we perform 3 conditional checks for every number. F
 
 <figure>
 
-| Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
-|------|-----|-----|-----|-----|-----|---------|---------|---------|
+| Name  | Min      | Max       | Avg      | P75      | P99      | Min mem | Max mem   | Avg mem   |
+| ----- | -------- | --------- | -------- | -------- | -------- | ------- | --------- | --------- |
 | Naive | 34.17 µs | 251.46 µs | 40.43 µs | 39.04 µs | 86.63 µs | 9.96 kb | 582.75 kb | 255.65 kb |
-| LCM | 28.25 µs | 213.58 µs | 32.54 µs | 32.13 µs | 62.13 µs | 7.48 kb | 506.38 kb | 255.55 kb |
+| LCM   | 28.25 µs | 213.58 µs | 32.54 µs | 32.13 µs | 62.13 µs | 7.48 kb | 506.38 kb | 255.55 kb |
 
 <figcaption>Benchmark comparison of Naive vs LCM implementations with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
 </figure>
@@ -131,10 +132,10 @@ With this approach, every code path makes exactly 2 conditional checks. Since we
 
 <figure>
 
-| Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
-|------|-----|-----|-----|-----|-----|---------|---------|---------|
-| Naive | 34.63 µs | 180.17 µs | 39.21 µs | 37.33 µs | 78.79 µs | 77.62 kb | 490.72 kb | 255.64 kb |
-| LCM | 28.13 µs | 262.58 µs | 32.18 µs | 31.79 µs | 64.08 µs | 7.48 kb | 447.28 kb | 255.56 kb |
+| Name   | Min      | Max       | Avg      | P75      | P99      | Min mem  | Max mem   | Avg mem   |
+| ------ | -------- | --------- | -------- | -------- | -------- | -------- | --------- | --------- |
+| Naive  | 34.63 µs | 180.17 µs | 39.21 µs | 37.33 µs | 78.79 µs | 77.62 kb | 490.72 kb | 255.64 kb |
+| LCM    | 28.13 µs | 262.58 µs | 32.18 µs | 31.79 µs | 64.08 µs | 7.48 kb  | 447.28 kb | 255.56 kb |
 | Modulo | 28.13 µs | 132.50 µs | 34.29 µs | 34.29 µs | 43.21 µs | 64.46 kb | 474.13 kb | 255.56 kb |
 
 <figcaption>Benchmark comparison of Naive, LCM, and Modulo implementations with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
@@ -142,7 +143,7 @@ With this approach, every code path makes exactly 2 conditional checks. Since we
 
 Using this approach, we reduced the execution time by 32% compared to LCM, or a whopping 45% compared to the naive approach on p99 timings. We're on a roll.
 
-But there's an anomaly in the results. The average execution time of the modulo optimization is actually *slower* than the LCM variant. What's going on?
+But there's an anomaly in the results. The average execution time of the modulo optimization is actually _slower_ than the LCM variant. What's going on?
 
 The answer lies in the distribution graph above. The majority of numbers won't be divisible by 3, 5, or 15. For those numbers, the modulo optimization performs only two conditional checks, compared to three in the LCM variant. Fewer checks means a faster p99 metric.
 
@@ -175,12 +176,12 @@ Preallocation works here because we know the array's final size ahead of time. A
 
 <figure>
 
-| Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
-|------|-----|-----|-----|-----|-----|---------|---------|---------|
-| Name | 34.67 µs | 143.50 µs | 38.79 µs | 37.25 µs | 76.38 µs | 85.30 kb | 534.25 kb | 255.64 kb |
-| LCM | 28.17 µs | 146.96 µs | 31.33 µs | 30.92 µs | 53.04 µs | 87.48 kb | 458.84 kb | 255.53 kb |
-| Modulo | 27.21 µs | 187.08 µs | 34.27 µs | 34.42 µs | 42.63 µs | 71.13 kb | 383.62 kb | 255.56 kb |
-| Pre-allocated | 18.13 µs | 120.67 µs | 18.98 µs | 18.88 µs | 22.17 µs | 6.57 kb | 400.91 kb | 85.02 kb |
+| Name          | Min      | Max       | Avg      | P75      | P99      | Min mem  | Max mem   | Avg mem   |
+| ------------- | -------- | --------- | -------- | -------- | -------- | -------- | --------- | --------- |
+| Name          | 34.67 µs | 143.50 µs | 38.79 µs | 37.25 µs | 76.38 µs | 85.30 kb | 534.25 kb | 255.64 kb |
+| LCM           | 28.17 µs | 146.96 µs | 31.33 µs | 30.92 µs | 53.04 µs | 87.48 kb | 458.84 kb | 255.53 kb |
+| Modulo        | 27.21 µs | 187.08 µs | 34.27 µs | 34.42 µs | 42.63 µs | 71.13 kb | 383.62 kb | 255.56 kb |
+| Pre-allocated | 18.13 µs | 120.67 µs | 18.98 µs | 18.88 µs | 22.17 µs | 6.57 kb  | 400.91 kb | 85.02 kb  |
 
 <figcaption>Benchmark comparison including array preallocation with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
 </figure>
@@ -200,19 +201,28 @@ export const fizzBuzzUnrolled = (N) => {
   const arr = new Array(N);
   let i = 1;
   while (i <= N - 15) {
-    arr[i-1] = i; arr[i] = i+1; arr[i+1] = "Fizz"; 
-    arr[i+2] = i+3; arr[i+3] = "Buzz"; arr[i+4] = "Fizz";
-    arr[i+5] = i+6; arr[i+6] = i+7; arr[i+7] = "Fizz";
-    arr[i+8] = "Buzz"; arr[i+9] = i+10; arr[i+10] = "Fizz";
-    arr[i+11] = i+12; arr[i+12] = i+13;
-    arr[i+13] = "FizzBuzz";
+    arr[i - 1] = i;
+    arr[i] = i + 1;
+    arr[i + 1] = "Fizz";
+    arr[i + 2] = i + 3;
+    arr[i + 3] = "Buzz";
+    arr[i + 4] = "Fizz";
+    arr[i + 5] = i + 6;
+    arr[i + 6] = i + 7;
+    arr[i + 7] = "Fizz";
+    arr[i + 8] = "Buzz";
+    arr[i + 9] = i + 10;
+    arr[i + 10] = "Fizz";
+    arr[i + 11] = i + 12;
+    arr[i + 12] = i + 13;
+    arr[i + 13] = "FizzBuzz";
     i += 15;
   }
   while (i <= N) {
-    if (i % 15 === 0) arr[i-1] = "FizzBuzz";
-    else if (i % 3 === 0) arr[i-1] = "Fizz";
-    else if (i % 5 === 0) arr[i-1] = "Buzz";
-    else arr[i-1] = i;
+    if (i % 15 === 0) arr[i - 1] = "FizzBuzz";
+    else if (i % 3 === 0) arr[i - 1] = "Fizz";
+    else if (i % 5 === 0) arr[i - 1] = "Buzz";
+    else arr[i - 1] = i;
     i++;
   }
   return arr;
@@ -225,13 +235,13 @@ Let's see how it compares to previous variants of the algorithm.
 
 <figure>
 
-| Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
-|------|-----|-----|-----|-----|-----|---------|---------|---------|
-| Naive | 34.63 µs | 154.42 µs | 38.07 µs | 35.96 µs | 74.50 µs | 67.18 kb | 538.41 kb | 255.62 kb |
-| LCM | 28.38 µs | 176.17 µs | 31.47 µs | 30.96 µs | 54.63 µs | 39.48 kb | 470.82 kb | 255.54 kb |
-| Modulo | 26.96 µs | 152.25 µs | 33.18 µs | 33.17 µs | 52.50 µs | 45.62 kb | 383.62 kb | 255.56 kb |
-| Pre-allocated | 17.75 µs | 170.25 µs | 18.94 µs | 18.88 µs | 23.25 µs | 6.57 kb | 225.74 kb | 85.03 kb |
-| Unrolled | 7.33 µs | 152.92 µs | 7.90 µs | 7.83 µs | 13.04 µs | 2.41 kb | 197.38 kb | 85.32 kb |
+| Name          | Min      | Max       | Avg      | P75      | P99      | Min mem  | Max mem   | Avg mem   |
+| ------------- | -------- | --------- | -------- | -------- | -------- | -------- | --------- | --------- |
+| Naive         | 34.63 µs | 154.42 µs | 38.07 µs | 35.96 µs | 74.50 µs | 67.18 kb | 538.41 kb | 255.62 kb |
+| LCM           | 28.38 µs | 176.17 µs | 31.47 µs | 30.96 µs | 54.63 µs | 39.48 kb | 470.82 kb | 255.54 kb |
+| Modulo        | 26.96 µs | 152.25 µs | 33.18 µs | 33.17 µs | 52.50 µs | 45.62 kb | 383.62 kb | 255.56 kb |
+| Pre-allocated | 17.75 µs | 170.25 µs | 18.94 µs | 18.88 µs | 23.25 µs | 6.57 kb  | 225.74 kb | 85.03 kb  |
+| Unrolled      | 7.33 µs  | 152.92 µs | 7.90 µs  | 7.83 µs  | 13.04 µs | 2.41 kb  | 197.38 kb | 85.32 kb  |
 
 <figcaption>Benchmark comparison including loop unrolling with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
 </figure>
@@ -262,7 +272,7 @@ Executing fizzBuzzNaive with N=10000 for 100000 iterations...
 [bailout (kind: deopt-eager, reason: prepare for on stack replacement (OSR)): begin. deoptimizing 0x1f7fc6be5c49 <JSFunction (sfi = 0x1f7fc6bdf4a9)>, 0x2fbc45ee0081 <Code MAGLEV>, opt id 6, bytecode offset 436, deopt exit 35, FP to SP delta 208, caller SP 0x00016b458f38, pc 0x00012c683b58]
 ```
 
-We can see that V8 first optimized the code to Maglev[^15], a mid-tier compiler designed for code that is hot but not yet stable. In this context, being *hot* means the code is run often, but it lacks the *stability*, or predictability, required for a higher-tier compiler to maximize speed. It also performed OSR (on-stack replacement)[^16], which happens when a currently executing function is swapped out mid-execution for an optimized version.
+We can see that V8 first optimized the code to Maglev[^15], a mid-tier compiler designed for code that is hot but not yet stable. In this context, being _hot_ means the code is run often, but it lacks the _stability_, or predictability, required for a higher-tier compiler to maximize speed. It also performed OSR (on-stack replacement)[^16], which happens when a currently executing function is swapped out mid-execution for an optimized version.
 
 Next, V8 attempted to promote the code to TurboFan[^7], its highest-tier compiler for hot, stable code. However, the optimization failed due to a "wrong map" deoptimization. This means the optimizer's assumptions about the shape of objects in memory were incorrect, forcing a bailout back to Maglev.
 
@@ -300,13 +310,15 @@ Unfortunately, JavaScript doesn't have Tail Call Optimization[^17]. In languages
 That said, we can work around this limitation using the Trampoline Pattern[^21].
 
 ```javascript
-const trampoline = (fn) => (...args) => {
-  let result = fn(...args);
-  while (typeof result === 'function') {
-    result = result();
-  }
-  return result;
-}
+const trampoline =
+  (fn) =>
+  (...args) => {
+    let result = fn(...args);
+    while (typeof result === "function") {
+      result = result();
+    }
+    return result;
+  };
 
 const _fizzBuzzInternal = (n, current = 1, arr = new Array(n)) => {
   if (current > n) return arr;
@@ -318,13 +330,14 @@ const _fizzBuzzInternal = (n, current = 1, arr = new Array(n)) => {
   else arr[current - 1] = current;
 
   return () => _fizzBuzzInternal(n, current + 1, arr);
-}
+};
 
 export const fizzBuzzRecursive = trampoline(_fizzBuzzInternal);
 ```
+
 This implementation is essentially the pre-allocated variant, but using recursion instead of a for loop. The `trampoline` is a higher-order function that takes a recursive function and returns a version that won't blow the call stack.
 
-Why does this work? The key insight is that `_fizzBuzzInternal` doesn't return a result; it returns a *function*. This sidesteps the classic recursion problem where the parent call can't be removed from the stack until its child completes, which in turn can't be removed until *its* child completes, and so on until the stack overflows. The `trampoline` acts as a manager; it executes each returned function one at a time, allowing the stack to stay clean as old frames are removed and new ones are added.
+Why does this work? The key insight is that `_fizzBuzzInternal` doesn't return a result; it returns a _function_. This sidesteps the classic recursion problem where the parent call can't be removed from the stack until its child completes, which in turn can't be removed until _its_ child completes, and so on until the stack overflows. The `trampoline` acts as a manager; it executes each returned function one at a time, allowing the stack to stay clean as old frames are removed and new ones are added.
 
 Here's what a "standard" recursive implementation would look like without the trampoline:
 
@@ -339,7 +352,7 @@ const fizzBuzzRecursive = (n, current = 1, arr = new Array(n)) => {
   else arr[current - 1] = current;
 
   return fizzBuzzRecursive(n, current + 1, arr);
-}
+};
 ```
 
 What else could we try? While exploring functional programming concepts, I came across an interesting approach by Mr. Pirog[^22], who implemented a Domain-Specific Language in Haskell to solve FizzBuzz. I wanted to port the concept to JavaScript, partly because it's gloriously excessive, and partly because it reminds me of university days learning about DSLs.
@@ -352,19 +365,15 @@ const rule = (d, s) => (cont) => (n, v) => {
   return cont(n, v);
 };
 
-const program = rule(3, "Fizz")(
-                  rule(5, "Buzz")(
-                    identity
-                  )
-                );
+const program = rule(3, "Fizz")(rule(5, "Buzz")(identity));
 
 export const fizzBuzzDSL = (N) => {
   const arr = new Array(N);
   for (let i = 1; i <= N; i++) {
-    arr[i-1] = program(i, i);
+    arr[i - 1] = program(i, i);
   }
   return arr;
-}
+};
 ```
 
 Here we're defining a small DSL for FizzBuzz. The `identity` and `rule` functions are its building blocks. The `identity` function simply returns whatever value is passed to it. The `rule` function is a higher-order function that takes a divisor and a string, then returns a function that accepts a continuation.
@@ -426,7 +435,7 @@ pub fn fizz_buzz_rust(env: Env, n: i32) -> Result<JsObject> {
 This is a straightforward FizzBuzz implementation in Rust using napi-rs. The `FizzBuzzValue`, `classify`, and `fizz_buzz_core` abstractions keep the code idiomatic. The logic is similar to the `fizzBuzzLCM` variant, and once compiled, it can be easily imported into JavaScript.
 
 ```javascript
-const { fizzBuzzRust } = require('./fizzbuzz_napi.node');
+const { fizzBuzzRust } = require("./fizzbuzz_napi.node");
 
 const N = 10_000;
 const result = fizzBuzzRust(N);
@@ -437,13 +446,13 @@ Let's benchmark all these implementations to see how they compare to previous va
 
 <figure>
 
-| Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
-|------|-----|-----|-----|-----|-----|---------|---------|---------|
-| Naive | 34.58 µs | 139.79 µs | 38.03 µs | 35.96 µs | 74.42 µs | 14.59 kb | 650.48 kb | 255.65 kb |
-| Unrolled | 7.29 µs | 142.38 µs | 7.82 µs | 7.79 µs | 12.50 µs | 6.22 kb | 198.74 kb | 85.32 kb |
-| Recursive | 90.46 µs | 269.08 µs | 95.58 µs | 94.46 µs | 190.08 µs | 399.04 kb | 1.38 mb | 1.16 mb |
-| DSL | 86.25 µs | 345.75 µs | 94.82 µs | 93.92 µs | 129.83 µs | 25.83 kb | 1.04 mb | 128.48 kb |
-| Rust | 645.17 µs | 994.29 µs | 652.35 µs | 653.71 µs | 675.42 µs | 183.83 kb | 328.66 kb | 255.76 kb |
+| Name      | Min       | Max       | Avg       | P75       | P99       | Min mem   | Max mem   | Avg mem   |
+| --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
+| Naive     | 34.58 µs  | 139.79 µs | 38.03 µs  | 35.96 µs  | 74.42 µs  | 14.59 kb  | 650.48 kb | 255.65 kb |
+| Unrolled  | 7.29 µs   | 142.38 µs | 7.82 µs   | 7.79 µs   | 12.50 µs  | 6.22 kb   | 198.74 kb | 85.32 kb  |
+| Recursive | 90.46 µs  | 269.08 µs | 95.58 µs  | 94.46 µs  | 190.08 µs | 399.04 kb | 1.38 mb   | 1.16 mb   |
+| DSL       | 86.25 µs  | 345.75 µs | 94.82 µs  | 93.92 µs  | 129.83 µs | 25.83 kb  | 1.04 mb   | 128.48 kb |
+| Rust      | 645.17 µs | 994.29 µs | 652.35 µs | 653.71 µs | 675.42 µs | 183.83 kb | 328.66 kb | 255.76 kb |
 
 <figcaption>Benchmark comparison of all implementations including Recursive, DSL, and Rust with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
 </figure>
@@ -483,7 +492,7 @@ pub fn fizz_buzz_rust_json(n: i32) -> String {
 This implementation reuses the `FizzBuzzValue`, `classify`, and `fizz_buzz_core` abstractions, but returns a string buffer instead of a `JsObject`. On the JavaScript side, it looks like this:
 
 ```javascript
-const { fizzBuzzRustJson } = require('./fizzbuzz_napi.node');
+const { fizzBuzzRustJson } = require("./fizzbuzz_napi.node");
 
 const N = 10_000;
 const result = JSON.parse(fizzBuzzRustJson(N));
@@ -494,12 +503,12 @@ Let's see if this is actually faster than the previous Rust variant.
 
 <figure>
 
-| Name | Min | Max | Avg | P75 | P99 | Min mem | Max mem | Avg mem |
-|------|-----|-----|-----|-----|-----|---------|---------|---------|
-| Naive | 34.63 µs | 133.50 µs | 38.24 µs | 35.92 µs | 75.58 µs | 9.28 kb | 557.04 kb | 255.62 kb |
-| Unrolled | 7.33 µs | 159.54 µs | 7.89 µs | 7.83 µs | 12.79 µs | 2.57 kb | 412.26 kb | 85.32 kb |
-| Rust | 647.88 µs | 973.75 µs | 656.97 µs | 656.58 µs | 725.63 µs | 183.83 kb | 328.66 kb | 255.67 kb |
-| Rust (JSON) | 256.79 µs | 482.71 µs | 261.20 µs | 260.42 µs | 303.50 µs | 58.55 kb | 465.45 kb | 171.12 kb |
+| Name        | Min       | Max       | Avg       | P75       | P99       | Min mem   | Max mem   | Avg mem   |
+| ----------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
+| Naive       | 34.63 µs  | 133.50 µs | 38.24 µs  | 35.92 µs  | 75.58 µs  | 9.28 kb   | 557.04 kb | 255.62 kb |
+| Unrolled    | 7.33 µs   | 159.54 µs | 7.89 µs   | 7.83 µs   | 12.79 µs  | 2.57 kb   | 412.26 kb | 85.32 kb  |
+| Rust        | 647.88 µs | 973.75 µs | 656.97 µs | 656.58 µs | 725.63 µs | 183.83 kb | 328.66 kb | 255.67 kb |
+| Rust (JSON) | 256.79 µs | 482.71 µs | 261.20 µs | 260.42 µs | 303.50 µs | 58.55 kb  | 465.45 kb | 171.12 kb |
 
 <figcaption>Benchmark comparison of Rust FFI vs Rust JSON optimizations with N=10,000. clk: ~2.77 GHz · cpu: Apple M1 Max · runtime: node 24.11.1</figcaption>
 </figure>
@@ -531,40 +540,71 @@ Here's what stood out:
 In this article, we took the humble FizzBuzz problem and pushed it to its limits across JavaScript and Rust. Starting from a naive implementation, we optimized step by step, leveraging fewer conditional checks, array preallocation, loop unrolling, and even a Domain-Specific Language. We explored native addons to see if Rust could outpace V8, and finally compared runtimes for a zero-effort performance boost.
 
 The key takeaways:
+
 - There are surprisingly many ways to optimize even a trivial algorithm,
 - The choice of runtime matters more than you might expect,
 - And native code isn't always faster when FFI overhead is in play.
 
 If you're interested in the code or want to contribute your own variant to the benchmark, check out the GitHub repository: [fizzbuzz-js](https://github.com/ajdnik/fizzbuzz-js).
 
-[^1]: Wikipedia. *Fizz buzz* [https://en.wikipedia.org/wiki/Fizz_buzz](https://en.wikipedia.org/wiki/Fizz_buzz)
-[^2]: InterviewBit. *FizzBuzz* [https://www.interviewbit.com/problems/fizzbuzz/](https://www.interviewbit.com/problems/fizzbuzz/)
-[^3]: Node.JS. *The V8 JavaScript Engine* [https://nodejs.org/en/learn/getting-started/the-v8-javascript-engine](https://nodejs.org/en/learn/getting-started/the-v8-javascript-engine)
-[^4]: GitHub. *mitata* [https://github.com/evanwashere/mitata](https://github.com/evanwashere/mitata)
-[^5]: Wikipedia. *Just-in-time compilation* [https://en.wikipedia.org/wiki/Just-in-time_compilation](https://en.wikipedia.org/wiki/Just-in-time_compilation)
-[^6]: V8.dev. *Ignition* [https://v8.dev/docs/ignition](https://v8.dev/docs/ignition)
-[^7]: V8.dev. *TurboFan* [https://v8.dev/docs/turbofan](https://v8.dev/docs/turbofan)
-[^8]: Wikipedia. *Garbage collection (computer science)* [https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science))
-[^9]: Wikipedia. *Branch predictor* [https://en.wikipedia.org/wiki/Branch_predictor](https://en.wikipedia.org/wiki/Branch_predictor)
-[^10]: Wikipedia. *Least common multiple* [https://en.wikipedia.org/wiki/Least_common_multiple](https://en.wikipedia.org/wiki/Least_common_multiple)
-[^11]: Wikipedia. *Inline expansion* [https://en.wikipedia.org/wiki/Inline_expansion](https://en.wikipedia.org/wiki/Inline_expansion)
-[^12]: Wikipedia. *Loop unrolling* [https://en.wikipedia.org/wiki/Loop_unrolling](https://en.wikipedia.org/wiki/Loop_unrolling)
-[^13]: Clinic.js. *Tools to help diagnose and pinpoint Node.js performance issues* [https://clinicjs.org/](https://clinicjs.org/)
-[^14]: 0x. *single-command flamegraph profiling* [https://github.com/davidmarkclements/0x](https://github.com/davidmarkclements/0x)
-[^15]: V8.dev. *Maglev - V8’s Fastest Optimizing JIT* [https://v8.dev/blog/maglev](https://v8.dev/blog/maglev)
-[^16]: V8.dev. *Sparkplug — a non-optimizing JavaScript compiler* [https://v8.dev/blog/sparkplug](https://v8.dev/blog/sparkplug)
-[^17]: Wikipedia. *Tail call* [https://en.wikipedia.org/wiki/Tail_call](https://en.wikipedia.org/wiki/Tail_call)
-[^18]: GitHub. *Ecma TC39* [https://github.com/tc39](https://github.com/tc39)
-[^19]: GitHub. *Is this proposal dead?* [https://github.com/tc39/proposal-ptc-syntax/issues/22](https://github.com/tc39/proposal-ptc-syntax/issues/22)
-[^20]: CS 225. *Stack and Heap Memory* [https://courses.grainger.illinois.edu/cs225/sp2022/resources/stack-heap/](https://courses.grainger.illinois.edu/cs225/sp2022/resources/stack-heap/)
-[^21]: Java Design Patterns. *Trampoline Pattern in Java: Mastering Recursion Without Stack Overflow* [https://java-design-patterns.com/patterns/trampoline/](https://java-design-patterns.com/patterns/trampoline/)
-[^22]: *FizzBuzz in Haskell by Embedding a Domain-Specific Language* [https://themonadreader.wordpress.com/wp-content/uploads/2014/04/fizzbuzz.pdf](https://themonadreader.wordpress.com/wp-content/uploads/2014/04/fizzbuzz.pdf)
-[^23]: Node.js v24.13.0 documentation. *C++ addons* [https://nodejs.org/docs/latest-v24.x/api/addons.html](https://nodejs.org/docs/latest-v24.x/api/addons.html)
-[^24]: NAPI-RS. *Building pre-compiled Node.JS addons in Rust* [https://napi.rs](https://napi.rs)
-[^25]: Wikipedia. *Foreign function interface* [https://en.wikipedia.org/wiki/Foreign_function_interface](https://en.wikipedia.org/wiki/Foreign_function_interface)
-[^26]: Wikipedia. *JSON* [https://en.wikipedia.org/wiki/JSON](https://en.wikipedia.org/wiki/JSON)
-[^27]: V8.dev. *Blazingly fast parsing, part 1: optimizing the scanner* [https://v8.dev/blog/scanner](https://v8.dev/blog/scanner)
-[^28]: V8.dev. *Blazingly fast parsing, part 2: lazy parsing* [https://v8.dev/blog/preparser](https://v8.dev/blog/preparser)
-[^29]: RepoFlow. *Node.js 16 to 25 Performance Benchmarks* [https://www.repoflow.io/blog/node-js-16-to-25-benchmarks-how-performance-evolved-over-time](https://www.repoflow.io/blog/node-js-16-to-25-benchmarks-how-performance-evolved-over-time)
-[^30]: Bun. *The fast all-in-one JavaScript runtime* [https://bun.com](https://bun.com)
-[^31]: Deno. *The next-generation JavaScript runtime* [https://deno.com](https://deno.com)
+[^1]: Wikipedia. _Fizz buzz_ [https://en.wikipedia.org/wiki/Fizz_buzz](https://en.wikipedia.org/wiki/Fizz_buzz)
+
+[^2]: InterviewBit. _FizzBuzz_ [https://www.interviewbit.com/problems/fizzbuzz/](https://www.interviewbit.com/problems/fizzbuzz/)
+
+[^3]: Node.JS. _The V8 JavaScript Engine_ [https://nodejs.org/en/learn/getting-started/the-v8-javascript-engine](https://nodejs.org/en/learn/getting-started/the-v8-javascript-engine)
+
+[^4]: GitHub. _mitata_ [https://github.com/evanwashere/mitata](https://github.com/evanwashere/mitata)
+
+[^5]: Wikipedia. _Just-in-time compilation_ [https://en.wikipedia.org/wiki/Just-in-time_compilation](https://en.wikipedia.org/wiki/Just-in-time_compilation)
+
+[^6]: V8.dev. _Ignition_ [https://v8.dev/docs/ignition](https://v8.dev/docs/ignition)
+
+[^7]: V8.dev. _TurboFan_ [https://v8.dev/docs/turbofan](https://v8.dev/docs/turbofan)
+
+[^8]: Wikipedia. _Garbage collection (computer science)_ [https://en.wikipedia.org/wiki/Garbage*collection*(computer_science)](<https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)>)
+
+[^9]: Wikipedia. _Branch predictor_ [https://en.wikipedia.org/wiki/Branch_predictor](https://en.wikipedia.org/wiki/Branch_predictor)
+
+[^10]: Wikipedia. _Least common multiple_ [https://en.wikipedia.org/wiki/Least_common_multiple](https://en.wikipedia.org/wiki/Least_common_multiple)
+
+[^11]: Wikipedia. _Inline expansion_ [https://en.wikipedia.org/wiki/Inline_expansion](https://en.wikipedia.org/wiki/Inline_expansion)
+
+[^12]: Wikipedia. _Loop unrolling_ [https://en.wikipedia.org/wiki/Loop_unrolling](https://en.wikipedia.org/wiki/Loop_unrolling)
+
+[^13]: Clinic.js. _Tools to help diagnose and pinpoint Node.js performance issues_ [https://clinicjs.org/](https://clinicjs.org/)
+
+[^14]: 0x. _single-command flamegraph profiling_ [https://github.com/davidmarkclements/0x](https://github.com/davidmarkclements/0x)
+
+[^15]: V8.dev. _Maglev - V8’s Fastest Optimizing JIT_ [https://v8.dev/blog/maglev](https://v8.dev/blog/maglev)
+
+[^16]: V8.dev. _Sparkplug — a non-optimizing JavaScript compiler_ [https://v8.dev/blog/sparkplug](https://v8.dev/blog/sparkplug)
+
+[^17]: Wikipedia. _Tail call_ [https://en.wikipedia.org/wiki/Tail_call](https://en.wikipedia.org/wiki/Tail_call)
+
+[^18]: GitHub. _Ecma TC39_ [https://github.com/tc39](https://github.com/tc39)
+
+[^19]: GitHub. _Is this proposal dead?_ [https://github.com/tc39/proposal-ptc-syntax/issues/22](https://github.com/tc39/proposal-ptc-syntax/issues/22)
+
+[^20]: CS 225. _Stack and Heap Memory_ [https://courses.grainger.illinois.edu/cs225/sp2022/resources/stack-heap/](https://courses.grainger.illinois.edu/cs225/sp2022/resources/stack-heap/)
+
+[^21]: Java Design Patterns. _Trampoline Pattern in Java: Mastering Recursion Without Stack Overflow_ [https://java-design-patterns.com/patterns/trampoline/](https://java-design-patterns.com/patterns/trampoline/)
+
+[^22]: _FizzBuzz in Haskell by Embedding a Domain-Specific Language_ [https://themonadreader.wordpress.com/wp-content/uploads/2014/04/fizzbuzz.pdf](https://themonadreader.wordpress.com/wp-content/uploads/2014/04/fizzbuzz.pdf)
+
+[^23]: Node.js v24.13.0 documentation. _C++ addons_ [https://nodejs.org/docs/latest-v24.x/api/addons.html](https://nodejs.org/docs/latest-v24.x/api/addons.html)
+
+[^24]: NAPI-RS. _Building pre-compiled Node.JS addons in Rust_ [https://napi.rs](https://napi.rs)
+
+[^25]: Wikipedia. _Foreign function interface_ [https://en.wikipedia.org/wiki/Foreign_function_interface](https://en.wikipedia.org/wiki/Foreign_function_interface)
+
+[^26]: Wikipedia. _JSON_ [https://en.wikipedia.org/wiki/JSON](https://en.wikipedia.org/wiki/JSON)
+
+[^27]: V8.dev. _Blazingly fast parsing, part 1: optimizing the scanner_ [https://v8.dev/blog/scanner](https://v8.dev/blog/scanner)
+
+[^28]: V8.dev. _Blazingly fast parsing, part 2: lazy parsing_ [https://v8.dev/blog/preparser](https://v8.dev/blog/preparser)
+
+[^29]: RepoFlow. _Node.js 16 to 25 Performance Benchmarks_ [https://www.repoflow.io/blog/node-js-16-to-25-benchmarks-how-performance-evolved-over-time](https://www.repoflow.io/blog/node-js-16-to-25-benchmarks-how-performance-evolved-over-time)
+
+[^30]: Bun. _The fast all-in-one JavaScript runtime_ [https://bun.com](https://bun.com)
+
+[^31]: Deno. _The next-generation JavaScript runtime_ [https://deno.com](https://deno.com)

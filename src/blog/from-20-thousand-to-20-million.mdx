@@ -11,8 +11,9 @@ cover:
   src: "../assets/images/blog/from-20-thousand-to-20-million/cover.webp"
   alt: "From 20 Thousand to 20 Million article cover"
 ---
-import { Image } from 'astro:assets';
-import diagram from '../assets/images/blog/from-20-thousand-to-20-million/diagram.webp';
+
+import { Image } from "astro:assets";
+import diagram from "../assets/images/blog/from-20-thousand-to-20-million/diagram.webp";
 
 Penetrating Silicon Valley with any idea from Slovenia is difficult, but developing a system to recognize over a million images is even harder. Every algorithm has humble beginnings accompanied by failures. Usually, the development of such algorithms is based on an empirical method. [Reveel](https://reveel.it/)[^1] is no exception here. We developed an algorithm that worked perfectly on a database of 20,000 images, but problems arose with server query speeds and processing concurrent queries, which prevented expanding the database to a million images. It turned out that solutions from the field of distributed systems could solve this problem.
 
@@ -75,6 +76,7 @@ Problems arose with service availability during times of increased user traffic 
 It was necessary to drastically reduce the search space searched by the server while retaining all existing images in the system. One solution to this problem is the implementation of a distributed system where not all servers have access to all data in the system.
 
 We separated the server into two parts:
+
 - **Query server** - accepts queries from the user
 - **Storage server** - stores currently accessible images
 
@@ -86,13 +88,19 @@ Judging by tests, this approach performs significantly better than the old one. 
 
 The solution is to additionally replicate each of the storage servers N-times, thereby increasing redundancy for that portion of images in case any of these servers become unavailable. While this approach effectively solves the availability problem, it is important to emphasize that it introduces additional problems. It is crucial that all servers hosting a certain portion of images agree on what that portion is.
 
-We thus arrive at the [consensus problem](https://en.wikipedia.org/wiki/Consensus_(computer_science)), which is a known problem in distributed systems. There are many algorithms that solve this problem; the most famous among them is [Paxos](https://en.wikipedia.org/wiki/Paxos_(computer_science))[^11], which is known for being very difficult to implement in the real world. Due to this fact, we decided to use the [Raft algorithm](https://en.wikipedia.org/wiki/Raft_(algorithm))[^12], which was designed to be easy to implement.
+We thus arrive at the [consensus problem](<https://en.wikipedia.org/wiki/Consensus_(computer_science)>), which is a known problem in distributed systems. There are many algorithms that solve this problem; the most famous among them is [Paxos](<https://en.wikipedia.org/wiki/Paxos_(computer_science)>)[^11], which is known for being very difficult to implement in the real world. Due to this fact, we decided to use the [Raft algorithm](<https://en.wikipedia.org/wiki/Raft_(algorithm)>)[^12], which was designed to be easy to implement.
 
 Architecturally speaking, we updated our system from a monolithic one, which contained query and storage functionality, to a distributed architecture where query servers (Q) communicate with multiple storage servers (S), each replicated for redundancy.
 
 <figure>
-  <Image src={diagram} alt="Architecture of the upgraded image recognition system" />
-  <figcaption>Figure 1: Architecture of the upgraded image recognition system, where Q are the so-called query servers and S are the so-called storage servers.</figcaption>
+  <Image
+    src={diagram}
+    alt="Architecture of the upgraded image recognition system"
+  />
+  <figcaption>
+    Figure 1: Architecture of the upgraded image recognition system, where Q are
+    the so-called query servers and S are the so-called storage servers.
+  </figcaption>
 </figure>
 
 ## Future Challenges
@@ -117,17 +125,30 @@ Since 1980, when the article for RANSAC was published[^10], many improvements ha
 
 Four years ago, we started with a simple idea of how to simplify shopping for viewers of small and large screens. Over the years, this idea has changed many times, and with it, our solution has also changed. We quickly realized that failure is our best teacher and that we will only arrive at the right solution if we are willing to fail many times.
 
-[^1]: Reveel. *Make all your media interactive so you can invite audiences to explore, learn and buy.* [https://reveel.it/](https://reveel.it/)
-[^2]: L. K. Saini, V. Shirvastava. (2014). *A Survey of Digital Watermarking Techniques and its Applications.* International Journal of Computer Science Trends and Technology, vol. 2, pp. 70-73.
-[^3]: P. Meerwald, A. Uhl. (2010). *Watermark Detection for Video Bookmarking Using Mobile Phone Camera.* Communications and Multimedia Security, Lecture Notes in Computer Science, vol. 6109, pp. 64-74.
-[^4]: W. Zhou, H. Li, Q. Tian. (2017). *Recent Advance in Content-based Image Retrieval: A Literature Survey.* [https://arxiv.org/abs/1706.06064v2](https://arxiv.org/abs/1706.06064v2)
-[^5]: E. Rublee, V. Rabaud, K. Konolige, G. Bradski. (2011). *ORB: an efficient alternative to SIFT or SURF.* Proceedings of the IEEE International Conference on Computer Vision, pp. 2564-2571.
-[^6]: M. Muja, D. G. Lowe. (2009). *Fast Approximate Nearest Neighbors with Automatic Algorithm Configuration.* International Conference on Computer Vision Theory and Applications.
-[^7]: M. Muja, D. G. Lowe. (2012). *Fast Matching of Binary Features.* Conference on Computer and Robot Vision.
-[^8]: J. Sivic, A. Zisserman. (2003). *Video Google: a text retrieval approach to object matching in videos.* Proceedings of the Ninth IEEE International Conference on Computer Vision, vol. 2.
-[^9]: H. Wu, R. Luk, K. Wong, K. Kwok. (2008). *Interpreting TF-IDF term weights as making relevance decisions.* ACM Transactions on Information Systems, vol. 26.
-[^10]: S. Choi, T. Kim, W. Yu. (2009). *Performance Evaluation of RANSAC Family.* Proceedings of the British Machine Vision Conference, vol. 24, pp. 1-12.
-[^11]: L. Lamport. (1998). *The Part-Time Parliament.* ACM Transactions on Computer Systems 16, vol. 2, pp. 133-169.
-[^12]: D. Ongaro, J. Ousterhout. (2014). *In search of an understandable consensus algorithm.* Proceeding USENIX ATC'14, pp. 305-320.
-[^13]: C. Zauner. (2010). *Implementation and Benchmarking of Perceptual Image Hash Functions.* Master's thesis, Upper Austria University of Applied Sciences.
-[^14]: D. Barath, J. Matas. (2017). *Graph-Cut RANSAC.* [https://arxiv.org/abs/1706.00984](https://arxiv.org/abs/1706.00984)
+[^1]: Reveel. _Make all your media interactive so you can invite audiences to explore, learn and buy._ [https://reveel.it/](https://reveel.it/)
+
+[^2]: L. K. Saini, V. Shirvastava. (2014). _A Survey of Digital Watermarking Techniques and its Applications._ International Journal of Computer Science Trends and Technology, vol. 2, pp. 70-73.
+
+[^3]: P. Meerwald, A. Uhl. (2010). _Watermark Detection for Video Bookmarking Using Mobile Phone Camera._ Communications and Multimedia Security, Lecture Notes in Computer Science, vol. 6109, pp. 64-74.
+
+[^4]: W. Zhou, H. Li, Q. Tian. (2017). _Recent Advance in Content-based Image Retrieval: A Literature Survey._ [https://arxiv.org/abs/1706.06064v2](https://arxiv.org/abs/1706.06064v2)
+
+[^5]: E. Rublee, V. Rabaud, K. Konolige, G. Bradski. (2011). _ORB: an efficient alternative to SIFT or SURF._ Proceedings of the IEEE International Conference on Computer Vision, pp. 2564-2571.
+
+[^6]: M. Muja, D. G. Lowe. (2009). _Fast Approximate Nearest Neighbors with Automatic Algorithm Configuration._ International Conference on Computer Vision Theory and Applications.
+
+[^7]: M. Muja, D. G. Lowe. (2012). _Fast Matching of Binary Features._ Conference on Computer and Robot Vision.
+
+[^8]: J. Sivic, A. Zisserman. (2003). _Video Google: a text retrieval approach to object matching in videos._ Proceedings of the Ninth IEEE International Conference on Computer Vision, vol. 2.
+
+[^9]: H. Wu, R. Luk, K. Wong, K. Kwok. (2008). _Interpreting TF-IDF term weights as making relevance decisions._ ACM Transactions on Information Systems, vol. 26.
+
+[^10]: S. Choi, T. Kim, W. Yu. (2009). _Performance Evaluation of RANSAC Family._ Proceedings of the British Machine Vision Conference, vol. 24, pp. 1-12.
+
+[^11]: L. Lamport. (1998). _The Part-Time Parliament._ ACM Transactions on Computer Systems 16, vol. 2, pp. 133-169.
+
+[^12]: D. Ongaro, J. Ousterhout. (2014). _In search of an understandable consensus algorithm._ Proceeding USENIX ATC'14, pp. 305-320.
+
+[^13]: C. Zauner. (2010). _Implementation and Benchmarking of Perceptual Image Hash Functions._ Master's thesis, Upper Austria University of Applied Sciences.
+
+[^14]: D. Barath, J. Matas. (2017). _Graph-Cut RANSAC._ [https://arxiv.org/abs/1706.00984](https://arxiv.org/abs/1706.00984)

@@ -139,7 +139,8 @@
     /* code */
     .code-filename {
       @apply bg-foreground/5 text-foreground/50 mt-6 mb-0 flex items-center gap-3 rounded-t-xl px-4 py-2.5 font-mono text-sm;
-      border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+      border: 1px solid
+        color-mix(in srgb, var(--color-foreground) 12%, transparent);
       border-bottom: none;
     }
     .code-filename::before {
@@ -157,7 +158,8 @@
     }
     .astro-code {
       @apply my-6 rounded-xl py-4 overflow-x-auto;
-      border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+      border: 1px solid
+        color-mix(in srgb, var(--color-foreground) 12%, transparent);
       counter-reset: line;
     }
     .astro-code code {
@@ -253,7 +255,6 @@
     hr {
       @apply border-foreground/26 mx-13 mt-13 mb-3;
     }
-
 
     /* footnotes */
     sup a[data-footnote-ref] {
