@@ -1,0 +1,282 @@
+<div class="pp-diagram">
+  <!-- Input -->
+  <div class="pp-box pp-input">
+    <h3>Input</h3>
+    <div class="pp-text-block">
+      <code>&gt;attack the nasty-looking troll with a rusty knife</code>
+    </div>
+  </div>
+
+  <div class="pp-arrow"><div class="pp-arrow-line"></div></div>
+
+  <!-- Pipeline stages -->
+  <div class="pp-stages">
+    <div class="pp-stage">
+      <span class="pp-func">Tokenize()</span>
+      <span class="pp-desc">Split on whitespace and punctuation</span>
+    </div>
+    <div class="pp-stage-sep"></div>
+    <div class="pp-stage">
+      <span class="pp-func">Lex()</span>
+      <span class="pp-desc">Look up each token in the vocabulary</span>
+    </div>
+    <div class="pp-stage-sep"></div>
+    <div class="pp-stage">
+      <span class="pp-func">Clause()</span>
+      <span class="pp-desc">Group tokens into noun phrases</span>
+    </div>
+    <div class="pp-stage-sep"></div>
+    <div class="pp-stage">
+      <span class="pp-func">SyntaxCheck()</span>
+      <span class="pp-desc">Match against the syntax registry</span>
+    </div>
+    <div class="pp-stage-sep"></div>
+    <div class="pp-stage">
+      <span class="pp-func">SnarfObjects()</span>
+      <span class="pp-desc">Resolve token groups to Object pointers</span>
+    </div>
+    <div class="pp-stage-sep"></div>
+    <div class="pp-stage">
+      <span class="pp-func">ManyCheck()</span>
+      <span class="pp-desc">Reject "take all" where syntax disallows it</span>
+    </div>
+    <div class="pp-stage-sep"></div>
+    <div class="pp-stage">
+      <span class="pp-func">TakeCheck()</span>
+      <span class="pp-desc">Attempt implicit pick-up if needed</span>
+    </div>
+  </div>
+
+  <div class="pp-arrow"><div class="pp-arrow-line"></div></div>
+
+  <!-- Output -->
+  <div class="pp-box pp-output">
+    <h3>Output</h3>
+    <div class="pp-results">
+      <div class="pp-result">
+        <span class="pp-label">G.ActVerb</span>
+        <span class="pp-value">"attack" &rarr; vAttack</span>
+      </div>
+      <div class="pp-result">
+        <span class="pp-label">G.DirObj</span>
+        <span class="pp-value">&amp;troll</span>
+      </div>
+      <div class="pp-result">
+        <span class="pp-label">G.IndirObj</span>
+        <span class="pp-value">&amp;knife</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* === Container === */
+  .pp-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    background-color: var(--code-bg);
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--color-foreground) 8%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 12px 12px;
+    background-position: 0 0;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    box-shadow: none;
+  }
+
+  /* === Boxes (Input/Output) === */
+  .pp-box {
+    padding: 0.4rem 1rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    background-color: color-mix(in srgb, var(--color-background) 50%, transparent);
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pp-box h3 {
+    margin: 0;
+    padding-top: 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--color-accent);
+  }
+
+  /* === Text Block (input command) === */
+  .pp-text-block {
+    margin-top: 0.4rem;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.5rem;
+    background: var(--code-bg);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .pp-text-block code {
+    background: transparent !important;
+    color: inherit;
+    font-size: 0.75rem;
+    padding: 0;
+    font-weight: 400;
+  }
+
+  /* === Pipeline Stages === */
+  .pp-stages {
+    padding: 0.6rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    background-color: color-mix(in srgb, var(--color-background) 50%, transparent);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pp-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.4rem 0;
+  }
+
+  .pp-func {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--color-accent);
+  }
+
+  .pp-desc {
+    font-size: 0.75rem;
+    color: color-mix(in srgb, var(--color-foreground) 60%, transparent);
+    line-height: 1.3;
+  }
+
+  .pp-stage-sep {
+    height: 1px;
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+  }
+
+  /* === Output Results === */
+  .pp-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+  }
+
+  .pp-result {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.5rem;
+    background: var(--code-bg);
+  }
+
+  .pp-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+  }
+
+  .pp-value {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: color-mix(in srgb, var(--color-foreground) 85%, transparent);
+  }
+
+  /* === Arrows === */
+  .pp-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 0;
+  }
+
+  .pp-arrow-line {
+    width: 2px;
+    height: 1rem;
+    background-color: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+    position: relative;
+  }
+
+  .pp-arrow-line::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid color-mix(in srgb, var(--color-foreground) 45%, transparent);
+  }
+
+  /* === Desktop Layout === */
+  @media (min-width: 768px) {
+    .pp-diagram {
+      padding: 2rem;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .pp-box h3 {
+      font-size: 1rem;
+    }
+
+    .pp-text-block {
+      font-size: 0.85rem;
+    }
+
+    .pp-text-block code {
+      font-size: 0.85rem;
+    }
+
+    .pp-stage {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+
+    .pp-func {
+      min-width: 130px;
+      font-size: 0.85rem;
+    }
+
+    .pp-desc {
+      font-size: 0.8rem;
+    }
+
+    .pp-result {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+
+    .pp-label {
+      min-width: 90px;
+      font-size: 0.75rem;
+    }
+
+    .pp-value {
+      font-size: 0.8rem;
+    }
+  }
+</style>

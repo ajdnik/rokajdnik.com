@@ -1,8 +1,8 @@
 ---
 slug: zork-the-great-port
 title: "Zork: The Great Port"
-description: "Porting Zork from 1980s ZIL to modern Go — how the architecture translates, what Go's standard library simplifies, and how automated testing and CI/CD compare to Infocom's original development practices."
-date: 2026-04-20
+description: "Porting Zork from 1980s ZIL to modern Go, how the architecture translates, what Go's standard library simplifies, and how automated testing and CI/CD compare to Infocom's original development practices."
+date: 2026-04-25
 author: "Rok Ajdnik"
 tags: ["gaming", "retro", "golang", "programming"]
 featured: true
@@ -20,16 +20,22 @@ cover:
   alt: "Zork I box art with the Go gopher peeking out from behind a dungeon door"
   caption: "Zork I box art remixed with the Go gopher. Original art copyright of Infocom."
 ---
-In the [first article](https://rokajdnik.com/zork-the-great-underground-empire/) of this series I explored the history of Zork, one of the most influential games of the 80s. In the [second article](https://rokajdnik.com/zork-the-great-inner-workings/) I dissected its source code, studying how the parser, game objects, and syntax system worked together to create a text-based adventure game that understood sentences like `attack the nasty-looking troll with a rusty knife`. At the end of that article I mentioned I'd started porting the game to Go. Well, it's done. The game is fully playable and the source code is available on [GitHub](https://github.com/ajdnik/gozork). In this article, I'll cover why I chose Go, how the architecture translates from a 1980s functional language to a modern one, what I learned along the way, and how tools we take for granted today — Git, CI/CD, automated testing — compare to the development practices of the original Implementers.
+import ParserPipelineDiagram from "../components/ParserPipelineDiagram.astro";
+
+In the [first article](https://rokajdnik.com/zork-the-great-underground-empire/) of this series, I explored the history of Zork, one of the most influential games of the 80s. In the [second article](https://rokajdnik.com/zork-the-great-inner-workings/), I dissected its source code, studying how the parser, game objects, and syntax system worked together to create a text-based adventure game that understood sentences such as `attack the nasty-looking troll with a rusty knife`. At the end of that article, I mentioned I'd started porting the game to Go. Well, it's done. The game is fully playable, and the source code is available on [GitHub](https://github.com/ajdnik/gozork). In this article, I'll go through why I chose Go, how the architecture translates from ZIL, and how things like Git, CI/CD, and automated testing compare to the development practices of the original Implementors.[^1]
 
 ## Why Go?
  
-The original motivation, as I described in the second article, was a Kubernetes experiment gone sideways. I wanted a fun web game to use as a test workload and thought reimplementing Zork would be easy. It wasn't. But by the time I realized the scope of what I'd signed up for, I was already deep enough into the ZIL source code that I couldn't stop.
+The original motivation, as I described in the second article, was a Kubernetes experiment gone sideways. I wanted a fun web game to use as a test workload, and my first instinct was to build it as a web service using React and Redux. But once I started digging into the ZIL source code and understood the true complexity of the game, the parser, the object tree, the action dispatch chains, the clock system, I realized that a web service approach would require completely rethinking the game's architecture. The original code is deeply imperative and stateful: global variables, sequential flag checks, and routines that fall through to other routines. Translating that into a React/Redux paradigm would have meant redesigning the game, not just porting it. I needed a language that would let me reimplement the code nearly verbatim first, and then optimize it for the target language later. So I dropped the web service idea and looked for something where the translation could be mechanical rather than architectural.
  
-Once I decided to actually go through with the port, I needed a language. The criteria were simple: I wanted something compiled, something with a good standard library, and something that would produce a single binary I could hand to someone without asking them to install a runtime. Go checked all three boxes.
+It was 2020, and I'd been familiarizing myself with Go. I believe the best way to learn a language is to solve real problems in it, and porting Zork seemed like the perfect project for a deeper dive. The codebase was complex enough to force me into Go's corners, interface design, package structure, and error handling, but well-understood enough that I always knew what the end result should look like. When you're learning a language, having a reference implementation in another language is invaluable. If the output doesn't match, the bug is in my Go code, not in the game design.
+ 
+Beyond the learning opportunity, Go meets the practical criteria as well. I wanted something compiled, something with a good standard library, and something that would produce a single binary I could hand to someone without asking them to install a runtime. Go check all three boxes.
  
 There were also aesthetic reasons. ZIL, despite being a functional language derived from LISP, produced code that was surprisingly imperative in practice. The game logic is full of conditional chains: check this flag, print that text, return. That pattern maps naturally to Go's `if`/`switch` statements. A ZIL action handler like the white house function, which I showed in the previous article, looks like this in Go:
  
+<div class="with-line-numbers">
+
 ```go
 func whiteHouseFcn(arg ActionArg) bool {
     if G.Here == &kitchen || G.Here == &livingRoom || G.Here == &attic {
@@ -86,10 +92,14 @@ func whiteHouseFcn(arg ActionArg) bool {
     return false
 }
 ```
+
+</div>
  
 Compare this with the ZIL version from the second article:
  
-```
+<div class="with-line-numbers">
+
+```zil
 <ROUTINE WHITE-HOUSE-F ()
   <COND (<EQUAL? ,HERE ,KITCHEN ,LIVING-ROOM ,ATTIC>
     <COND (<VERB? FIND>
@@ -97,15 +107,45 @@ Compare this with the ZIL version from the second article:
       (<VERB? WALK-AROUND>
         <GO-NEXT ,IN-HOUSE-AROUND>
           T)>)
+    (<NOT <OR <EQUAL? ,HERE ,EAST-OF-HOUSE ,WEST-OF-HOUSE>
+            <EQUAL? ,HERE ,NORTH-OF-HOUSE ,SOUTH-OF-HOUSE>>>
+      <COND (<VERB? FIND>
+        <COND (<EQUAL? ,HERE ,CLEARING>
+          <TELL "It seems to be to the west." CR>)
+        (T
+          <TELL "It was here just a minute ago..." CR>)>)
+      (T <TELL "You're not at the house." CR>)>)
+    (<VERB? FIND>
+      <TELL
+        "It's right here! Are you blind or something?" CR>)
+    (<VERB? WALK-AROUND>
+      <GO-NEXT ,HOUSE-AROUND>
+    T)
+  (<VERB? EXAMINE>
+    <TELL
+      "The house is a beautiful colonial house which is painted
+      white. It is clear that the owners must have been
+      extremely wealthy." CR>)
+  (<VERB? THROUGH OPEN>
+    <COND (<EQUAL? ,HERE ,EAST-OF-HOUSE>
+      <COND (<FSET? ,KITCHEN-WINDOW ,OPENBIT>
+        <GOTO ,KITCHEN>)
+      (T
+        <TELL "The window is closed." CR>
+          <THIS-IS-IT ,KITCHEN-WINDOW>)>)
+    (T
+      <TELL "I can't see how to get in from here." CR>)>)
+  (<VERB? BURN>
+    <TELL "You must be joking." CR>)>>
 ```
+
+</div>
  
-If you squint a bit, the two versions aren't that different. The control flow is the same; the nesting is the same. Go just uses curly braces instead of angle brackets and `switch` instead of nested `COND` expressions. That structural similarity made the translation process more mechanical than creative, which is exactly what you want when porting 15,000 lines of someone else's code.
- 
-And lastly, I wanted to learn Go. I'd been curious about the language for a while, and the best way I know to learn something is to use it on a project I actually care about. Porting Zork was the perfect excuse — a codebase complex enough to force me into the language's corners, but well-understood enough that I always knew what the end result should look like. When you're learning a language, having a reference implementation in another language is invaluable. If the output doesn't match, the bug is in my Go code, not in the game design.
+If you squint a bit, the two versions aren't that different. The control flow is the same; the nesting is the same. Go just uses curly braces instead of angle brackets and `switch` instead of nested `COND` expressions. That structural similarity made the translation process more mechanical than creative, which is exactly what you want when porting 15,000 lines of someone else's code.[^2]
  
 ## Architecture
  
-In the second article I described three core concepts that make up Zork's architecture: the **parser**, **game objects**, and the **syntax** system. The architecture of the Go port mirrors the original almost exactly, but the implementation takes advantage of Go's type system and standard library in ways that simplify the code considerably.
+In the second article, I described Zork's three building blocks: the **parser**, **game objects**, and the **syntax** system. The Go port mirrors the original architecture almost exactly. The differences are mostly in implementation, where Go's type system and standard library let me simplify things.
  
 The codebase is split into two packages:
  
@@ -118,13 +158,15 @@ gozork/
  
 The `engine` package is completely game-agnostic. It knows nothing about trolls, grues, or the Great Underground Empire. It provides the parser, the object model, the action dispatch system, a clock for timed events, and I/O abstractions. All game-specific content lives in the `game` package and is injected into the engine at initialization time through registries and well-known object pointers.
  
-This separation mirrors the original ZIL architecture, where the "g" files (gparser.zil, gmain.zil, etc.) contained the generic engine logic and the numbered files (1dungeon.zil, 1actions.zil) contained game-specific content. The difference is that in Go this separation is enforced by the type system and package boundaries, while in ZIL it was a naming convention.
+This is the same split as in the original ZIL code, where the "g" files (gparser.zil, gmain.zil, etc.) had the generic engine logic, and the numbered files (1dungeon.zil, 1actions.zil) had the game-specific content. The difference is that in Go, this separation is enforced by the type system and package boundaries. In ZIL, it was just a naming convention.
  
 ### The Game Object
  
 In ZIL, a game object was defined using the `OBJECT` macro:
  
-```
+<div class="with-line-numbers">
+
+```zil
 <OBJECT MAILBOX
   (IN WEST-OF-HOUSE)
   (SYNONYM MAILBOX BOX)
@@ -134,9 +176,13 @@ In ZIL, a game object was defined using the `OBJECT` macro:
   (CAPACITY 10)
   (ACTION MAILBOX-F)>
 ```
+
+</div>
  
 In Go, it's a struct literal:
  
+<div class="with-line-numbers">
+
 ```go
 mailbox = Object{
     In:         &westOfHouse,
@@ -145,13 +191,18 @@ mailbox = Object{
     Desc:       "small mailbox",
     Flags:      FlgCont | FlgTryTake,
     Action:     mailboxFcn,
+    Item:       &ItemData{Capacity: 10},
 }
 ```
+
+</div>
  
-The fields map one-to-one. The `In` pointer establishes the containment tree — the mailbox is inside the west-of-house room. `Synonyms` are the nouns the parser will match. `Flags` are a `uint64` bitfield. `Action` is a function that gets called when the player interacts with the object.
+The fields map one-to-one. The `In` pointer establishes the containment tree; the mailbox is inside the west-of-house room. `Synonyms` are the nouns that the parser will match. `Flags` are a `uint64` bitfield. `Action` is a function that gets called when the player interacts with the object.
  
-One idiomatic Go pattern I used here was **optional facets**. Not every object needs combat stats or vehicle properties, but in ZIL every object had every property slot whether it used them or not. In Go, I broke role-specific data into nil-able struct pointers:
+One idiomatic Go pattern I used here was **optional facets** using struct embedding.[^6] Not every object needs combat stats or vehicle properties, but in ZIL, every object had every property slot, whether it used them or not. In Go, I broke role-specific data into nil-able struct pointers:
  
+<div class="with-line-numbers">
+
 ```go
 type Object struct {
     // Core fields every object has
@@ -167,34 +218,36 @@ type Object struct {
     *VehicleData  // Type flags
 }
 ```
+
+</div>
  
-An item like the brass lantern gets an `ItemData` facet with its size and value. The troll gets a `CombatData` facet with its strength. A room or a decorative object like the white house gets neither. Nil-safe getters allocate the facet on first write, so the code never has to check for nil explicitly. This keeps the base `Object` struct lean while still allowing any object to acquire new capabilities when needed.
+An item like the brass lantern gets an `ItemData` facet with its size and value. The troll gets a `CombatData` facet with its strength. A room or a decorative object like the white house gets neither. The getters handle nil by returning zero-values, and the setters allocate the facet on first write, so the rest of the game code never has to worry about whether a facet exists before accessing it. This keeps the base `Object` struct lean while still allowing any object to acquire new capabilities when needed.
  
 ### The Parser
  
-The parser is by far the most complex part of the engine, clocking in at over 1,400 lines. Its job is the same as in the original: take a string like `attack the nasty-looking troll with a rusty knife` and produce three values — PRSA (the action/verb), PRSO (the direct object), and PRSI (the indirect object). In Go, these live as fields on the global game state:
+The parser is by far the most complex part of the engine, clocking in at over 1,400 lines. Its job is the same as in the original: take a string like `attack the nasty-looking troll with a rusty knife` and produce three values: PRSA (the action/verb), PRSO (the direct object), and PRSI (the indirect object). In the [second article](/zork-the-great-inner-workings), I complained about the original developers using four-letter abbreviations for three of the most important variables in the entire codebase. In Go, I at least gave them proper names. They're still global state on the `G` struct, though, I couldn't fix everything:
  
+<div class="with-line-numbers">
+
 ```go
 G.ActVerb   // the matched syntax (PRSA)
 G.DirObj    // the direct object (PRSO)
 G.IndirObj  // the indirect object (PRSI)
 ```
+
+</div>
  
 The parsing pipeline follows the same stages as the original:
  
-```
-Raw input string
-  → Tokenize()     Split on whitespace and punctuation
-  → Lex()          Look up each token in the vocabulary
-  → Clause()       Group tokens into noun phrases
-  → SyntaxCheck()  Match against the syntax registry
-  → SnarfObjects() Resolve token groups to actual Object pointers
-  → ManyCheck()    Reject "take all" where syntax disallows it
-  → TakeCheck()    Attempt implicit pick-up if needed
-```
+<figure>
+  <ParserPipelineDiagram />
+  <figcaption>The Go parser pipeline. Input goes through seven stages to produce the three game state variables.</figcaption>
+</figure>
  
-Where Go shines is in the vocabulary lookup. In ZIL, the vocabulary was a hand-built lookup structure. In Go, it's a `map[string]WordItem` built at init time by scanning all syntax definitions, object synonyms, and adjectives:
+One place where Go makes things easier is the vocabulary lookup. In ZIL, the vocabulary was a hand-built lookup structure. In Go, it's a `map[string]WordItem` built at init time by scanning all syntax definitions, object synonyms, and adjectives:
  
+<div class="with-line-numbers">
+
 ```go
 Vocabulary = map[string]WordItem{
     "mailbox": {Types: WordObj},
@@ -205,27 +258,56 @@ Vocabulary = map[string]WordItem{
     // ...hundreds more entries
 }
 ```
+
+</div>
  
-A word can have multiple types — "light" is both a verb (turn on) and an adjective (light source) — and the parser uses context to disambiguate. This is something the original ZIL parser also handled, but the implementation required manual bookkeeping. In Go, it's a struct with a bitfield:
- 
+A word can have multiple types. "Light" appears as a verb in the syntax table (`SYNTAX LIGHT OBJECT ...`) and as an object synonym for the brass lantern (`SYNONYM LAMP LANTERN LIGHT`). The parser has to figure out from context which one the player meant. In ZIL, this disambiguation was done by the `WT?` routine, which read raw bytes out of the vocabulary table and used bit masking to check what part of speech a word could be:
+
+<div class="with-line-numbers">
+
+```zil
+<ROUTINE WT? (PTR BIT "OPTIONAL" (B1 5) "AUX" (OFFS ,P-P1OFF) TYP)
+    <COND (<BTST <SET TYP <GETB .PTR ,P-PSOFF>> .BIT>
+           <COND (<G? .B1 4> <RTRUE>)
+                 (T
+                  <SET TYP <BAND .TYP ,P-P1BITS>>
+                  <COND (<NOT <EQUAL? .TYP .B1>>
+                         <SET OFFS <+ .OFFS 1>>)>
+                  <GETB .PTR .OFFS>)>)>>
+```
+
+</div>
+
+In Go, each vocabulary entry carries its types as a slice, so the same check is just calling `Has()`:
+
+<div class="with-line-numbers">
+
 ```go
 type WordItem struct {
-    Types WordType  // bitmask: WordVerb | WordAdj | WordObj | ...
-    Word  string
+    Types WordTypes  // []WordTyp: WordVerb, WordAdj, WordObj, ...
+    Norm  string
 }
 ```
- 
+
+</div>
+
 ### The Syntax
  
-In the previous article I showed how ZIL defines syntax entries:
+In the previous article, I showed how ZIL defines syntax entries:
  
-```
+<div class="with-line-numbers">
+
+```zil
 <SYNTAX ATTACK OBJECT (FIND ACTORBIT) (ON-GROUND IN-ROOM)
     WITH OBJECT (FIND WEAPONBIT) (HELD CARRIED HAVE) = V-ATTACK>
 ```
+
+</div>
  
 In Go, this becomes:
  
+<div class="with-line-numbers">
+
 ```go
 {
     Verb:    "attack",
@@ -243,11 +325,15 @@ In Go, this becomes:
     Action: vAttack,
 },
 ```
+
+</div>
  
-It's more verbose, but it's also more readable. You can see at a glance that the attack command needs a direct object that is a person found in the room, and an indirect object that is a weapon held by the player. The ZIL version requires you to know that `ACTORBIT` maps to "person" and that `FIND` is a search scope modifier.
+It's more verbose. The ZIL version is arguably cleaner; the syntax definition reads almost like a grammar rule: verb, object with flags, preposition, object with flags, action. ZIL could get away with this because the compiler knew about the syntax system and could pack it all into a compact table format. In Go, there's no such compiler magic, so each constraint has to be spelled out as struct fields. The trade-off is that Go's explicit approach is easier to maintain long-term.[^7] You don't need a ZIL manual open to understand what `FlgSearch | FlgPerson` means, whereas `(FIND ACTORBIT)` requires you to know that `ACTORBIT` maps to "person" and that `FIND` is a search scope modifier.[^8]
  
 The verb handler itself maps cleanly:
  
+<div class="with-line-numbers">
+
 ```go
 func vAttack(arg ActionArg) bool {
     if !G.DirObj.Has(FlgPerson) {
@@ -271,29 +357,45 @@ func vAttack(arg ActionArg) bool {
     return heroBlow()
 }
 ```
+
+</div>
  
 Compare it with the ZIL version from the previous article:
  
-```
+<div class="with-line-numbers">
+
+```zil
 <ROUTINE V-ATTACK ()
   <COND (<NOT <FSET? ,PRSO ,ACTORBIT>>
-    <TELL "I've known strange people, but fighting a " D ,PRSO "?" CR>)
-   (<OR <NOT ,PRSI> <EQUAL? ,PRSI ,HANDS>>
-    <TELL "Trying to attack a " D ,PRSO
-      " with your bare hands is suicidal." CR>)
-   ...
+    <TELL
+     "I've known strange people, but fighting a " D ,PRSO "?" CR>)
+   (<OR <NOT ,PRSI>
+       <EQUAL? ,PRSI ,HANDS>>
+    <TELL
+     "Trying to attack a " D ,PRSO " with your bare hands is suicidal." CR>)
+   (<NOT <IN? ,PRSI ,WINNER>>
+    <TELL "You aren't even holding the " D ,PRSI "." CR>)
+   (<NOT <FSET? ,PRSI ,WEAPONBIT>>
+    <TELL
+     "Trying to attack the " D ,PRSO " with a " D ,PRSI " is suicidal." CR>)
+   (T
+     <HERO-BLOW>)>>
 ```
+
+</div>
  
-Same logic, same wit, same output. The port is faithful to the original.
+Same logic, same output. If you played the original, you'd recognize every response.
  
 ## Making It Idiomatic
  
-Porting 15,000 lines of ZIL code line-for-line into Go would have worked, but it would have produced ugly Go. The ZIL codebase was written in 1981, and while the language itself wasn't primitive — MDL, its parent, literally stands for "More Datatypes than Lisp" and came with lists, vectors, associations, and strings as built-in types — the Z-machine it targeted was. Everything had to fit in kilobytes of memory, so the data structures used in ZIL were deliberately compact: flat byte and word tables searched linearly, fixed-size property slots, manual memory management. Go's standard library offers richer alternatives that make the same logic more expressive with less ceremony.
+I could have translated the 15,000 lines of ZIL code into Go line-for-line, and it would have worked, but it would have been ugly Go. The ZIL codebase was written in 1981. The language itself wasn't primitive; [MDL](<https://en.wikipedia.org/wiki/MDL_(programming_language)>), its parent, literally stands for "More Datatypes than Lisp" and came with lists, vectors, associations, and strings as built-in types. But the Z-machine it targeted was. Everything had to fit in kilobytes of memory, so the data structures were deliberately compact: flat byte and word tables searched linearly, fixed-size property slots, and manual memory management. Go has better alternatives for most of these.
  
 ### Maps Instead of Lookup Tables
  
-In ZIL, the vocabulary, syntax definitions, and object search all used flat table structures that were iterated sequentially. The Z-machine had opcodes for table manipulation (GETB, PUTB, GET, PUT), but the access pattern was always linear — walk the table, compare each entry. In Go, these become hash maps:
+In ZIL, the vocabulary, syntax definitions, and object search all used flat table structures that were iterated sequentially. The Z-machine had opcodes for table manipulation (GETB, PUTB, GET, PUT), but the access pattern was always linear: walk the table, compare each entry. This was perfectly fine for Zork since the game only had around 200 objects and a vocabulary of roughly 600 words, nowhere near enough for sequential iteration to cause any noticeable delay. In Go, these become hash maps:
  
+<div class="with-line-numbers">
+
 ```go
 // Vocabulary: O(1) word lookup instead of scanning a table
 Vocabulary map[string]WordItem
@@ -304,8 +406,10 @@ G.Actions map[string]VerbAction
 // Clock functions: O(1) event handler lookup
 G.ClockFuncs map[string]func() bool
 ```
+
+</div>
  
-The performance difference is irrelevant for a text adventure game — the original ran fine on a 4 MHz processor — but the code clarity improvement is significant. Instead of `find this word in the table by scanning each entry`, it's `look up this word`.
+The performance difference doesn't matter for a text adventure game; the original ran fine on a 4 MHz processor, but the code is much easier to read. Instead of `find this word in the table by scanning each entry`, it's `look up this word`.
  
 ### Slices Instead of Linked Lists
  
@@ -313,6 +417,8 @@ The ZIL object tree used a linked-list structure to track children. Each object 
  
 In Go, children are simply a slice:
  
+<div class="with-line-numbers">
+
 ```go
 type Object struct {
     In       *Object    // parent
@@ -320,9 +426,13 @@ type Object struct {
     // ...
 }
 ```
+
+</div>
  
-Moving an object is straightforward:
+Moving an object looks like this:
  
+<div class="with-line-numbers">
+
 ```go
 func (o *Object) MoveTo(dest *Object) {
     o.Remove()
@@ -330,21 +440,29 @@ func (o *Object) MoveTo(dest *Object) {
     dest.Children = append(dest.Children, o)
 }
 ```
+
+</div>
  
-No pointer surgery, no sibling chains, no off-by-one bugs from manual list manipulation.
+No pointer surgery, no sibling chains. It just works.
  
 ### Interfaces for Testability
  
-One of the more useful idiomatic patterns was using interfaces for anything that needed to be swapped during testing. The game's random number generator, for instance:
+Another pattern I found useful was using interfaces for anything that needed to be swapped during testing. The game's random number generator, for instance:
  
+<div class="with-line-numbers">
+
 ```go
 type RNG interface {
     Intn(n int) int
 }
 ```
+
+</div>
  
 In production, this is backed by Go's `math/rand` seeded with the current time. In tests, it's a deterministic source seeded with a fixed value. The same pattern applies to I/O:
  
+<div class="with-line-numbers">
+
 ```go
 type GameState struct {
     GameOutput io.Writer  // os.Stdout in production, bytes.Buffer in tests
@@ -353,66 +471,155 @@ type GameState struct {
     // ...
 }
 ```
+
+</div>
  
 This made the game fully testable without any mocking libraries or build flags.
  
 ### Dot-imports for Readability
  
-One slightly unconventional choice was using dot-imports in the `game` package:
+I also made a slightly unconventional choice and used dot-imports in the `game` package:
  
+<div class="with-line-numbers">
+
 ```go
 import . "github.com/ajdnik/gozork/engine"
 ```
+
+</div>
  
-This lets the game code reference engine types and functions without a package prefix, so instead of `engine.G.Here`, `engine.Printf(...)`, `engine.Perform(...)`, I can write `G.Here`, `Printf(...)`, `Perform(...)`. This makes the game code read closer to the original ZIL, where there was no package system. It's a pattern most Go style guides warn against, but in this case it serves the project well — the game package is the only consumer of the engine package, and the improved readability of the game logic is worth the trade-off.
+This lets the game code reference engine types and functions without a package prefix, so instead of `engine.G.Here`, `engine.Printf(...)`, `engine.Perform(...)`, I can write `G.Here`, `Printf(...)`, `Perform(...)`. This makes the game code read closer to the original ZIL, where there was no package system. It's a pattern most Go style guides warn against,[^3] but in this case, it serves the project well since the game package is the only consumer of the engine package, and the improved readability of the game logic is worth the trade-off.
  
-## Where Go's Standard Library Shines
+## The Standard Library Did Most of the Work
  
-Beyond the map-versus-table and slice-versus-linked-list differences, there are places where Go's standard library eliminates entire categories of complexity that the ZIL code had to manage explicitly.
- 
-The clock system is a good example. In ZIL, the clock used a fixed-size array with manual index tracking for different event types — interrupts versus daemons — with boundary pointers growing in opposite directions. The Go port uses the same logical approach because the behavior needed to match, but the implementation is backed by slices and maps that handle memory allocation automatically. I didn't have to worry about array bounds or manual memory management.
- 
-The object tree's snapshot and restore system is another case. For save/restore and test resets, the engine needs to capture the initial state of every object and restore it later. In ZIL, this was a complicated affair involving manual memory copying. In Go, it's a map of object pointers to snapshot structs:
- 
+Beyond maps and slices, there are places where Go's standard library takes care of things that the ZIL code had to manage by hand.
+
+Take the clock system. ZIL's `CLOCKER` managed timed events and daemons in a single fixed-size table of 180 bytes. Interrupts grew inward from one end, daemons from the other, with two global pointers (`C-INTS` and `C-DEMONS`) tracking where each region ended. Adding an event meant walking the table entry by entry, comparing routine pointers, and manually adjusting the boundary index. The `CLOCKER` routine itself iterated the table with raw byte offsets (`C-INTLEN` stride of 6 bytes per entry), decrementing tick counters and calling routines through `APPLY`:
+
+<div class="with-line-numbers">
+
+```zil
+<ROUTINE CLOCKER ("AUX" C E TICK (FLG <>))
+     <SET C <REST ,C-TABLE <COND (,P-WON ,C-INTS) (T ,C-DEMONS)>>>
+     <SET E <REST ,C-TABLE ,C-TABLELEN>>
+     <REPEAT ()
+             <COND (<==? .C .E>
+                    <SETG MOVES <+ ,MOVES 1>>
+                    <RETURN .FLG>)
+                   (<NOT <0? <GET .C ,C-ENABLED?>>>
+                    <SET TICK <GET .C ,C-TICK>>
+                    <COND (<0? .TICK>)
+                          (T
+                           <PUT .C ,C-TICK <- .TICK 1>>
+                           <COND (<AND <NOT <G? .TICK 1>>
+                                       <APPLY <GET .C ,C-RTN>>>
+                                  <SET FLG T>)>)>)>
+             <SET C <REST .C ,C-INTLEN>>>>
+```
+
+</div>
+
+In Go, I kept the same logical structure because the behavior had to match, but the bookkeeping mostly disappeared. Each event is a named struct with a `Key`, `Tick`, and `Fn` field. Finding an event is a string lookup instead of a byte-offset walk. The `Clocker` function still iterates the array and decrements ticks, but the code reads like what it does rather than how memory is laid out:
+
+<div class="with-line-numbers">
+
 ```go
-func BuildObjectTree() {
-    for _, o := range G.AllObjects {
-        snapshots[o] = ObjectSnapshot{
-            In:       o.In,
-            Flags:    o.Flags,
-            Strength: o.GetStrength(),
-            // ...
+func Clocker() bool {
+    if G.ClockWait {
+        G.ClockWait = false
+        return false
+    }
+    end := G.QueueDmns
+    if G.ParserOk {
+        end = G.QueueInts
+    }
+    flg := false
+    for i := len(G.QueueItms) - 1; i >= end; i-- {
+        if !G.QueueItms[i].Run || G.QueueItms[i].Tick == 0 {
+            continue
+        }
+        G.QueueItms[i].Tick--
+        if G.QueueItms[i].Tick <= 0 && G.QueueItms[i].Fn() {
+            flg = true
         }
     }
+    G.Moves++
+    return flg
 }
 ```
- 
-Restoring is iterating the map and writing the values back. No manual memory management, no pointer arithmetic, no off-by-one errors.
+
+</div>
+
+The save/restore system tells a similar story. In ZIL, `SAVE` and `RESTORE` were single Z-machine opcodes. The interpreter would dump or reload the entire game memory in one shot. The game code itself was trivial:
+
+<div class="with-line-numbers">
+
+```zil
+<ROUTINE V-SAVE ()
+     <COND (<SAVE>
+            <TELL "Ok." CR>)
+           (T
+            <TELL "Failed." CR>)>>
+
+<ROUTINE V-RESTORE ()
+     <COND (<RESTORE>
+            <TELL "Ok." CR>
+            <V-FIRST-LOOK>)
+           (T
+            <TELL "Failed." CR>)>>
+```
+
+</div>
+
+Two routines, four lines of logic each. All the heavy lifting happened inside the Z-machine interpreter itself.
+
+In Go, there's no virtual machine to lean on, so the save system has to explicitly capture and restore every piece of mutable state. The `captureState` function walks all 250 game objects and records their positions, flags, and properties into a struct. Then it copies every game-specific flag (troll defeated, low tide active, match count, and dozens more) along with the clock queue and score. The whole snapshot gets serialized to disk using `encoding/gob`:
+
+<div class="with-line-numbers">
+
+```go
+func doSave() error {
+    fname := promptFilename("save")
+    s := captureState()
+
+    f, err := os.Create(fname)
+    if err != nil {
+        return fmt.Errorf("create save file: %w", err)
+    }
+    defer f.Close()
+
+    return gob.NewEncoder(f).Encode(s)
+}
+```
+
+</div>
+
+Restoring is the reverse: decode the file, walk the objects again, write everything back. The `captureState` and `applyState` functions together are around 200 lines, mostly because every game flag has to be explicitly listed. It's tedious but straightforward, and `encoding/gob` handles all the serialization, so I never had to think about byte layouts or endianness.
  
 ## By the Numbers
  
-Here are some statistics on the finished port:
+The finished port is roughly 16,000 lines of Go across 29 source files, with another 7,700 lines of tests in 41 test files. The engine package, the game-agnostic parser and runtime, is about 3,000 lines. The remaining 13,000 lines are all Zork-specific: room definitions, item definitions, action handlers, verb implementations, and syntax data.
  
-The Go port consists of roughly **16,000 lines** of production code across 29 source files, with an additional 7,700 lines of tests across 41 test files. The engine package — the game-agnostic parser and runtime — accounts for about 3,000 lines. The remaining 13,000 lines are Zork-specific: room definitions, item definitions, action handlers, verb implementations, and syntax data.
+The game world has 250 game objects: 110 rooms (21 on the surface, 69 underground, and 20 in the maze), 122 items and characters, and 18 global objects like the grue, the player's hands, and pronoun sentinels. There are 130 unique verb words mapped to 53 normalized actions through 378 syntax definitions. The buzz word list, which is the articles, fillers, and connectors the parser ignores, contains 21 entries, and the synonym table maps over 100 word variations to their canonical forms.
  
-The game world contains **250 game objects**: 110 rooms (21 on the surface, 69 underground, and 20 in the maze), 122 items and characters, and 18 global objects like the grue, the player's hands, and pronoun sentinels. There are **130 unique verb words** mapped to 53 normalized actions through 378 syntax definitions. The buzz word list — articles, fillers, and connectors the parser ignores — contains 21 entries, and the synonym table maps over 100 word variations to their canonical forms.
+The whole project has zero external dependencies. The `go.mod` file contains exactly two lines: the module path and the Go version. Everything is built using only the Go standard library. This was expected going in. Zork is a 1980s text game built on simple data types and straightforward logic. No networking, no graphics, no concurrency. The kind of data structures it needs (maps, slices, string manipulation, file I/O) is exactly what modern standard libraries are good at. Between `io`, `strings`, `math/rand`, `encoding/gob`, and `testing`, Go covered everything.
  
-The entire project has **zero external dependencies**. The `go.mod` file contains exactly two lines: the module path and the Go version. Everything — the parser, the object model, the clock system, the save/restore infrastructure, the I/O abstraction, the test harness — is built using only the Go standard library.
+When compiled, the binary is a single static executable of a few megabytes. The original Z-machine story file for Zork I was around 85 kilobytes, but needed a separate interpreter to run.[^4] The Go binary contains both the "interpreter" (engine) and the "story file" (game) compiled together, plus the entire Go runtime. But there's nothing to install. Download the binary, run it, and you're standing in an open field west of a white house.
  
-When compiled, the binary is a **single static executable** of a few megabytes. Compare this to the original Z-machine story file for Zork I, which was around 85 kilobytes and needed a separate interpreter to run. Of course the Go binary contains both the "interpreter" (engine) and the "story file" (game) compiled together, plus the entire Go runtime. But the trade-off is that there's nothing to install — no runtime, no virtual machine, no dependencies. Download the binary, run it, and you're standing in an open field west of a white house.
- 
-Memory usage is similarly modest. The game uses a few megabytes of RAM at runtime, mostly for the Go runtime itself. The actual game state — 250 objects, the parser's token buffers, the clock queue — is negligible. The original Zork I, after being compressed through the Z-machine, fit into around 80 kilobytes of memory on a TRS-80 with 16 KB of available RAM. We've come a long way since then, and not all of it in the right direction.
+Memory usage at runtime is a few megabytes, mostly the Go runtime itself. The actual game state, 250 objects, the parser's token buffers, and the clock queue are negligible. The original Zork I, after being compressed through the Z-machine, fit into around 80 kilobytes of memory on a TRS-80 with 16 KB of available RAM. Modern machines have orders of magnitude more resources than those early home computers,[^9] and that abundance has made us lazy about memory and CPU utilization. When you have gigabytes of RAM, nobody optimizes for kilobytes anymore.
  
 ## Version Control and Distribution
  
-Perhaps the starkest contrast between this port and the original isn't in the code — it's in how the code is managed.
+The biggest difference between this port and the original isn't in the code itself; it's in how the code is managed.
  
 The original Zork developers stored their code on mainframe disk packs and later on floppy disks. There was no version control system in the modern sense. As I showed in the second article, they tracked changes using comments in the source code: `; "next added 1/2/85 by JW"` and `; "Changed 6/10/83 - MARC"`. That was their commit log.
  
-When Infocom was acquired by Activision and eventually shut down, the source code was considered lost. The floppies sat in boxes, forgotten, for decades. It wasn't until 2019 that [historicalsource](https://github.com/historicalsource) released the ZIL source code on GitHub, giving the public access to Zork's internals for the first time since the 1980s. Without that release, this port wouldn't exist.
+When [Infocom](https://en.wikipedia.org/wiki/Infocom) was acquired by Activision and eventually shut down,[^5] the source code was considered lost. The floppies sat in boxes, forgotten, for decades. It wasn't until 2019 that [historicalsource](https://github.com/historicalsource) released the ZIL source code on GitHub,[^2] giving the public access to Zork's internals for the first time since the 1980s. Without that release, this port wouldn't exist.
  
 The GoZork repository, by contrast, has lived on GitHub from day one. Every change is tracked in Git with meaningful commit messages. The project uses a CI/CD pipeline via GitHub Actions that runs on every push and pull request:
  
+<div class="with-line-numbers">
+
 ```yaml
 on:
   push:
@@ -425,10 +632,12 @@ jobs:
   vet:     # go vet static analysis
   test:    # tests with coverage report
 ```
+
+</div>
  
 Every commit is automatically linted, vetted for common mistakes, and tested. The pipeline generates a coverage summary and reports it in the GitHub Actions UI. If a test fails, the exact failure is surfaced in the pull request, down to which command produced unexpected output.
  
-Go's compilation model also makes distribution straightforward. Since `go build` produces a static binary with no runtime dependencies, distributing the game is as simple as compiling it for each target platform. Cross-compilation is a one-liner:
+Go's compilation model also makes distribution easy. Since `go build` produces a static binary with no runtime dependencies, distributing the game is just compiling it for each target platform. Cross-compilation is a one-liner:
  
 ```bash
 GOOS=darwin  GOARCH=arm64 go build -o gozork-macos
@@ -436,14 +645,16 @@ GOOS=linux   GOARCH=amd64 go build -o gozork-linux
 GOOS=windows GOARCH=amd64 go build -o gozork.exe
 ```
  
-Three commands, three binaries, three platforms. Package managers like Homebrew and Chocolatey can distribute these binaries directly. No installer, no runtime prerequisite, no `please install Java 17 first` dialogs. The original Infocom team had to write a separate Z-machine interpreter for every platform they wanted to support — TRS-80, Apple II, Commodore 64, IBM-PC. Each interpreter was a significant engineering effort. Today, a Go compiler flag handles it.
+Three commands and you've got binaries for macOS, Linux, and Windows. No installer, no `please install Java 17 first` dialogs. Compare that to what the original Infocom team had to do: write a separate Z-machine interpreter in platform-specific assembly for every platform they wanted to support.[^10] Between 1980 and 1985, they built interpreters for the TRS-80, Apple II, Commodore 64, IBM-PC, Atari ST, Amiga, and over a dozen more. Each one meant learning a new CPU's assembly language (Z80, 6502, 8088) and working within that machine's memory constraints. By 1985, they switched to writing interpreters in C just to keep up. Today, a Go compiler flag handles it.
  
 ## Testing
  
-This is the area where modern tooling makes the biggest difference. The Infocom team tested their games manually. Someone would sit down, play through the game, try different commands, look for bugs, and verify the output was correct. For a game with hundreds of rooms, items, and interaction combinations, this was a massive effort. And it was inherently incomplete — there's no way a human tester can cover every possible input sequence.
+This is where I think modern tooling makes the biggest difference. The Infocom team tested their games by hand.[^11] A core group of in-house testers, along with a network of outside volunteers, would sit down, play through the game, try different commands, look for bugs, and check that the output was correct. For a game with hundreds of rooms, items, and interaction combinations, that was exhausting. And it was never going to be complete; there's no way a human tester can cover every possible input sequence.
  
 The Go port uses automated playthrough tests. A test feeds a sequence of commands into the game and asserts that the output contains (or doesn't contain) specific strings:
  
+<div class="with-line-numbers">
+
 ```go
 type Step struct {
     Command  string   // command to type
@@ -466,15 +677,19 @@ func TestPlaythroughOpening(t *testing.T) {
     runScript(t, steps)
 }
 ```
+
+</div>
  
 The `runScript` helper initializes a fresh game state, replaces stdin/stdout with in-memory buffers, injects a deterministic random number generator (seeded with a fixed value so combat outcomes are reproducible), feeds all the commands, captures the output, and then checks each step's assertions against the corresponding output segment.
  
-This approach makes it possible to write a **full playthrough test** — a single test that plays through nearly the entire game from start to finish, collecting all 19 trophies and depositing them in the trophy case. The test is over 500 lines of commands and assertions. Running it takes seconds. A human playtester would need hours.
+This approach makes it possible to write a **full playthrough test**, a single test that plays through nearly the entire game from start to finish, collecting all 19 trophies and depositing them in the trophy case. The test is over 500 lines of commands and assertions. Running it takes seconds. A human playtester would need hours.
  
-The deterministic RNG is crucial here. The original Zork has random elements — combat outcomes, the thief's movements, the probability-based inventory fumble I described in the second article. By injecting a seeded RNG, these become predictable. The troll always takes the same number of hits to defeat. The thief always moves to the same rooms. The fumble check always passes or fails the same way. This makes the tests reproducible across runs, machines, and Go versions.
+The deterministic RNG is what makes this work. The original Zork has random elements: combat outcomes, the thief's movements, and the probability-based inventory fumble I described in the second article. By injecting a seeded RNG, these all become predictable. The troll always takes the same number of hits to defeat. The thief always moves to the same rooms. The fumble check always passes or fails the same way. This makes the tests reproducible across runs, machines, and Go versions.
  
 The engine's I/O abstraction is what makes all of this possible:
  
+<div class="with-line-numbers">
+
 ```go
 // In production
 G.GameOutput = os.Stdout
@@ -486,16 +701,18 @@ G.GameOutput = &out
 G.GameInput  = strings.NewReader("open mailbox\ntake leaflet\n")
 G.Rand       = rand.New(rand.NewSource(1))
 ```
+
+</div>
  
-The game code doesn't know or care whether it's writing to a terminal or a buffer. It calls `Printf(...)` and the output goes wherever the writer points. This is one of those patterns that feels obvious in hindsight but would have been difficult to retrofit — designing for testability from the start saved enormous effort.
+The game code doesn't know or care whether it's writing to a terminal or a buffer. It calls `Printf(...)`, and the output goes wherever the writer points. This feels obvious in hindsight, but I'm glad I set it up early because retrofitting it later would have been painful.
  
-After every test run, the game state is restored to its initial snapshot using `ResetGameState()` and `ResetObjectTree()`, ensuring complete isolation between tests. No test can pollute another's world state.
+After every test run, the game state is restored to its initial snapshot using `ResetGameState()` and `ResetObjectTree()`. This means no test can pollute another's world state, which was a problem I ran into early on when tests would pass individually but fail when run together.
  
 ## Closing Thoughts
  
-Porting Zork to Go was, in many ways, a study in contrasts. The game itself is a product of the late 1970s — written by MIT grad students on a mainframe that cost $400,000, stored on floppy disks that were later lost for decades, tested by playing through by hand, and distributed by implementing virtual machine interpreters on each target platform. The port is a product of the 2020s — written by a single developer on a laptop, stored in a Git repository that will outlive any individual hard drive, tested automatically by CI/CD on every commit, and distributed as a static binary that runs on three platforms with zero dependencies.
+When I started this project, I thought I was building a Kubernetes test workload. Instead, I spent months reading 1980s LISP code, learning Go, and porting a game that was written on a $400,000 mainframe to run on my laptop. The original was stored on floppies that were lost for decades. Mine lives on GitHub. The original was tested by someone sitting down and playing through the game. Mine has a CI pipeline that does it in seconds.
  
-But under the surface, the game logic is remarkably similar. The parser still breaks input into verb, direct object, and indirect object. Objects still form a containment tree. Actions still cascade through a priority chain. The troll still blocks the passage. The thief still steals your treasures. And typing `attack the mailbox with the elvish sword` still gets you the same response it did in 1981:
+But the game itself? The parser still breaks input into verb, direct object, and indirect object. Objects still form a containment tree. Actions still cascade through a priority chain. The troll still blocks the passage. The thief still steals your treasures. And typing `attack the mailbox with the elvish sword` still gets you the same response it did in 1981:
  
 ```
 >attack the mailbox with the elvish sword
@@ -503,3 +720,24 @@ I've known strange people, but fighting a small mailbox?
 ```
  
 Some things don't need improving.
+
+[^1]: Fandom. (April 23, 2026). _Implementors_ [https://zork.fandom.com/wiki/Implementors](https://zork.fandom.com/wiki/Implementors)
+
+[^2]: historicalsource. GitHub. (April 23, 2026). _Zork I source code_ [https://github.com/historicalsource/zork1](https://github.com/historicalsource/zork1)
+
+[^3]: Go Wiki. GitHub. (April 23, 2026). _Go Code Review Comments — Import Dot_ [https://go.dev/wiki/CodeReviewComments#import-dot](https://go.dev/wiki/CodeReviewComments#import-dot)
+
+[^4]: Marc S. Blank & S. W. Galley. _How to Fit a Large Program into a Small Machine_ [http://mud.co.uk/richard/htflpism.htm](http://mud.co.uk/richard/htflpism.htm)
+
+[^5]: H. Briceno, W. Chao, A. Glenn, et. al. Infocom. (December 15, 2000). _Down From the Top of Its Game: The Story of Infocom, Inc._
+
+[^6]: Go Documentation. _Effective Go: Embedding_ [https://go.dev/doc/effective_go#embedding](https://go.dev/doc/effective_go#embedding)
+
+[^7]: Rob Pike. Gopherfest SV. (November 18, 2015). _Go Proverbs: "Clear is better than clever"_ [https://www.youtube.com/watch?v=PAAkCSZUG1c&t=875](https://www.youtube.com/watch?v=PAAkCSZUG1c&t=875)
+
+[^8]: S. W. Galley & Greg Pfister. (February 1979, revised November 1979). _ZIL: Zork Implementation Language_. Collected in Jeff Nyman's zmachine repository [https://github.com/jeffnyman/zmachine](https://github.com/jeffnyman/zmachine)
+
+[^9]: A TRS-80 in 1980 had 16 KB of RAM and a Z80 processor running at 1.77 MHz. A typical 2024 laptop has 16 GB of RAM and a multi-core CPU running at 3+ GHz, roughly a million-fold increase in memory and a thousand-fold increase in clock speed, not counting parallelism. For the broader trend, see _Transistors per microprocessor_ [https://ourworldindata.org/grapher/transistors-per-microprocessor](https://ourworldindata.org/grapher/transistors-per-microprocessor)
+
+[^10]: Graham Nelson. _The Z-Machine Standards Document: Appendix D. A short history of the Z-machine_ [https://inform-fiction.org/zmachine/standards/z1point1/appd.html](https://inform-fiction.org/zmachine/standards/z1point1/appd.html)
+
