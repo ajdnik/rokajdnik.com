@@ -1,17 +1,21 @@
 ---
 slug: algorithms-of-scuba-diving 
 title: "Algorithms of SCUBA Diving"
-description: "How far can you optimize FizzBuzz in JavaScript? Exploring V8 internals, loop unrolling, Rust native addons, and runtime benchmarks to squeeze every microsecond out of a simple coding problem."
-date: 2026-07-06
+description: "A dive into decompression theory and the history of the algorithms running inside SCUBA dive computers, from Haldane's 1908 experiments to Bühlmann ZH-L16 with Gradient Factors."
+date: 2026-08-09
 author: "Rok Ajdnik"
-tags: ["javascript", "performance", "v8", "node.js", "rust", "benchmarking"]
+tags: ["scuba-diving", "decompression-theory", "buhlmann-zh-l16", "algorithms", "diving-physics", "history"]
 featured: true
 editable: false
 cover:
-  src: "../assets/images/blog/fizzbuzz-madness-in-javascript/cover.webp"
-  alt: "FizzBuzz Madness in JavaScript article cover"
-  caption: "AI Generated cover image for FizzBuzz Madness in JavaScript article"
+  src: "../assets/images/blog/algorithms-of-scuba-diving/cover.webp"
+  alt: "Side profile of a scuba diver underwater with a ficticious dive profile overlaid on top"
+  caption: "Ficticious dive profile with decompression stops."
 ---
+
+import { Image } from "astro:assets";
+import coke from "../assets/images/blog/algorithms-of-scuba-diving/coke-happy-summer.webp";
+import navyDiveTables from "../assets/images/blog/algorithms-of-scuba-diving/navy-dive-tables.webp";
 
 I fell in love with SCUBA diving on my first dive in the Red Sea, at 16 years old. The colorful corals and fish made the underwater world feel like an alien planet, and a close encounter with a moray eel gave me enough of a thrill to cement that dive as one of my core memories. These days, divers enter that world with a device on their wrist to keep them safe: a watch-sized computer that models how the depths affect the body. It tells them how deep they can go, how long they can stay, and how to return to the surface safely. Given my computer science background, it was inevitable that I'd eventually take a deep dive, pun intended, into how these computers work, specifically, the algorithms keeping divers alive.
 
@@ -19,16 +23,37 @@ I fell in love with SCUBA diving on my first dive in the Red Sea, at 16 years ol
 
 Before we get into those algorithms, we need a rough grasp of decompression theory. Divers breathe gas to stay alive, usually air, the same as we breathe on the surface, but with one important caveat. Physics and anatomy force divers to breathe that air at higher pressure than we do on land, and the deeper they go, the higher that pressure climbs.
 
-That matters because, on the surface, the nitrogen in air is inert: we inhale it, but its partial pressure is too low for it to cross into the bloodstream, so we simply breathe it back out. Underwater, at higher pressure, Henry's Law changes the equation. The nitrogen no longer stays in the lungs, it diffuses into the blood and spreads into the body's tissues. On its own, this still isn't a problem. Nitrogen remains inert in the tissues; it just sits there. We'll conveniently ignore nitrogen narcosis.
+On the surface, the nitrogen in the air is inert: we inhale it, but its partial pressure is too low for it to cross into the bloodstream, so we simply breathe it back out. Underwater, higher pressure changes that. Henry's Law[^1] says the amount of gas that dissolves into a liquid scales with pressure, so the nitrogen no longer stays in the lungs, it diffuses into the blood and spreads into the body's tissues. On its own, this still isn't a problem. Nitrogen remains inert in the tissues; it just sits there. We'll conveniently ignore nitrogen narcosis[^2].
 
 The trouble starts on the way up. Think of a carbonated drink: it's bottled under high pressure so that large amounts of CO₂ dissolve into the liquid. Pop the cap, the pressure drops, the equilibrium breaks, and the gas escapes as bubbles. The same thing happens in a diver's body during ascent, dissolved nitrogen comes out of solution as bubbles, and depending on where they form, they can cause all kinds of harm. Ascending in a controlled way that keeps that risk to a minimum is called decompression. A dive computer tracks things like depth and time precisely so it can advise the diver on the safest way back to the surface.
 
+<figure>
+  <Image
+    src={coke}
+    alt="Animated gif of a coke bottle opening and CO2 bubbles forming."
+  />
+  <figcaption>
+    Henry's law[^1] in action when a coke bottle is opened. [Giphy](https://giphy.com/gifs/Coca-ColaZA-coke-cola-coca-cola-kT5644nW5jQaKkE8Lo)
+  </figcaption>
+</figure>
+
 > A decompression algorithm answers one question:
+>
 > **Given everything I have breathed so far, how shallow can I safely be right now and how long must I wait before I can go shallower?**
 
 ## History Of Decompression Algorithms
 
-Before we do a deep dive into Bühlmann ZH-L16 with Gradient Factors, it's important to understand the history of decompression algorithms, which is really the history of decompression models. At its heart, a decompression model is just a set of mathematical equations that help solvers answer the question described in the previous chapter. None of this began with computers, though. For most of diving's history, these models lived on paper. Researchers ran the math ahead of time and printed the results as dive tables: grids that told you, for a given depth and bottom time, how long to pause at each stop on the way up. A diver planned the whole dive on the surface, then carried a depth gauge and a watch below and followed that plan by hand. The dive computer's real trick wasn't inventing new science, it was taking these same models and running them live, continuously, for the actual dive you were doing rather than the one you had planned.
+Before we do a deep dive into Bühlmann ZH-L16[^3] with Gradient Factors, it's important to understand the history of decompression algorithms, which is really the history of decompression models. At its heart, a decompression model is just a set of mathematical equations that help solvers answer the question from the previous chapter. None of this began with computers, though. For most of diving's history, these models lived on paper. Researchers ran the math ahead of time and printed the results as dive tables: grids that told you, for a given depth and bottom time, how long to pause at each stop on the way up. A diver planned the whole dive on the surface, then carried a depth gauge and a watch below and followed that plan by hand. The dive computer's real trick wasn't inventing new science, it was taking these same models and running them live, continuously, for the actual dive you were doing rather than the one you had planned.
+
+<figure>
+  <Image
+    src={navyDiveTables}
+    alt="A US Navy Air Dive Tables card"
+  />
+  <figcaption>
+    A US Navy Air Dive Tables card[^4], the paper predecessor to the modern dive computer.
+  </figcaption>
+</figure>
 
 #### 1908: Haldane
 
@@ -40,7 +65,7 @@ Working at the US Navy Experimental Diving Unit, Robert Workman took Haldane's f
 
 #### 1966: Hills
 
-Brian Hills, an Australian researcher working with D.H. LeMessurier, approached the problem from a completely different angle. Where everyone else assumed the goal was to keep gas fully dissolved and avoid bubbles entirely, Hills argued that some tiny amount of bubbling is inevitable and that the real question is how to manage it. His **thermodynamic model** was grounded in phase equilibrium and, interestingly, in the hard-won empirical practices of Torres Strait pearl divers, who ascended in a way that looked nothing like the Navy tables, with deeper stops and less total decompression, yet worked. Hills' work never became mainstream on its own, but it planted the seed for the bubble models that appeared decades later.
+Brian Hills, an Australian researcher working with D.H. LeMessurier, approached the problem from a completely different angle. Where everyone else assumed the goal was to keep gas fully dissolved and avoid bubbles entirely, Hills argued that some tiny amount of bubbling is inevitable and that the real question is how to manage it. His **thermodynamic model** was grounded in phase equilibrium and, interestingly, in the hard-won empirical practices of Torres Strait pearl divers, who ascended in a way that looked nothing like the Navy tables, with deeper stops and less total decompression, yet it worked. Hills' work never became mainstream on its own, but it planted the seed for the bubble models that appeared decades later.
 
 #### 1971: DCIEM
 
@@ -84,3 +109,10 @@ Erik Baker also took Yount's Varying Permeability Model and added a practical co
 
 ## Simplified Algorithm
 
+[^1]: Wikipedia. _Henry's law_ [https://en.wikipedia.org/wiki/Henry's_law](https://en.wikipedia.org/wiki/Henry's_law)
+
+[^2]: Wikipedia. _Nitrogen narcosis_ [https://en.wikipedia.org/wiki/Nitrogen_narcosis](https://en.wikipedia.org/wiki/Nitrogen_narcosis)
+
+[^3]: Wikipedia. _Bühlmann decompression algorithm_ [https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm](https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm)
+
+[^4]: Scuba.com. (Dec 28, 2018). _Going Old School: Dive Tables_ [https://www.scuba.com/blog/going-old-school-dive-tables](https://www.scuba.com/blog/going-old-school-dive-tables)
