@@ -256,6 +256,17 @@
       @apply border-foreground/26 mx-13 mt-13 mb-3;
     }
 
+    /* math */
+    .katex {
+      font-size: 1.05em;
+    }
+    .katex-display {
+      @apply my-6 overflow-x-auto overflow-y-hidden py-2;
+    }
+    .katex-display > .katex {
+      @apply text-lg;
+    }
+
     /* footnotes */
     sup a[data-footnote-ref] {
       @apply text-accent no-underline font-semibold text-sm hover:underline;

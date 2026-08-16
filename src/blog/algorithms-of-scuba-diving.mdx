@@ -4,7 +4,7 @@ title: "Algorithms of SCUBA Diving"
 description: "A dive into decompression theory and the history of the algorithms running inside SCUBA dive computers, from Haldane's 1908 experiments to Bühlmann ZH-L16 with Gradient Factors."
 date: 2026-08-09
 author: "Rok Ajdnik"
-tags: ["scuba-diving", "decompression-theory", "buhlmann-zh-l16", "algorithms", "diving-physics", "history"]
+tags: ["scuba-diving", "decompression-theory", "buhlmann-zh-l16", "algorithms", "diving-physics"]
 featured: true
 editable: false
 cover:
@@ -14,18 +14,20 @@ cover:
 ---
 
 import { Image } from "astro:assets";
+import Callout from "../components/Callout.astro";
 import coke from "../assets/images/blog/algorithms-of-scuba-diving/coke-happy-summer.webp";
-import navyDiveTables from "../assets/images/blog/algorithms-of-scuba-diving/navy-dive-tables.webp";
 
 I fell in love with SCUBA diving on my first dive in the Red Sea, at 16 years old. The colorful corals and fish made the underwater world feel like an alien planet, and a close encounter with a moray eel gave me enough of a thrill to cement that dive as one of my core memories. These days, divers enter that world with a device on their wrist to keep them safe: a watch-sized computer that models how the depths affect the body. It tells them how deep they can go, how long they can stay, and how to return to the surface safely. Given my computer science background, it was inevitable that I'd eventually take a deep dive, pun intended, into how these computers work, specifically, the algorithms keeping divers alive.
 
+<Callout type="warning">
+  This article is for educational purposes only. It is not a guide for building or modifying your own decompression algorithm and using it to dive. Dive computers are life-support equipment, their algorithms must be developed, certified, and verified by qualified professionals and experts. Never dive on unverified or self-made decompression software.
+</Callout>
+
 ## The Decompression Problem
 
-Before we get into those algorithms, we need a rough grasp of decompression theory. Divers breathe gas to stay alive, usually air, the same as we breathe on the surface, but with one important caveat. Physics and anatomy force divers to breathe that air at higher pressure than we do on land, and the deeper they go, the higher that pressure climbs.
+Before we get into those algorithms, we need a rough grasp of decompression theory. Divers breathe gas to stay alive, usually air, the same as we breathe on the surface[^1], but with one important caveat. Physics and anatomy force divers to breathe that air at higher pressure than we do on land, and the deeper they go, the higher that pressure climbs.
 
-On the surface, the nitrogen in the air is inert: we inhale it, but its partial pressure is too low for it to cross into the bloodstream, so we simply breathe it back out. Underwater, higher pressure changes that. Henry's Law[^1] says the amount of gas that dissolves into a liquid scales with pressure, so the nitrogen no longer stays in the lungs, it diffuses into the blood and spreads into the body's tissues. On its own, this still isn't a problem. Nitrogen remains inert in the tissues; it just sits there. We'll conveniently ignore nitrogen narcosis[^2].
-
-The trouble starts on the way up. Think of a carbonated drink: it's bottled under high pressure so that large amounts of CO₂ dissolve into the liquid. Pop the cap, the pressure drops, the equilibrium breaks, and the gas escapes as bubbles. The same thing happens in a diver's body during ascent, dissolved nitrogen comes out of solution as bubbles, and depending on where they form, they can cause all kinds of harm. Ascending in a controlled way that keeps that risk to a minimum is called decompression. A dive computer tracks things like depth and time precisely so it can advise the diver on the safest way back to the surface.
+On the surface, the nitrogen in the air is inert: we inhale it, but its partial pressure[^2] is too low for it to cross into the bloodstream, it stays in our loungs and we simply breathe it back out on the exhale. Underwater, when divers breathe air at higher pressure, that no longer holds true. Henry's Law[^3] says the amount of gas that dissolves into a liquid scales with pressure, so the nitrogen no longer stays in the lungs, it diffuses into the blood and spreads into the body's tissues. On its own, this still isn't a problem. Nitrogen remains inert in the tissues; it just sits there. We'll conveniently ignore nitrogen narcosis[^4].
 
 <figure>
   <Image
@@ -33,86 +35,788 @@ The trouble starts on the way up. Think of a carbonated drink: it's bottled unde
     alt="Animated gif of a coke bottle opening and CO2 bubbles forming."
   />
   <figcaption>
-    Henry's law[^1] in action when a coke bottle is opened. [Giphy](https://giphy.com/gifs/Coca-ColaZA-coke-cola-coca-cola-kT5644nW5jQaKkE8Lo)
+    Henry's law[^3] in action when a coke bottle is opened. [Giphy](https://giphy.com/gifs/Coca-ColaZA-coke-cola-coca-cola-kT5644nW5jQaKkE8Lo)
   </figcaption>
 </figure>
 
-> A decompression algorithm answers one question:
+The trouble starts once divers start ascending back to the surface. Think of a carbonated drink: it's bottled under high pressure so that large amounts of CO₂ dissolve into the liquid. Pop the cap, the pressure drops, the equilibrium breaks, and the gas escapes as bubbles. The same thing happens in a diver's body during ascent, dissolved nitrogen comes out of solution as bubbles, and depending on where they form, in what quantity and volume, they can cause all kinds of harm. It's important to state that some level of bubbling is normal and a human body can tolerate it. When these bubbles start causing harm we call that decompression sickness[^5]. Ascending in a controlled way, that manages the risk of bubbles to a minimum, is what decompression algorithms are built to do. A dive computer tracks things like depth and time precisely so it can advise the diver on the safest way back to the surface. To go back to the carbonated drink analogy: when a bottle is shaken, if its opened up to quickly then the bubbles will overflow out of the bottle. But if you slowly release the cap and let the pressure slowly equalize, then we can control the formation of the bubbles and keep the drink in the bottle. 
+
+> **A decompression algorithm answers one question:**
 >
-> **Given everything I have breathed so far, how shallow can I safely be right now and how long must I wait before I can go shallower?**
+> Given everything I have breathed so far, how shallow can I safely be right now and how long must I wait before I can go shallower?
 
-## History Of Decompression Algorithms
+## Simplified Algorithm 
 
-Before we do a deep dive into Bühlmann ZH-L16[^3] with Gradient Factors, it's important to understand the history of decompression algorithms, which is really the history of decompression models. At its heart, a decompression model is just a set of mathematical equations that help solvers answer the question from the previous chapter. None of this began with computers, though. For most of diving's history, these models lived on paper. Researchers ran the math ahead of time and printed the results as dive tables: grids that told you, for a given depth and bottom time, how long to pause at each stop on the way up. A diver planned the whole dive on the surface, then carried a depth gauge and a watch below and followed that plan by hand. The dive computer's real trick wasn't inventing new science, it was taking these same models and running them live, continuously, for the actual dive you were doing rather than the one you had planned.
+In this article we'll do a deep dive into arguably the most popular decompression algorithm, the Bühlmann ZH-L16[^6] with Gradient Factors. It's commonly used in dive computers and for building dive tables meant for recreational[^7] and technical[^8] SCUBA divers, while commercial[^9] and military divers normally use different algorithms[^10][^11] custom designed for their needs. Besides ZH-L16, recreational and technical dive computers also use VPM-B[^12] or RGBM[^13] models, but the focus of this article will be ZH-L16 as it seems to be most widely used.
 
-<figure>
-  <Image
-    src={navyDiveTables}
-    alt="A US Navy Air Dive Tables card"
-  />
-  <figcaption>
-    A US Navy Air Dive Tables card[^4], the paper predecessor to the modern dive computer.
-  </figcaption>
-</figure>
+We'll start with a simplified version of the algorithm to master the basic concepts. For starters we'll focus on building an algorithm that can model a single dive to arbitrary depth, the dive will start at sea level and will be an ocean dive, meaning the diver will be diving in saltwater. The diver will also be breathing a single gas mixture of air. Parameters like repetitive dives, altitude of the dive, multiple breathing mixtures, water type all effect the physics of decompression and make the decompression model more complex. We'll also skip gradient factors[^14], for now, and add them later.
 
-#### 1908: Haldane
+### Modeling Human Body
 
-While the history of decompression research goes all the way back to the 17th century, John Scott Haldane was the first to build a model that tried to explain and predict how decompression affects the human body. Commissioned by the Royal Navy and working alongside Arthur Boycott and Guybon Damant, he ran a famous series of experiments on goats to figure out what actually harmed a body on ascent. His two big insights still underpin everything that came after. First, the body doesn't absorb gas all at once: different tissues load and unload nitrogen at different speeds, so he modelled the body as a handful of independent "compartments," each with its own half-time. Second, a diver can tolerate a certain amount of over-pressure before bubbles form. He put that limit at a 2:1 ratio, meaning you could safely halve the pressure in one step, which is how the idea of staged decompression stops was born.
+Every decompression algorithm starts from the same unsolved problem: nobody can measure how much nitrogen is actually dissolved in a diver's blood and tissues in real time. In 1908, physiologist John Scott Haldane[^15] ran a series of experiments on goats, exposing them to pressure and then decompressing them, and found that the animals tolerated an ascent that halved the ambient pressure, a 2:1 ratio, without symptoms, regardless of how deep they started from. From that observation he built the first mathematical model of how the body absorbs and releases inert gas, and every algorithm since, Bühlmann's included, is a descendant of it.
 
-#### 1965: Workman
+Haldane's insight was to stop trying to model the body's actual anatomy and instead treat it as a set of theoretical "compartments," each behaving like a sponge that soaks up and releases gas at its own fixed rate. Bühlmann ZH-L16[^6] takes this idea further and defines 16 such compartments, numbered from fastest to slowest. Compartment 1 has a half-time of 4 minutes and stands in for well-perfused, blood-rich tissue like blood itself or the brain, tissue that saturates with nitrogen almost immediately, while compartment 16 has a half-time of 635 minutes, over 10 hours, and stands in for poorly perfused, slow-loading tissue like fat, ligaments, or cartilage. None of the 16 correspond to a specific organ, they're a mathematical convenience that covers the full spectrum of how fast tissue in a real body might load and unload nitrogen.
 
-Working at the US Navy Experimental Diving Unit, Robert Workman took Haldane's framework and made it more precise. Haldane's single 2:1 ratio was a blunt instrument, so Workman's key contribution was realising that each tissue compartment has its own tolerance, and that this tolerance changes with depth. He expressed this as **M-values**: the maximum inert gas pressure a given compartment can hold at a given depth before you risk trouble. This reframed the whole problem from "don't exceed one magic ratio" to "stay under a specific, depth-dependent limit for each compartment," which is the language decompression models still speak today.
+A half-time is simply the time it takes a compartment to close half the gap between where its nitrogen tension currently is and where it's heading. Drop a diver to a new depth, and every compartment starts chasing the new, higher inspired nitrogen pressure, but none of them jump straight to it. After one half-time has passed, each compartment has closed 50% of that gap. After two half-times, 75%. After three, 87.5%, and so on, the same halving pattern as radioactive decay. A compartment is never considered fully saturated, mathematically it just keeps closing half the remaining gap forever, but after about six half-times it's close enough to equilibrium to treat as done. That's why compartment 1, with its 4-minute half-time, is effectively saturated within 24 minutes, while compartment 16 takes over 60 hours to reach the same point, and why a short dive barely loads the slow compartments at all while a long one lets even compartment 16 catch up.
 
-#### 1966: Hills
+Each compartment updates independently using the same exponential formula, known as Haldane's equation:
 
-Brian Hills, an Australian researcher working with D.H. LeMessurier, approached the problem from a completely different angle. Where everyone else assumed the goal was to keep gas fully dissolved and avoid bubbles entirely, Hills argued that some tiny amount of bubbling is inevitable and that the real question is how to manage it. His **thermodynamic model** was grounded in phase equilibrium and, interestingly, in the hard-won empirical practices of Torres Strait pearl divers, who ascended in a way that looked nothing like the Navy tables, with deeper stops and less total decompression, yet it worked. Hills' work never became mainstream on its own, but it planted the seed for the bubble models that appeared decades later.
+$$
+P(t) = P_{alv} + (P_0 - P_{alv}) \times 2^{-t / \text{half-time}}
+$$
 
-#### 1971: DCIEM
+$P(t)$ is the compartment's nitrogen tension after time $t$, $P_0$ is what it started at, and $P_{alv}$ is the alveolar pressure of nitrogen the diver is currently breathing, essentially the partial pressure of nitrogen at the current depth. $\text{half-time}$ is the compartment's defining property, the time it takes to close half the gap between $P_0$ and $P_{alv}$. A fast compartment reacts quickly to a change in depth; a slow one barely notices a short dive. Because every compartment runs this formula on its own clock, a single dive profile produces 16 different nitrogen loading curves, and the algorithm has to track all of them at once.
 
-Developed at Canada's Defence and Civil Institute of Environmental Medicine, the Kidd-Stubbs model (named for D.J. Kidd and R.A. Stubbs, whose programme began back in 1962) broke with the standard picture in one important way. Instead of treating tissue compartments as parallel and independent, it arranged them **in series**: gas had to pass through one compartment to reach the next, like water filling a chain of connected buckets. The result was a more conservative model that DCIEM refined through an unusually thorough programme of laboratory and real-world human testing, producing tables trusted for decades in Canadian and commercial diving.
+Let's start turning this into code. A compartment only needs to remember two numbers, its half-time and its current tension, and it only needs to know how to do one thing, update itself given the pressure it's currently breathing and how long it's been breathing it:
 
-#### 1983: Thalmann EL
+```rust
+#[derive(Debug, Clone, Copy)]
+struct Compartment {
+    half_time: f64, // minutes
+    tension: f64,   // current N2 tension, in bar
+}
 
-Edward Thalmann, working for the US Navy, built the Exponential-Linear model to fix a specific weakness in the old approach. He originally designed it around 1980 for divers using the Mk15 rebreather, and published the EL model in 1983. Classic Haldanian models assume gas leaves a tissue just as fast as it enters, but Thalmann's insight was that once bubbles start forming, off-gassing slows down. His model treats on-gassing as exponential but off-gassing as linear, making it asymmetric. This produced safer schedules for the long, deep dives the Navy cared about, and it was later refined into the VVAL-18 parameter set that underpins the modern US Navy tables.
+impl Compartment {
+    fn update(&mut self, p_alv: f64, elapsed_min: f64) {
+        let decay = 2f64.powf(-elapsed_min / self.half_time);
+        self.tension = p_alv + (self.tension - p_alv) * decay;
+    }
+}
+```
 
-#### 1983: Bühlmann ZH-L12
+The 16 half-times are Bühlmann's, published as part of ZH-L16[^6], ordered fastest to slowest, in minutes:
 
-This is where decompression theory reached the general public. Albert A. Bühlmann, a physician at the University Hospital in Zurich, spent decades refining the Haldane-Workman approach, and crucially, he published it openly rather than locking it inside a navy. The name encodes its origin: **ZH** for Zurich, **L** for limits, **12** for the initial set of coefficients. Bühlmann also tuned his model to work at altitude, not just at sea level, which made it practical for lakes and mountains. Almost every recreational dive table and computer in use today traces its lineage back to his work.
+```rust
+const HALF_TIMES: [f64; 16] = [
+    4.0, 8.0, 12.5, 18.5, 27.0, 38.3, 54.3, 77.0, 109.0, 146.0, 187.0, 239.0, 305.0, 390.0,
+    498.0, 635.0,
+];
+```
 
-#### 1986: Bühlmann ZH-L16
+A diver who's been breathing surface air for long enough starts every dive with all 16 compartments already at equilibrium, so we can build the whole tissue model from that single starting tension:
 
-A refinement of the 1983 model, ZH-L16 replaced the older coefficient set with a more carefully tuned one spanning 16 tissue compartments, with half-times ranging from a few minutes to over ten hours. Bühlmann published several variants (ZH-L16A, B and C) offering slightly different levels of conservatism. This is the version that became the workhorse of the dive computer industry, and it's the model we'll be implementing later in this article.
+```rust
+fn new_tissue_model(surface_n2: f64) -> [Compartment; 16] {
+    HALF_TIMES.map(|half_time| Compartment {
+        half_time,
+        tension: surface_n2,
+    })
+}
+```
 
-#### 1986: VPM
+### M Values
 
-The Varying Permeability Model, developed by physicist David Yount and his colleague Hoffman at the University of Hawaii, was the first bubble model to gain real traction. Building on their 1984 study of how bubbles form in gelatin, they brought that physics into diving: they assumed the body is full of microscopic pre-existing gas nuclei, and that decompression sickness happens when these nuclei grow into problematic bubbles. Rather than limiting dissolved gas, VPM limits the **total volume of bubbles** allowed to form, which naturally pushes for deeper, earlier decompression stops than the classic dissolved-gas models.
+Tracking nitrogen loading is only half the problem. On its own, a tissue tension number doesn't tell a diver anything, it needs something to be measured against. That something comes from work Bühlmann built on top of Haldane's model[^16]: for every compartment, define a ceiling value, the maximum nitrogen tension it can hold at a given ambient pressure before the risk of bubble formation becomes unacceptable. These ceiling values are called M-values.
 
-#### 1990: RGBM
+Each of the 16 compartments has its own M-value line, defined by two coefficients, $a$ and $b$, that Bühlmann derived experimentally for that compartment:
 
-Bruce Wienke, a physicist at Los Alamos National Laboratory, designed the Reduced Gradient Bubble Model to bridge the two worlds: it keeps the practical dissolved-gas bookkeeping of a Bühlmann-style model but adds bubble physics on top. The "reduced gradient" part refers to how it penalises the kinds of profiles known to raise bubble risk, repetitive dives, deep dives and rapid ascents, by tightening the allowed gradients. Manufacturers like Suunto and Mares adopted variants of it later that decade, making RGBM one of the most widely deployed algorithms in modern computers.
+$$
+M = a + \frac{P_{amb}}{b}
+$$
 
-#### 1991: TBDM
+$P_{amb}$ is the ambient pressure at the diver's current depth, and $M$ is the maximum nitrogen tension that compartment is allowed to hold at that pressure. Fast compartments have M-value lines that tolerate a large overpressure, since any excess nitrogen they're holding gets released again quickly. Slow compartments tolerate far less, they simply don't off-gas fast enough to make a large overpressure safe.
 
-The Tissue Bubble Diffusion Model, developed by Michael Gernhardt as part of his PhD at the University of Pennsylvania, zoomed in even further than VPM. Instead of tracking a population of nuclei statistically, it models the growth and shrinkage of an individual bubble as gas diffuses in and out of it over time. It's a more physically detailed picture of what a single bubble actually does, and it fed into later commercial and probabilistic decompression work rather than becoming a consumer model in its own right.
+The M-value is what turns a tissue tension into an actionable number: the ceiling depth, the shallowest depth at which none of the 16 compartments would exceed their M-value. As long as a diver stays at or below their current ceiling, ascending further is safe. As soon as any compartment's tension would cross its M-value line, that compartment becomes the controlling compartment, and the diver has to stop ascending until it off-gasses enough for the ceiling to lift.
 
-#### 1997: BVM(3)
+Back in the code, each `Compartment` picks up its `a` and `b` coefficients, plus a way to evaluate its own M-value at a given ambient pressure and, by rearranging that same line, the ambient pressure at which its current tension would sit exactly on the M-value:
 
-The biophysical, probabilistic models developed for the US Navy by Wayne Gerth and Richard Vann mark a philosophical shift. Rather than defining hard ceilings and declaring anything below them "safe," these models were fit against thousands of real dives with recorded outcomes, and they output a **probability** of decompression sickness for a given profile. Dive planners can then optimise a schedule toward an acceptable risk level rather than a binary pass/fail line, an approach that fed directly into the 2008 US Navy dive tables.
+```rust
+#[derive(Debug, Clone, Copy)]
+struct Compartment {
+    half_time: f64, // minutes
+    tension: f64,   // current N2 tension, in bar
+    a: f64,         // M-value coefficient
+    b: f64,         // M-value coefficient
+}
 
-#### 1998: Gradient Factors
+impl Compartment {
+    fn update(&mut self, p_alv: f64, elapsed_min: f64) {
+        let decay = 2f64.powf(-elapsed_min / self.half_time);
+        self.tension = p_alv + (self.tension - p_alv) * decay;
+    }
 
-The work of Erik Baker, Gradient Factors aren't a new model at all, they're a conservatism knob bolted onto Bühlmann. A gradient factor is simply the fraction of a compartment's allowed over-pressure (its M-value gradient) that you're willing to use, expressed as a low/high pair like 30/85. The low number adds deeper stops, the high number pads the shallow ones. Because it's simple, tunable and transparent, this approach has become the standard way divers dial in how aggressive or cautious their Bühlmann computer behaves.
+    fn m_value(&self, ambient_pressure: f64) -> f64 {
+        self.a + ambient_pressure / self.b
+    }
 
-#### 2001: VPM-B
+    fn ceiling_pressure(&self) -> f64 {
+        (self.tension - self.a) * self.b
+    }
+}
+```
 
-Erik Baker also took Yount's Varying Permeability Model and added a practical correction. The **B** stands for Boyle's law: as a diver ascends, any bubble that has already formed expands as the surrounding pressure drops, and VPM-B accounts for that expansion when calculating the stops. This tweak made the model more conservative in the shallows and turned VPM into a popular choice among technical divers running desktop decompression planners.
+`ceiling_pressure` is just the M-value formula solved for `ambient_pressure` instead of `M`, it answers "at what ambient pressure would this compartment's current tension be exactly at its M-value?" That's the compartment's own ceiling. Bühlmann published `a` and `b` for all 16 compartments alongside the half-times:
 
-## Simplified Algorithm
+```rust
+const COEFFICIENTS: [(f64, f64); 16] = [
+    (1.2599, 0.5050),
+    (1.0000, 0.6514),
+    (0.8618, 0.7222),
+    (0.7562, 0.7725),
+    (0.6667, 0.8125),
+    (0.5933, 0.8434),
+    (0.5282, 0.8693),
+    (0.4701, 0.8910),
+    (0.4187, 0.9092),
+    (0.3798, 0.9222),
+    (0.3497, 0.9319),
+    (0.3223, 0.9403),
+    (0.2971, 0.9477),
+    (0.2737, 0.9544),
+    (0.2523, 0.9602),
+    (0.2327, 0.9653),
+];
+```
 
-[^1]: Wikipedia. _Henry's law_ [https://en.wikipedia.org/wiki/Henry's_law](https://en.wikipedia.org/wiki/Henry's_law)
+#### ZH-L16A vs. ZH-L16B vs. ZH-L16C
 
-[^2]: Wikipedia. _Nitrogen narcosis_ [https://en.wikipedia.org/wiki/Nitrogen_narcosis](https://en.wikipedia.org/wiki/Nitrogen_narcosis)
+Bühlmann's coefficients don't come as a single fixed table, they exist as three published sets, A, B, and C, and which one a given piece of software implements changes how conservative the resulting model is.
 
-[^3]: Wikipedia. _Bühlmann decompression algorithm_ [https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm](https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm)
+ZH-L16A[^6] is the original, purely mathematical dataset. Bühlmann didn't fit these by hand, he derived $a$ and $b$ directly from each compartment's half-time with a closed-form regression:
 
-[^4]: Scuba.com. (Dec 28, 2018). _Going Old School: Dive Tables_ [https://www.scuba.com/blog/going-old-school-dive-tables](https://www.scuba.com/blog/going-old-school-dive-tables)
+$$
+a = 2 \times \text{half-time}^{-1/3} \qquad b = 1.005 - \text{half-time}^{-1/2}
+$$
+
+You can check this against the coefficient table earlier in this section, it's an exact match, that table is ZH-L16A. When Bühlmann tested A against real dive data, he found it wasn't conservative enough in the middle compartments[^18], the ones that end up controlling most real-world dive profiles, so he published two manually adjusted variants on top of it.
+
+ZH-L16B tightens the $a$ coefficient for compartments 6, 7, 8, and 13 specifically, leaving the rest of the table equal to A. It's the set Bühlmann intended for producing printed dive tables, where the table's own rounding to whole minutes and metres would otherwise erode the small margin those compartments needed.
+
+ZH-L16C tightens $a$ further, across the wider range of compartments 5 through 15, and is the set Bühlmann intended for direct use in dive computers, since a computer tracks depth and time exactly and doesn't get the incidental conservatism that comes from reading a rounded table. It's the most conservative of the three.
+
+In practice, dive computer manufacturers rarely implement any of the three untouched, most apply their own additional conservatism on top, so there's no single variant every computer on the market agrees on. For the rest of this article, and the code, we'll keep using the closed-form A coefficients already in `COEFFICIENTS`, they're the ones we can derive and verify ourselves, and Gradient Factors, covered later in this article, are a more transparent, more widely supported way to dial in the kind of extra conservatism B and C were hand-tuned for.
+
+### Putting It All Together
+
+With Haldane's equation to track nitrogen loading and M-values to define a safe ceiling, the algorithm itself is mostly a loop. At every step of a dive, sampled every few seconds on a real dive computer, it does the same four things:
+
+1. Read the diver's current depth and use it to compute the ambient pressure, and from that, the partial pressure of nitrogen currently being breathed.
+2. Update all 16 compartments using Haldane's equation, based on how long the diver has been at that depth.
+3. Compute each compartment's M-value at the current ambient pressure and compare it to that compartment's tension.
+4. Find the controlling compartment, whichever one has the smallest margin to its M-value, and use its M-value line to compute the current ceiling depth.
+
+If the ceiling is at or above the surface, the diver is within their no-decompression limit[^17] and can ascend directly. If the ceiling is below the surface, the diver has to stop, wait at that depth while the controlling compartment off-gasses, and let the algorithm recompute the ceiling. In practice this produces the staged decompression stops divers are trained to perform: ascend to the ceiling, usually rounded to the nearest 3 metres, hold until the ceiling rises, ascend again, and repeat until reaching the surface.
+
+Wrapping the 16 compartments in a `Diver` gives us a home for that loop. `at_surface` builds the tissue model the same way `new_tissue_model` did earlier, but now also seeds each compartment's `a` and `b`:
+
+```rust
+const SURFACE_PRESSURE: f64 = 1.0; // bar
+const WATER_VAPOR_PRESSURE: f64 = 0.0627; // bar, in the lungs at body temperature
+const FRACTION_N2: f64 = 0.79; // breathing air
+
+struct Diver {
+    compartments: [Compartment; 16],
+}
+
+impl Diver {
+    fn at_surface() -> Self {
+        let surface_n2 = FRACTION_N2 * (SURFACE_PRESSURE - WATER_VAPOR_PRESSURE);
+        Diver {
+            compartments: std::array::from_fn(|i| Compartment {
+                half_time: HALF_TIMES[i],
+                tension: surface_n2,
+                a: COEFFICIENTS[i].0,
+                b: COEFFICIENTS[i].1,
+            }),
+        }
+    }
+}
+```
+
+`WATER_VAPOR_PRESSURE` shows up because the air a diver inhales picks up water vapor in the lungs before nitrogen's partial pressure is calculated, that fixed amount never carries nitrogen and has to be subtracted out first. With the diver built, `step` and `ceiling_depth` are the four-item loop from above, written out directly:
+
+```rust
+impl Diver {
+    fn step(&mut self, depth_m: f64, elapsed_min: f64) {
+        let ambient = SURFACE_PRESSURE + depth_m / 10.0;
+        let p_alv = FRACTION_N2 * (ambient - WATER_VAPOR_PRESSURE);
+        for c in &mut self.compartments {
+            c.update(p_alv, elapsed_min);
+        }
+    }
+
+    fn ceiling_depth(&self) -> f64 {
+        let ceiling_pressure = self
+            .compartments
+            .iter()
+            .map(Compartment::ceiling_pressure)
+            .fold(SURFACE_PRESSURE, f64::max);
+        ((ceiling_pressure - SURFACE_PRESSURE) * 10.0).max(0.0)
+    }
+}
+```
+
+`step` folds the ambient-pressure and inspired-nitrogen math into one call and updates every compartment with it. `ceiling_depth` is the controlling-compartment search: take the highest ceiling pressure across all 16 compartments, since that's the compartment closest to its M-value, and convert it to a depth, clamped at zero because a ceiling can never be shallower than the surface. Simulating a 30 metre dive, sampled once a minute, is now a few lines:
+
+```rust
+let mut diver = Diver::at_surface();
+
+for _ in 0..25 {
+    diver.step(30.0, 1.0);
+    let ceiling = diver.ceiling_depth();
+    if ceiling > 0.0 {
+        println!("ceiling now at {:.1}m, ascent must stop there", ceiling);
+    }
+}
+```
+
+Run that and the diver stays clear of any ceiling for the first twenty minutes or so, then a small decompression obligation appears, a few tenths of a metre at first, growing the longer the bottom time stretches. That's the whole simplified algorithm, four fields per compartment, two small formulas, and a loop.
+
+## Bühlmann ZH-L16
+In the previous chapter we modeled a single, no-repeat, sea-level, single-gas dive from start to finish. We deliberately simplified it, ignoring multiple gas mixtures, altitude, salt versus fresh water, and repetitive dives, all of which change the numbers involved but not the shape of the algorithm. In this chapter we'll systematically introduce these concepts and see how the algorithm is altered because of it.
+
+### Salt vs. Fresh Water
+
+Everything so far has quietly assumed one ambient pressure formula, one bar at the surface plus one bar for every 10 metres of depth. That 10 metres per bar is a seawater number, and it isn't a coincidence, it comes from the density of the water pressing down on the diver. Denser water weighs more for the same depth, so it takes fewer metres of it to add a full bar of pressure. Seawater, at around 1.03 kg per litre thanks to dissolved salt, works out to roughly 10 metres per bar. Fresh water is a bit lighter, closer to 1.0 kg per litre, so it takes roughly 10.3 metres to do the same job. The difference is small, but it means the exact same nominal depth loads a diver with slightly less nitrogen in a lake than it does in the ocean, simply because the water column is doing slightly less work per metre.
+
+The fix is to stop hardcoding that `/ 10.0` from the previous chapter's `step` and turn it into a property of the dive:
+
+```rust
+const SALT_WATER_M_PER_BAR: f64 = 10.0;
+const FRESH_WATER_M_PER_BAR: f64 = 10.3;
+
+struct Diver {
+    compartments: [Compartment; 16],
+    meters_per_bar: f64,
+}
+
+impl Diver {
+    fn at_surface(meters_per_bar: f64) -> Self {
+        let surface_n2 = FRACTION_N2 * (SURFACE_PRESSURE - WATER_VAPOR_PRESSURE);
+        Diver {
+            compartments: std::array::from_fn(|i| Compartment {
+                half_time: HALF_TIMES[i],
+                tension: surface_n2,
+                a: COEFFICIENTS[i].0,
+                b: COEFFICIENTS[i].1,
+            }),
+            meters_per_bar,
+        }
+    }
+
+    fn step(&mut self, depth_m: f64, elapsed_min: f64) {
+        let ambient = SURFACE_PRESSURE + depth_m / self.meters_per_bar;
+        let p_alv = FRACTION_N2 * (ambient - WATER_VAPOR_PRESSURE);
+        for c in &mut self.compartments {
+            c.update(p_alv, elapsed_min);
+        }
+    }
+
+    fn ceiling_depth(&self) -> f64 {
+        let ceiling_pressure = self
+            .compartments
+            .iter()
+            .map(Compartment::ceiling_pressure)
+            .fold(SURFACE_PRESSURE, f64::max);
+        ((ceiling_pressure - SURFACE_PRESSURE) * self.meters_per_bar).max(0.0)
+    }
+}
+```
+
+`ceiling_depth` needed the same treatment, converting a ceiling pressure back into metres has to use the same water density the dive was in. Run the same 30 metre, 30 minute dive through both constructors and the fresh water diver ends up with a slightly smaller ceiling, the lighter water column meant slightly less pressure, and slightly less nitrogen, for the same depth gauge reading.
+
+### Repetitive Dives
+
+Surfacing doesn't mean decompression is over, it means ambient pressure stopped decreasing, but the tissues are still catching up to it. A diver who surfaces with, say, that 3 metre ceiling from the earlier simulation hasn't finished off-gassing, they've just moved the rest of it above water, where the ambient pressure happens to be close to what their compartments still need to reach. If that diver jumped straight into a second dive, every compartment would start it already partially loaded, not at the same surface-equilibrium baseline the first dive started from. This is exactly why a second dive can't be planned as if it were the first one: the diver's starting state depends on how loaded they were when they surfaced and how much time has passed since.
+
+This one's almost a non-event in code, and that's the point. A printed dive table has to represent "how loaded is this diver right now" as a letter grade, a repetitive group, because a table can't carry 16 continuously updating numbers around with you. Between dives it hands you a second table to convert that letter and a surface interval into a new starting letter for the next dive. It's a clever way to approximate a continuous process using paper, but it's still an approximation.
+
+Our `Diver` doesn't have that problem. It never resets, the 16 compartments hold their actual tension between calls to `step`, so a surface interval is simply time spent at zero depth:
+
+```rust
+impl Diver {
+    fn surface_interval(&mut self, minutes: f64) {
+        self.step(0.0, minutes);
+    }
+}
+```
+
+Calling `dive.step(0.0, 1.0)` a few dozen times to simulate an hour on the boat does exactly the same math as diving at 0 metres, the ambient pressure comes out to `SURFACE_PRESSURE`, and every compartment off-gasses toward it at its own half-time, precisely like it would mid-dive. Chain a second `step` sequence for a repetitive dive straight after, and the compartments simply keep going from wherever the surface interval left them. There's no separate repetitive-dive logic to write, table-based systems need one because they discretize state into letters; a real-time model doesn't lose that state in the first place.
+
+### Altitude Diving
+
+Diving at altitude, in a mountain lake, changes the one number we've been treating as a constant since the very first version of this algorithm: `SURFACE_PRESSURE`. At sea level that's 1 bar by definition, but climb to a 2000 metre lake and there's less atmosphere overhead pressing down, so the air itself is thinner and the starting pressure is lower. Every ambient pressure calculation in the algorithm, and every M-value, is anchored to that number, so getting it right matters as much as getting the water density right.
+
+Atmospheric pressure as a function of altitude follows the standard barometric formula:
+
+$$
+P_{atm}(h) = 1.01325 \times \left(1 - 2.25577 \times 10^{-5} \times h\right)^{5.25588}
+$$
+
+```rust
+fn atmospheric_pressure(altitude_m: f64) -> f64 {
+    1.01325 * (1.0 - 2.25577e-5 * altitude_m).powf(5.25588)
+}
+
+struct Diver {
+    compartments: [Compartment; 16],
+    meters_per_bar: f64,
+    surface_pressure: f64,
+}
+
+impl Diver {
+    fn at_altitude(altitude_m: f64, meters_per_bar: f64) -> Self {
+        let surface_pressure = atmospheric_pressure(altitude_m);
+        let surface_n2 = FRACTION_N2 * (surface_pressure - WATER_VAPOR_PRESSURE);
+        Diver {
+            compartments: std::array::from_fn(|i| Compartment {
+                half_time: HALF_TIMES[i],
+                tension: surface_n2,
+                a: COEFFICIENTS[i].0,
+                b: COEFFICIENTS[i].1,
+            }),
+            meters_per_bar,
+            surface_pressure,
+        }
+    }
+
+    fn step(&mut self, depth_m: f64, elapsed_min: f64) {
+        let ambient = self.surface_pressure + depth_m / self.meters_per_bar;
+        let p_alv = FRACTION_N2 * (ambient - WATER_VAPOR_PRESSURE);
+        for c in &mut self.compartments {
+            c.update(p_alv, elapsed_min);
+        }
+    }
+
+    fn ceiling_depth(&self) -> f64 {
+        let ceiling_pressure = self
+            .compartments
+            .iter()
+            .map(Compartment::ceiling_pressure)
+            .fold(self.surface_pressure, f64::max);
+        ((ceiling_pressure - self.surface_pressure) * self.meters_per_bar).max(0.0)
+    }
+}
+```
+
+`at_surface` becomes a special case of `at_altitude` at 0 metres, sea level pressure comes out to 1.0132 bar, matching the standard atmosphere almost exactly. Run the same 30 metre, 30 minute dive at sea level and at a 2000 metre lake and the mountain dive ends up with the deeper ceiling, a lower starting pressure means every depth along the way represents a proportionally bigger pressure swing on ascent, which is exactly why altitude diving calls for more conservative profiles in practice.
+
+Altitude doesn't only matter for the dive itself, it matters for what the diver does after surfacing too. We just established that off-gassing continues well past the moment a diver leaves the water. If they then climb a mountain pass or board a flight, they're lowering the ambient pressure again, exactly like an ascent, just without any water involved. Do that before the compartments have caught up, and it's possible to develop decompression sickness on a chairlift or at cruising altitude, with no dive computer around to warn anyone.
+
+The model already has everything it needs to answer this, a compartment's ceiling is a pressure, not a depth, and pressure behaves the same whether it's water or air doing the pressing. All that's missing is comparing that pressure against a destination directly instead of converting it to a depth first:
+
+```rust
+impl Diver {
+    fn controlling_pressure(&self) -> f64 {
+        self.compartments
+            .iter()
+            .map(Compartment::ceiling_pressure)
+            .fold(f64::NEG_INFINITY, f64::max)
+    }
+
+    fn ceiling_depth(&self) -> f64 {
+        ((self.controlling_pressure() - self.surface_pressure) * self.meters_per_bar).max(0.0)
+    }
+
+    fn clear_for_altitude(&self, altitude_m: f64) -> bool {
+        atmospheric_pressure(altitude_m) >= self.controlling_pressure()
+    }
+}
+```
+
+`controlling_pressure` pulls the shared max-across-compartments logic out of `ceiling_depth`, which now just expresses that same pressure as a depth below the current dive. `clear_for_altitude` skips the depth conversion entirely and asks the more direct question: is the destination's atmospheric pressure still at or above what the slowest-clearing compartment currently needs? Simulate the earlier 30 metre, 30 minute dive, surface, and step through the surface interval one minute at a time checking `clear_for_altitude` against a typical airliner cabin, pressurized to roughly 2400 metres[^18], and the model reports clear to fly in well under half an hour. Real-world guidance from agencies like DAN recommends waiting 12 to 24 hours before flying after diving, depending on the dive[^19], far longer than that. That gap isn't a bug in the code, it's because nothing we've built so far includes the kind of extra conservatism, Gradient Factors, that real-world guidance leans on. That's the subject of the next chapter.
+
+### Nitrox Diving
+
+Nitrox, or enriched air, replaces some of the nitrogen a diver breathes with extra oxygen, EAN32 means 32% oxygen and 68% nitrogen, instead of air's 21% and 79%. Nothing about the algorithm changes to support it, `FRACTION_N2` was already the one input controlling how much nitrogen ends up in `p_alv`, it just stops being a constant:
+
+```rust
+const AIR_FRACTION_N2: f64 = 0.79;
+
+impl Diver {
+    fn step(&mut self, depth_m: f64, elapsed_min: f64, fraction_n2: f64) {
+        let ambient = self.surface_pressure + depth_m / self.meters_per_bar;
+        let p_alv = fraction_n2 * (ambient - WATER_VAPOR_PRESSURE);
+        for c in &mut self.compartments {
+            c.update(p_alv, elapsed_min);
+        }
+    }
+}
+```
+
+`surface_interval` now has to forward a gas too, air is the reasonable default for time spent on a boat: `self.step(0.0, minutes, AIR_FRACTION_N2)`. Running the same 30 metre, 30 minute dive on air and on EAN32 side by side, the EAN32 ceiling comes out noticeably shallower, less nitrogen fraction in the mix means less nitrogen dissolves into every compartment for the same depth and time, which is the entire appeal of nitrox for recreational diving: more bottom time, or more margin, for the same profile.
+
+Nitrox doesn't only touch nitrogen, though. Every fraction taken away from nitrogen goes to oxygen, and more oxygen brings its own ceiling, one that has nothing to do with any of the 16 compartments. Breathed at a high enough partial pressure, oxygen itself becomes toxic, causing seizures underwater that have nothing to do with decompression sickness. The convention is to cap the partial pressure of oxygen in a working gas at 1.4 bar[^18], and the maximum operating depth, or MOD, is simply the depth at which a given mix's oxygen fraction reaches that cap:
+
+```rust
+const MAX_PO2: f64 = 1.4; // bar, conventional working limit
+
+impl Diver {
+    fn mod_for(&self, fraction_o2: f64) -> f64 {
+        let ambient = MAX_PO2 / fraction_o2;
+        ((ambient - self.surface_pressure) * self.meters_per_bar).max(0.0)
+    }
+}
+```
+
+For air's 21% oxygen that comes out to about 56.7 metres, deeper than most recreational divers ever go, which is why this limit rarely comes up on air. For EAN32 it drops to roughly 33.8 metres, noticeably shallower, the same enrichment that buys extra no-decompression time up top puts a hard ceiling on how deep the gas can be taken at all.
+
+Oxygen toxicity isn't just a threshold either, it accumulates. Prolonged exposure to elevated oxygen, even below the acute seizure threshold, irritates the lungs, and dive planning software tracks this as oxygen toxicity units, or OTU, using a formula built on the same "how far above a baseline pressure" idea as an M-value[^18]:
+
+$$
+\text{OTU} = t \times \left(\frac{P_{O_2} - 0.5}{0.5}\right)^{0.83}
+$$
+
+Below 0.5 bar of oxygen, pulmonary toxicity is negligible and no OTU accumulate. Above it, this needs the same two ingredients `step` already computes every call, the current ambient pressure and the oxygen fraction, so it slots in as one more line rather than a separate system:
+
+```rust
+struct Diver {
+    compartments: [Compartment; 16],
+    meters_per_bar: f64,
+    otu: f64,
+}
+
+impl Diver {
+    fn step(&mut self, depth_m: f64, elapsed_min: f64, fraction_n2: f64) {
+        let ambient = self.surface_pressure + depth_m / self.meters_per_bar;
+        let p_alv = fraction_n2 * (ambient - WATER_VAPOR_PRESSURE);
+        for c in &mut self.compartments {
+            c.update(p_alv, elapsed_min);
+        }
+
+        let po2 = (1.0 - fraction_n2) * ambient;
+        if po2 > 0.5 {
+            self.otu += elapsed_min * ((po2 - 0.5) / 0.5).powf(0.83);
+        }
+    }
+}
+```
+
+Since this simplified model still only tracks nitrogen and oxygen, the oxygen fraction falls straight out of the nitrogen fraction already being passed in, `1.0 - fraction_n2`, no new parameter needed yet. An hour at 30 metres on EAN32 accumulates a little under 87 OTU; BSAC's guidance caps cumulative exposure at 800 OTU per day[^18], so `otu` is a running total a real dive computer has to carry across an entire day of diving, not just a single dive, the same way the compartments themselves do.
+
+### Trimix Diving
+
+Trimix adds a second inert gas, helium, mainly to cut narcosis and gas density at depth, and it forces a real structural change: nitrogen is no longer the only gas being tracked, so each compartment needs its own helium tension too, alongside its own helium half-time and its own $a$ and $b$. Bühlmann published a full second table for helium, derived the same way as nitrogen's, with half-times he estimated as N2's divided by 2.65[^18], reflecting how much faster helium diffuses:
+
+```rust
+const HE_HALF_TIMES: [f64; 16] = [
+    1.5, 3.0, 4.7, 7.0, 10.2, 14.5, 20.5, 29.1, 41.1, 55.1, 70.6, 90.2, 115.1, 147.2, 187.9,
+    239.6,
+];
+
+const HE_COEFFICIENTS: [(f64, f64); 16] = [
+    (1.7435, 0.1911),
+    (1.3838, 0.4295),
+    (1.1925, 0.5446),
+    (1.0465, 0.6265),
+    (0.9226, 0.6917),
+    (0.8211, 0.7420),
+    (0.7309, 0.7841),
+    (0.6506, 0.8195),
+    (0.5794, 0.8491),
+    (0.5256, 0.8703),
+    (0.4840, 0.8860),
+    (0.4460, 0.8997),
+    (0.4112, 0.9118),
+    (0.3788, 0.9226),
+    (0.3492, 0.9321),
+    (0.3220, 0.9404),
+];
+```
+
+`Compartment` doubles up, one half-time, tension, and $a$/$b$ pair per gas:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct Compartment {
+    n2_half_time: f64,
+    n2_tension: f64,
+    n2_a: f64,
+    n2_b: f64,
+    he_half_time: f64,
+    he_tension: f64,
+    he_a: f64,
+    he_b: f64,
+}
+
+impl Compartment {
+    fn update(&mut self, p_n2: f64, p_he: f64, elapsed_min: f64) {
+        let n2_decay = 2f64.powf(-elapsed_min / self.n2_half_time);
+        self.n2_tension = p_n2 + (self.n2_tension - p_n2) * n2_decay;
+
+        let he_decay = 2f64.powf(-elapsed_min / self.he_half_time);
+        self.he_tension = p_he + (self.he_tension - p_he) * he_decay;
+    }
+
+    fn ceiling_pressure(&self) -> f64 {
+        let total = self.n2_tension + self.he_tension;
+        let a = (self.n2_a * self.n2_tension + self.he_a * self.he_tension) / total;
+        let b = (self.n2_b * self.n2_tension + self.he_b * self.he_tension) / total;
+        (total - a) * b
+    }
+}
+```
+
+A compartment doesn't get two separate ceilings, it gets one combined M-value, blended from both gases in proportion to how much of each it's currently holding[^18]. A compartment loaded mostly with nitrogen behaves almost like the single-gas model; one loaded mostly with helium leans on helium's numbers instead. `step` now takes a fraction for each inert gas and feeds both into every compartment's `update`. Worth calling out: Bühlmann never got to validate his helium table against real dive data the way he did nitrogen's[^18], and in practice helium turns out to be a more forgiving gas than this model gives it credit for, so don't be surprised if a trimix ceiling computed this way comes out close to, or even past, the equivalent air ceiling.
+
+### Multigas Diving
+
+The last piece isn't a new formula, it's noticing that `step` already accepts whatever gas the diver happens to be breathing at each moment, so switching gas mid-dive is just calling it again with different fractions. Technical divers routinely carry more than one cylinder: a bottom mix chosen for depth, a travel mix for the shallower part of the ascent, and a rich decompression gas, sometimes pure oxygen, for the final stops, where extra oxygen accelerates off-gassing without adding more inert gas to track.
+
+```rust
+let mut diver = Diver::at_surface(SALT_WATER_M_PER_BAR);
+
+// bottom: 21 minutes on 21/35 trimix at 45m
+for _ in 0..21 {
+    diver.step(45.0, 1.0, 0.44, 0.35);
+}
+
+// travel gas: EAN50 at 21m
+for _ in 0..3 {
+    diver.step(21.0, 1.0, 0.50, 0.0);
+}
+
+// deco gas: pure oxygen at 6m
+for _ in 0..8 {
+    diver.step(6.0, 1.0, 0.0, 0.0);
+}
+```
+
+Nothing in `Diver` needed to change for this to work, each `step` call only cares about the gas it's given and the compartments it's updating, it has no memory of which cylinder any of that gas came from. That's the payoff of building the algorithm around ambient pressure and inspired gas fractions from the very first version: table-based systems need a distinct table, or a distinct set of rules, for every gas-switching scenario they support; this one gets multigas diving for free.
+
+That example hardcoded the switch depths, 21m, 18m, and 3m, chosen by hand to match the gases on offer. A real diver plans a dive before getting in the water, and dive planning software doesn't hardcode anything, it searches. Given a set of cylinders the diver intends to carry, it works out, for every depth along the ascent, which of those gases is both breathable, its oxygen partial pressure under the MOD limit, and the richest in oxygen it can get away with, since a leaner inert gas fraction always off-gasses faster and shortens the remaining stops. The plan it hands the diver is really just this search, run once in advance:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct Gas {
+    fraction_n2: f64,
+    fraction_he: f64,
+}
+
+impl Gas {
+    fn fraction_o2(&self) -> f64 {
+        1.0 - self.fraction_n2 - self.fraction_he
+    }
+}
+
+fn best_gas_for_depth(gases: &[Gas], depth_m: f64, surface_pressure: f64, meters_per_bar: f64) -> Gas {
+    let ambient = surface_pressure + depth_m / meters_per_bar;
+    *gases
+        .iter()
+        .filter(|g| g.fraction_o2() * ambient <= MAX_PO2)
+        .max_by(|a, b| a.fraction_o2().partial_cmp(&b.fraction_o2()).unwrap())
+        .expect("no gas in the set is breathable at this depth")
+}
+```
+
+It takes `surface_pressure` as its own parameter rather than reaching for a constant, the search has to work for a mountain lake just as well as for the ocean. Hand it the same three cylinders from before, air, EAN50, and oxygen, and let it choose at every stop instead of choosing by hand:
+
+```rust
+let deco_gases = [
+    Gas { fraction_n2: 0.79, fraction_he: 0.0 }, // air
+    Gas { fraction_n2: 0.50, fraction_he: 0.0 }, // EAN50
+    Gas { fraction_n2: 0.0, fraction_he: 0.0 },  // oxygen
+];
+
+let surface_pressure = 1.0; // sea level
+let mut depth = 45.0;
+while depth > 0.0 {
+    let gas = best_gas_for_depth(&deco_gases, depth, surface_pressure, SALT_WATER_M_PER_BAR);
+    diver.step(depth, 3.0, gas.fraction_n2, gas.fraction_he);
+    depth -= 3.0;
+}
+```
+
+Run it and the search rediscovers the exact same switch depths from the manual example, air down to 21m, EAN50 from 18m, oxygen from 3m, because those are precisely the depths where each richer gas first becomes safe under its MOD. That's not a coincidence, it's what "optimal" means here: the plan a piece of dive software hands a diver is the earliest, richest gas switch the MOD limit allows at every depth, because that's what minimizes time spent decompressing. The diver's job on the actual dive is just to execute that plan, carry the cylinders the software assumed, switch where it says, and the real-time computer on their wrist tracks the consequences exactly the way `Diver` does here, one `step` at a time.
+
+## Gradient Factors
+
+Back in Altitude Diving, the raw model cleared a diver to fly in under half an hour after a dive real guidance says to treat as a 12 to 24 hour wait[^19]. That gap wasn't a bug, it was the raw Bühlmann M-values doing exactly what they're defined to do, tolerating tissue tension right up to the theoretical edge of bubble formation, with nothing held in reserve. Bühlmann's own answer to that gap was ZH-L16B and ZH-L16C, hand-tuned coefficients for specific compartments. Gradient Factors[^14] are a different answer to the same problem: instead of changing Bühlmann's numbers, shrink how much of the M-value the algorithm is allowed to use, as a percentage, and let the diver dial that percentage themselves.
+
+A Gradient Factor is a fraction between 0 and 1, expressed as a pair, GF Low and GF High, like 30/70 or 20/85. At 100/100 it changes nothing, the diver gets the raw model exactly as built in every earlier chapter. Below that, GF Low controls how conservative the deepest stop is and GF High controls how conservative the final approach to the surface is, with every stop in between sliding linearly from one to the other. A lower GF Low pushes the first stop deeper, this is the "deep stops" idea, spread the ascent's conservatism across more of the water column instead of saving it all for the shallow end. A lower GF High keeps more of a margin at the very end of the dive, which is exactly the kind of conservatism that would have closed the flying-after-diving gap.
+
+There's a second motivation behind Gradient Factors, separate from that gap: they were also an attempt to make ZH-L16 behave more like the bubble models, VPM[^12] and RGBM[^13], that were gaining ground among technical divers around the same time. Bubble models don't track dissolved gas tension the way Haldane and Bühlmann do, they simulate the mechanics of actual bubble nuclei forming and growing in tissue, and that different foundation tends to call for noticeably deeper first stops than a pure ZH-L16 schedule does. Divers switching to bubble-model computers anecdotally reported feeling less fatigued and getting fewer of the minor, sub-clinical symptoms divers call niggles, on dives a Haldanean model would have called perfectly fine.
+
+Erik Baker's insight, in the papers that introduced Gradient Factors, was that a full bubble-mechanics simulation wasn't necessary to get that deeper-stop behavior. Capping how much of the M-value a dissolved-gas model is allowed to use, and biasing that cap to be tighter at depth, produces a schedule that looks a lot like a bubble model's, using math that's dramatically simpler and still built on Bühlmann's own, experimentally grounded, dissolved-gas foundation rather than a bubble model's much less validated assumptions about nucleation and growth. It's worth being honest about how settled any of this is, though: whether gradient-factor-adjusted ZH-L16 is actually safer than pure ZH-L16, or than VPM or RGBM, isn't something anyone has cleanly proven. Decompression sickness is rare and multi-causal enough that comparing algorithms head to head is hard, and by some accounts, once any of these models has been tuned against enough real-world dive data, they end up producing broadly similar schedules regardless of which theory underpins them[^18]. What Gradient Factors demonstrably do is give a diver two transparent, tunable numbers sitting on top of a model this article has built from scratch, rather than asking them to trust an opaque bubble simulation, or Bühlmann's own hand-tuned B and C tables, without being able to see why.
+
+Mechanically, a Gradient Factor redefines what "safe" means for a compartment. Instead of tolerating tension up to the full M-value, it only tolerates the ambient pressure plus a GF-sized fraction of the gap between ambient pressure and the M-value:
+
+$$
+M_{gf}(P) = P + GF(P) \times \bigl(M(P) - P\bigr)
+$$
+
+At $GF = 1$ this is just $M(P)$ again, the raw ceiling from the M Values chapter. At $GF = 0$ it collapses to $P$ itself, no overpressure tolerated at all, equivalent to demanding a compartment be fully equilibrated with ambient pressure before going any shallower. Everything in between is a dial between those two extremes. $GF(P)$ itself isn't fixed, it slides linearly from `low` at the first stop's pressure to `high` at the surface:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct GradientFactors {
+    low: f64,
+    high: f64,
+}
+```
+
+`Diver` needs to remember two new things: which `GradientFactors` it's using, and the pressure of the first stop, since every other stop's gradient factor is defined relative to it:
+
+```rust
+struct Diver {
+    compartments: [Compartment; 16],
+    meters_per_bar: f64,
+    surface_pressure: f64,
+    gradient_factors: GradientFactors,
+    first_stop_pressure: f64,
+}
+```
+
+The first stop is established once, at the deepest point of the ascent, by asking where the ceiling would be if `GF Low` applied uniformly everywhere. With a single fixed gradient factor, $M_{gf}(P)$ is linear in $P$, since $M(P)$ itself is linear, so unlike the general case this one has a closed-form solution, solving $M_{gf}(P) = \text{tension}$ for $P$ directly:
+
+```rust
+impl Diver {
+    fn establish_first_stop(&mut self) {
+        let gf_low = self.gradient_factors.low;
+        let first_stop = self
+            .compartments
+            .iter()
+            .map(|c| (c.tension - gf_low * c.a) / (1.0 - gf_low + gf_low / c.b))
+            .fold(self.surface_pressure, f64::max);
+        self.first_stop_pressure = first_stop;
+    }
+}
+```
+
+Once `first_stop_pressure` is known, the sliding gradient factor at any pressure between it and the surface is a straight linear interpolation:
+
+```rust
+impl Diver {
+    fn gradient_factor_at(&self, pressure: f64) -> f64 {
+        let GradientFactors { low, high } = self.gradient_factors;
+        if self.first_stop_pressure <= self.surface_pressure {
+            return high;
+        }
+        let fraction = (self.first_stop_pressure - pressure)
+            / (self.first_stop_pressure - self.surface_pressure);
+        low + (high - low) * fraction.clamp(0.0, 1.0)
+    }
+}
+```
+
+Finding the actual ceiling is where it gets harder. Away from the first stop, $GF(P)$ is no longer constant, it's linear in $P$ too, and multiplying two linear functions of $P$ together makes $M_{gf}(P)$ quadratic. Solving that exactly means reaching for the quadratic formula, which real implementations do, but a bisection search is simpler to read, just as correct, and only costs a few dozen extra iterations of arithmetic a real computer won't notice:
+
+```rust
+impl Diver {
+    fn allowed_tension(&self, compartment: &Compartment, pressure: f64) -> f64 {
+        let gf = self.gradient_factor_at(pressure);
+        pressure + gf * (compartment.m_value(pressure) - pressure)
+    }
+
+    fn gf_ceiling_pressure_for(&self, compartment: &Compartment) -> f64 {
+        let (mut lo, mut hi) = (0.0_f64, compartment.tension);
+        for _ in 0..40 {
+            let mid = (lo + hi) / 2.0;
+            if self.allowed_tension(compartment, mid) < compartment.tension {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        hi
+    }
+
+    fn ceiling_pressure(&self) -> f64 {
+        self.compartments
+            .iter()
+            .map(|c| self.gf_ceiling_pressure_for(c))
+            .fold(self.surface_pressure, f64::max)
+    }
+
+    fn ceiling_depth(&self) -> f64 {
+        ((self.ceiling_pressure() - self.surface_pressure) * self.meters_per_bar).max(0.0)
+    }
+}
+```
+
+`gf_ceiling_pressure_for` searches for the pressure where a compartment's tension sits exactly on `allowed_tension`, `hi` starts at the compartment's own tension because a compartment can never need more pressure than its current tension to be safe, and narrows from there. Run the same 40 metre, 25 minute air dive from earlier chapters through this at 100/100 and the first stop comes out at 6.5 metres, identical to the plain M-value ceiling, exactly as it should. Switch to 30/70 and the first stop jumps to 17.9 metres, nearly three times deeper, precisely the deep-stops effect GF Low is meant to produce. The diver ends up spending more total time decompressing, spread across more, shallower-sloped stops, in exchange for never letting any compartment get as close to its raw M-value as the unmodified model was willing to allow.
+
+## Rebreathers
+
+Every gas fraction fed into `step` so far has come from a cylinder valve, fixed the moment the diver picked what to breathe. Open circuit works exactly the way the name implies: inhale from a tank, exhale into the water, the fraction of nitrogen or helium in a given breath is whatever was in the tank, unchanged, for the whole time that gas is in use. A rebreather changes that assumption at its root, the gas a diver breathes on a rebreather isn't fixed at all, it's recomputed by the device, breath by breath, for the entire dive.
+
+A closed-circuit rebreather, or CCR, doesn't vent exhaled gas to the surface. It scrubs the CO2 out chemically and recirculates the rest in a sealed loop, topping up only the oxygen that got metabolized. Two cylinders feed that loop: a small one of pure oxygen, and a diluent, some breathable inert gas mix, usually air or a trimix, added to keep the loop's volume roughly constant as ambient pressure rises and falls. Oxygen sensors read the loop's actual partial pressure of oxygen continuously, and whenever it drifts below a target the diver sets, called the setpoint, a solenoid fires and injects a shot of pure oxygen until the loop is back at target. That control loop, sensor, setpoint, solenoid, is the whole "set point algorithm": a simple feedback controller holding one number, PO2, constant.
+
+Holding PO2 constant is precisely what makes the gas math different from everything built so far in this article. On open circuit, the oxygen fraction is fixed and PO2 climbs with depth, $PO_2 = \text{fraction}_{O_2} \times P_{amb}$, that's the whole basis of the MOD calculation from the Nitrox chapter. On a rebreather, $PO_2$ is pinned to the setpoint instead, so it's the oxygen fraction that has to shrink as ambient pressure rises to keep the product constant:
+
+$$
+\text{fraction}_{O_2}(P_{amb}) = \frac{\text{setpoint}}{P_{amb}}
+$$
+
+Whatever fraction isn't oxygen is inert gas, and since only oxygen is being added or removed from the loop, that inert fraction keeps the same internal ratio of nitrogen to helium as the diluent, it just grows to fill however much room the shrinking oxygen fraction leaves behind:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct Diluent {
+    fraction_n2: f64,
+    fraction_he: f64,
+}
+
+impl Diluent {
+    fn fraction_o2(&self) -> f64 {
+        1.0 - self.fraction_n2 - self.fraction_he
+    }
+}
+
+struct Rebreather {
+    setpoint: f64,
+    diluent: Diluent,
+}
+
+impl Rebreather {
+    fn loop_gas(&self, ambient_pressure: f64) -> (f64, f64) {
+        let fraction_o2 = (self.setpoint / ambient_pressure)
+            .min(1.0)
+            .max(self.diluent.fraction_o2());
+        let fraction_inert = 1.0 - fraction_o2;
+        let diluent_inert = self.diluent.fraction_n2 + self.diluent.fraction_he;
+        if diluent_inert <= 0.0 {
+            return (0.0, 0.0);
+        }
+        let fraction_n2 = fraction_inert * (self.diluent.fraction_n2 / diluent_inert);
+        let fraction_he = fraction_inert * (self.diluent.fraction_he / diluent_inert);
+        (fraction_n2, fraction_he)
+    }
+}
+```
+
+The two clamps on `fraction_o2` cover the cases where the setpoint isn't actually reachable. Near the surface, `setpoint / ambient_pressure` can exceed 1.0, asking for more oxygen than physically exists, so it's capped at pure O2, which is exactly what a CCR loop looks like right at the surface. At depth, the opposite problem shows up: `.max(self.diluent.fraction_o2())` stops the fraction from dropping below what the diluent supplies on its own, because there's no way to have less oxygen in the loop than whatever the diluent already contains without diluting further, gas the rebreather isn't carrying.
+
+Run a 21/35 trimix diluent through `loop_gas` at a 1.2 bar setpoint and the shape of the problem shows up immediately. At 15 metres the loop holds 48% oxygen; by 45 metres that's down to 22%, with nitrogen and helium filling the rest in the same roughly 44:35 ratio the diluent started with. Compare that to breathing the same 21/35 trimix on open circuit at those depths, fixed at 21% oxygen throughout, and the two diverge sharply: the rebreather is delivering more than twice the oxygen fraction open circuit would at 15 metres, and correspondingly less inert gas to load into every compartment. That's the appeal for technical divers, PO2 held near the top of a safe range for the entire dive, not just at the surface, means slower nitrogen and helium loading throughout the bottom phase.
+
+It also means the diluent has to be chosen for the deepest point of the dive, not just for narcosis and gas density the way open-circuit bottom mix is in the Trimix chapter. Push that same 21/35 diluent to 60 metres and the diluent's own oxygen fraction alone already produces a PO2 of 1.47 bar, past the 1.4 bar MOD limit from the Nitrox chapter, `loop_gas`'s deep clamp kicks in and the loop can no longer hold the 1.2 setpoint at all. A CCR diver planning that depth needs a leaner diluent, or has to accept a higher, more closely managed setpoint, exactly the same MOD arithmetic from two chapters ago, just applied to a diluent instead of a single fixed mix.
+
+The other half of the appeal shows up on ascent. Nothing stops a diver from raising the setpoint once they're shallow enough for the higher PO2 to still be safe, the same electronics that held it low at depth to manage oxygen toxicity risk can push it up during decompression stops to accelerate off-gassing, the exact effect the Multigas chapter got from physically switching to a richer deco cylinder. On open circuit that meant carrying an extra tank and executing a gas switch by hand. On a rebreather it's a single number typed into a controller, `loop_gas` recomputes the fractions for the new setpoint, and they feed into `Diver::step` exactly the way every other gas source in this article has, the decompression math underneath has no idea, or any need to know, whether those fractions came from a cylinder valve or a solenoid.
+
+[^1]: Wikipedia. _Atmosphere of Earth_ [https://en.wikipedia.org/wiki/Atmosphere_of_Earth](https://en.wikipedia.org/wiki/Atmosphere_of_Earth)
+
+[^2]: Wikipedia. _Partial pressure_ [https://en.wikipedia.org/wiki/Partial_pressure](https://en.wikipedia.org/wiki/Partial_pressure)
+
+[^3]: Wikipedia. _Henry's law_ [https://en.wikipedia.org/wiki/Henry's_law](https://en.wikipedia.org/wiki/Henry's_law)
+
+[^4]: Wikipedia. _Nitrogen narcosis_ [https://en.wikipedia.org/wiki/Nitrogen_narcosis](https://en.wikipedia.org/wiki/Nitrogen_narcosis)
+
+[^5]: Wikipedia. _Decompression sickness_ [https://en.wikipedia.org/wiki/Decompression_sickness](https://en.wikipedia.org/wiki/Decompression_sickness)
+
+[^6]: Wikipedia. _Bühlmann decompression algorithm_ [https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm](https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm)
+
+[^7]: Wikipedia. _Recreational diving_ [https://en.wikipedia.org/wiki/Recreational_diving](https://en.wikipedia.org/wiki/Recreational_diving)
+
+[^8]: Wikipedia. _Technical diving_ [https://en.wikipedia.org/wiki/Technical_diving](https://en.wikipedia.org/wiki/Technical_diving)
+
+[^9]: Wikipedia. _Commercial diving_ [https://en.wikipedia.org/wiki/Commercial_diving](https://en.wikipedia.org/wiki/Commercial_diving)
+
+[^10]: Wikipedia. _Thalmann algorithm_ [https://en.wikipedia.org/wiki/Thalmann_algorithm](https://en.wikipedia.org/wiki/Thalmann_algorithm)
+
+[^11]: Defence R&D Canada. (March, 1992). _DCIEM diving manual : air decompression procedures and tables_ [https://publications.gc.ca/site/eng/9.947649/publication.html](https://publications.gc.ca/site/eng/9.947649/publication.html)
+
+[^12]: Wikipedia. _Varying Permeability Model_ [https://en.wikipedia.org/wiki/Varying_Permeability_Model](https://en.wikipedia.org/wiki/Varying_Permeability_Model)
+
+[^13]: Wikipedia. _Reduced gradient bubble model_ [https://en.wikipedia.org/wiki/Reduced_gradient_bubble_model](https://en.wikipedia.org/wiki/Reduced_gradient_bubble_model)
+
+[^14]: Divers Alert Network. (November 1, 2015) _Gradient Factors_ [https://dan.org/alert-diver/article/gradient-factors/](https://dan.org/alert-diver/article/gradient-factors/)
+
+[^15]: Wikipedia. _John Scott Haldane_ [https://en.wikipedia.org/wiki/John_Scott_Haldane](https://en.wikipedia.org/wiki/John_Scott_Haldane)
+
+[^16]: Wikipedia. _Decompression theory_ [https://en.wikipedia.org/wiki/Decompression_theory](https://en.wikipedia.org/wiki/Decompression_theory)
+
+[^17]: Wikipedia. _No-decompression limit_ [https://en.wikipedia.org/wiki/No-decompression_limit](https://en.wikipedia.org/wiki/No-decompression_limit)
+
+[^18]: Chapman, P. (1999). _An Explanation of Professor A.A. Buehlmann's ZH-L16 Algorithm_ [https://thetechnicaldiver.com/wp-content/uploads/Explanation-of-Buhlmanns-ZHL-16-algorithm.pdf](https://thetechnicaldiver.com/wp-content/uploads/Explanation-of-Buhlmanns-ZHL-16-algorithm.pdf)
+
+[^19]: Divers Alert Network. _Guidelines for Flying After Diving_ [https://dan.org/health-medicine/health-resource/health-safety-guidelines/guidelines-for-flying-after-diving/](https://dan.org/health-medicine/health-resource/health-safety-guidelines/guidelines-for-flying-after-diving/)
