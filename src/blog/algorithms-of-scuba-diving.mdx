@@ -237,6 +237,8 @@ ZH-L16B tightens the $a$ coefficient for compartments 6, 7, 8, and 13, leaving t
 
 ZH-L16C tightens $a$ further, across compartments 5 through 15, and is the set Bühlmann intended for direct use in dive computers, since a computer tracks depth and time exactly and doesn't get the incidental conservatism that comes from reading a rounded table[^7]. It's the most conservative of the three.
 
+One wrinkle is worth knowing if you ever copy the B or C tables out of a published source rather than deriving them. Both variants adjust only $a$, so every $b$ should still be the closed-form value, and fifteen of the sixteen are. Compartment 4 is published as 0.7825 where the formula gives 0.7725. One digit, in one compartment, and it has been carried faithfully into every implementation I checked, Subsurface[^32] included. Correcting it now would mean disagreeing with the schedules every dive computer on the market produces, so nobody does.
+
 In practice, dive computer manufacturers rarely implement any of the three untouched. Most apply their own additional conservatism on top, so there's no single variant every computer on the market agrees on. For the rest of this article, and the code, we'll keep using the closed-form A coefficients already in `COEFFICIENTS`. They're the ones we can derive and verify ourselves, and Gradient Factors, covered later in this article, are a more transparent and more widely supported way to dial in the kind of extra conservatism B and C were hand-tuned for. Bear in mind while reading the numbers that come out of this model that raw ZH-L16A is the least conservative thing you can build out of Bühlmann's work.
 
 ### Putting It All Together
@@ -550,7 +552,7 @@ impl Diver {
 }
 ```
 
-That second constant is deliberate. Everywhere else in the algorithm we've been careful to use the real surface pressure, 1.01325 bar at sea level, but MOD is conventionally reckoned against a flat 1 bar. It's a small difference, about 20 centimetres of depth, and every agency's published tables bake it in, so a model that "corrects" it just disagrees with the numbers divers are trained on.
+That second constant is deliberate. Everywhere else in the algorithm we've been careful to use the real surface pressure, 1.01325 bar at sea level, but MOD is conventionally reckoned against a flat 1 bar. It's a small difference, about 13 centimetres of depth, and every agency's published tables bake it in, so a model that "corrects" it just disagrees with the numbers divers are trained on. Hold on to that, because it comes back in the Multigas chapter with more consequences than 13 centimetres suggests.
 
 For air's 21% oxygen the limit comes out at 56.7 metres, deeper than most recreational divers ever go, which is why it rarely comes up on air. For EAN32 it drops to 33.8 metres. The same enrichment that buys extra no-decompression time up top puts a hard ceiling on how deep the gas can be taken at all.
 
@@ -767,7 +769,15 @@ while depth > 0.0 {
 }
 ```
 
-Run it and the search reproduces both switch depths from the manual example, 21 m and 6 m, choosing air for everything deeper since that's the only gas in this set rated for it. Those are the depths where each richer gas first drops under 1.6 bar. EAN50 hits 1.6 at 22 m, so 21 m is the first stop it's legal on. Oxygen hits 1.6 at exactly 6 m, which is why every technical diving agency in the world says "oxygen at six metres" as if it were a law of nature. It's this arithmetic, run once, decades ago, and rounded to a stop depth.
+Run it and the search reproduces both switch depths from the manual example, 21 m and 6 m, choosing air for everything deeper since that's the only gas in this set rated for it. Those are the depths where each richer gas first drops under 1.6 bar. EAN50 hits 1.6 at 22 m, so 21 m is the first stop it's legal on. Oxygen hits 1.6 at exactly 6 m, which is why every technical diving agency in the world says "oxygen at six metres" as if it were a law of nature.
+
+That "exactly" is doing more work than it looks. Oxygen lands on 6.000 metres only if you use both conventions at once: the flat 1 bar surface from the Nitrox chapter *and* the flat 10 metres per bar from Salt vs. Fresh Water. Put the real numbers in, 1.01325 bar and the 9.9 metres per bar seawater actually manages, and the limit is 5.81 metres. That rounds down to the 3 metre stop, which moves the whole oxygen phase of the dive nearly three metres shallower and lengthens it considerably. The famous number survives on two roundings leaning against each other.
+
+You can watch other people arrive at the same problem from the other direction. Subsurface[^32], the open-source dive planner, computes depth from real salinity and then rounds gas switch depths with a deliberate thumb on the scale. The comment in its source is refreshingly candid:
+
+> Rounding should be towards lower=safer depths but we give a bit of fudge to all to switch to o2 at 6m. So from .9 we round up.
+
+Two implementations, two different fudges, both worked backwards from an answer the diving world had already settled on. EAN50 is robust either way, 22.0 metres by convention and 21.6 in reality, both rounding to the same 21 metre stop. Oxygen is the fragile one, and it's the gas where being wrong costs the most decompression.
 
 The plan the software hands the diver is the earliest, richest gas switch the limit allows at every depth, because that's what minimizes time spent decompressing. The diver's job is to execute it: carry the cylinders the software assumed, switch where it says, and let the computer on their wrist track the consequences one `step` at a time.
 
@@ -1184,3 +1194,5 @@ What I hope comes across, more than any single formula, is the shape of the prob
 [^30]: Baker, E. C. _Clearing Up The Confusion About "Deep Stops"_ [https://www.shearwater.com/wp-content/uploads/2012/08/Deep-Stops.pdf](https://www.shearwater.com/wp-content/uploads/2012/08/Deep-Stops.pdf)
 
 [^31]: Doolette, D. J., Gerth, W. A., Gault, K. A. (2011). _Redistribution of Decompression Stop Time from Shallow to Deep Stops Increases Incidence of Decompression Sickness in Air Decompression Dives_, US Navy Experimental Diving Unit TR 2011-06 [https://indepthmag.com/wp-content/uploads/2019/10/NEDU_TR_2011-06.pdf](https://indepthmag.com/wp-content/uploads/2019/10/NEDU_TR_2011-06.pdf)
+
+[^32]: Subsurface, an open source dive log and planner. Bühlmann implementation in `core/deco.cpp`, depth and gas switch handling in `core/dive.cpp` [https://github.com/subsurface/subsurface](https://github.com/subsurface/subsurface)
