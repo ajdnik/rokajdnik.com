@@ -1,0 +1,165 @@
+<div class="rb-wrap">
+  <svg viewBox="0 0 720 400" role="img" aria-labelledby="rb-title">
+    <title id="rb-title"
+      >Gas path around a closed-circuit rebreather loop, with the oxygen sensors,
+      controller and solenoid that hold the partial pressure of oxygen at the
+      setpoint</title
+    >
+    <defs>
+      <marker
+        id="rb-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="rb-arrowhead" />
+      </marker>
+    </defs>
+
+    <!-- the loop itself -->
+    <path class="rb-loop" d="M 190 96 L 300 96" marker-end="url(#rb-arrow)" />
+    <path class="rb-loop" d="M 420 96 L 530 96" marker-end="url(#rb-arrow)" />
+    <path
+      class="rb-loop"
+      d="M 590 122 L 590 196 L 130 196 L 130 122"
+      marker-end="url(#rb-arrow)"
+    />
+
+    <!-- diver -->
+    <rect class="rb-box rb-diver" x="40" y="70" width="150" height="52" rx="10" />
+    <text class="rb-lbl rb-c" x="115" y="94">diver</text>
+    <text class="rb-sub rb-c" x="115" y="110">consumes O&#8322;, adds CO&#8322;</text>
+
+    <!-- exhale counterlung -->
+    <rect class="rb-box" x="300" y="70" width="120" height="52" rx="10" />
+    <text class="rb-lbl rb-c" x="360" y="94">scrubber</text>
+    <text class="rb-sub rb-c" x="360" y="110">soda lime strips CO&#8322;</text>
+
+    <!-- inhale counterlung -->
+    <rect class="rb-box" x="530" y="70" width="120" height="52" rx="10" />
+    <text class="rb-lbl rb-c" x="590" y="94">counterlung</text>
+    <text class="rb-sub rb-c" x="590" y="110">absorbs volume swings</text>
+
+    <text class="rb-note rb-c" x="360" y="216">
+      gas returns to the diver &#8212; nothing is vented
+    </text>
+
+    <!-- sensors -->
+    <line class="rb-tap" x1="590" y1="122" x2="590" y2="252" />
+    <rect class="rb-box rb-small" x="516" y="252" width="148" height="40" rx="8" />
+    <text class="rb-lbl rb-c" x="590" y="270">3 &#215; O&#8322; sensors</text>
+    <text class="rb-sub rb-c" x="590" y="284">galvanic cells, voted</text>
+
+    <!-- controller -->
+    <path class="rb-sig" d="M 516 272 L 420 272" marker-end="url(#rb-arrow)" />
+    <rect class="rb-box rb-ctrl" x="272" y="248" width="148" height="48" rx="8" />
+    <text class="rb-lbl rb-c" x="346" y="268">controller</text>
+    <text class="rb-sub rb-c" x="346" y="284">PO&#8322; &lt; setpoint ?</text>
+
+    <!-- solenoid -->
+    <path class="rb-sig" d="M 272 272 L 196 272" marker-end="url(#rb-arrow)" />
+    <rect class="rb-box rb-small" x="56" y="252" width="140" height="40" rx="8" />
+    <text class="rb-lbl rb-c" x="126" y="270">solenoid</text>
+    <text class="rb-sub rb-c" x="126" y="284">injects pure O&#8322;</text>
+
+    <!-- O2 injection back into the loop -->
+    <path class="rb-inject" d="M 170 252 L 170 200" marker-end="url(#rb-arrow)" />
+    <text class="rb-note" x="180" y="232">O&#8322; top-up</text>
+
+    <!-- cylinders -->
+    <rect class="rb-box rb-small" x="56" y="330" width="140" height="38" rx="8" />
+    <text class="rb-lbl rb-c" x="126" y="354">O&#8322; cylinder</text>
+    <line class="rb-tap" x1="126" y1="330" x2="126" y2="292" />
+
+    <rect class="rb-box rb-small" x="516" y="330" width="148" height="38" rx="8" />
+    <text class="rb-lbl rb-c" x="590" y="346">diluent cylinder</text>
+    <text class="rb-sub rb-c" x="590" y="360">air or trimix</text>
+    <path
+      class="rb-inject"
+      d="M 664 340 L 692 340 L 692 158 L 596 158"
+      marker-end="url(#rb-arrow)"
+    />
+    <text class="rb-note rb-c" x="640" y="150">keeps the loop full</text>
+  </svg>
+</div>
+
+<style>
+  .rb-wrap {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 1.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem 0.5rem 0.5rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 0.75rem;
+    background-color: var(--code-bg);
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--color-foreground) 8%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 12px 12px;
+  }
+  .rb-wrap svg {
+    width: 100%;
+    min-width: 640px;
+    height: auto;
+    display: block;
+    font-family: var(--font-mono);
+  }
+  .rb-box {
+    fill: color-mix(in srgb, var(--color-background) 55%, transparent);
+    stroke: color-mix(in srgb, var(--color-foreground) 22%, transparent);
+    stroke-width: 1;
+  }
+  .rb-diver {
+    stroke: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+  }
+  .rb-ctrl {
+    stroke: var(--color-accent);
+  }
+  .rb-lbl {
+    fill: color-mix(in srgb, var(--color-foreground) 88%, transparent);
+    font-size: 13px;
+  }
+  .rb-sub {
+    fill: color-mix(in srgb, var(--color-foreground) 52%, transparent);
+    font-size: 11px;
+  }
+  .rb-note {
+    fill: color-mix(in srgb, var(--color-foreground) 45%, transparent);
+    font-size: 11px;
+  }
+  .rb-c {
+    text-anchor: middle;
+  }
+  .rb-loop {
+    fill: none;
+    stroke: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+    stroke-width: 2;
+  }
+  .rb-sig,
+  .rb-inject {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 2;
+  }
+  .rb-sig {
+    stroke-dasharray: 4 3;
+  }
+  .rb-tap {
+    stroke: color-mix(in srgb, var(--color-foreground) 30%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+  .rb-arrowhead {
+    fill: color-mix(in srgb, var(--color-foreground) 55%, transparent);
+  }
+  .rb-sig,
+  .rb-inject {
+    marker-end: url(#rb-arrow);
+  }
+</style>
