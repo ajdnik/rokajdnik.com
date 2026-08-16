@@ -348,7 +348,7 @@ $$
 
 $R$ is the rate the inspired inert gas pressure changes at, in bar per minute, and $k$ is $\ln 2$ divided by the half-time. Set $R$ to zero and the whole thing collapses back into Haldane's equation. It's the same model, integrated properly across a ramp instead of a step, and it's why ascent rate is a real input to a decompression schedule rather than an afterthought. Ascend slower and the fast compartments get more time to dump gas before the ceiling is evaluated. Ascend faster and they don't. Recreational training caps ascents at 18 metres per minute, and 10 metres per minute is the common technical figure.
 
-We'll keep using the constant-pressure form for the rest of this article, sampled a minute at a time, and quietly accept the error. It's worth knowing which corner has been cut.
+The constant-pressure form is fine for the bottom and for stops, where the diver isn't moving, so that's what the rest of this article uses. We'll come back for this equation when we build an ascent schedule, because that's where the difference stops being academic. I know it stops being academic because I first wrote that chapter without it, and it gave me a wrong answer I believed for a while.
 
 ## Bühlmann ZH-L16
 In the previous chapter we modeled a single, no-repeat, sea-level, single-gas dive from start to finish. We deliberately simplified it, ignoring multiple gas mixtures, altitude, salt versus fresh water, and repetitive dives, all of which change the numbers involved but not the shape of the algorithm. In this chapter we'll systematically introduce these concepts and see how the algorithm is altered because of it.
@@ -900,7 +900,39 @@ impl Diver {
 
 Everything so far answers the first half of the question this article opened with. A ceiling says how shallow the diver can be right now. It says nothing about how long they have to wait before going shallower, which is the half a diver actually reads off their wrist.
 
-Getting from one to the other is a loop. Round the ceiling up to the next stop increment, ascend to it, then sit there calling `step` until the ceiling lifts past that increment, and repeat. Stops are conventionally spaced 3 metres apart, and the ascent between them takes real time at a real rate:
+Getting from one to the other is a loop. Round the ceiling up to the next stop increment, ascend to it, then sit there calling `step` until the ceiling lifts past that increment, and repeat. Stops are conventionally spaced 3 metres apart.
+
+The ascent between stops is where Schreiner's equation finally earns its place. A diver moving from 40 metres to 18 metres at 10 metres per minute spends 2.2 minutes at continuously falling pressure, and `step` has no way to express that. So `transit` gets written out properly, with the rate term the Ascent Rates chapter introduced:
+
+```rust
+const LN_2: f64 = std::f64::consts::LN_2;
+
+fn schreiner(current: f64, p_alv: f64, rate: f64, half_time: f64, t: f64) -> f64 {
+    let k = LN_2 / half_time;
+    p_alv + rate * (t - 1.0 / k) - (p_alv - current - rate / k) * (-k * t).exp()
+}
+
+impl Compartment {
+    fn transit(&mut self, p_n2: f64, p_he: f64, rate_n2: f64, rate_he: f64, t: f64) {
+        self.n2_tension = schreiner(self.n2_tension, p_n2, rate_n2, self.n2_half_time, t);
+        self.he_tension = schreiner(self.he_tension, p_he, rate_he, self.he_half_time, t);
+    }
+}
+
+impl Diver {
+    fn transit(&mut self, from_m: f64, to_m: f64, elapsed_min: f64, fraction_n2: f64, fraction_he: f64) {
+        let from = self.surface_pressure + from_m / self.meters_per_bar - WATER_VAPOR_PRESSURE;
+        let to = self.surface_pressure + to_m / self.meters_per_bar - WATER_VAPOR_PRESSURE;
+        let rate_n2 = fraction_n2 * (to - from) / elapsed_min;
+        let rate_he = fraction_he * (to - from) / elapsed_min;
+        for c in &mut self.compartments {
+            c.transit(fraction_n2 * from, fraction_he * from, rate_n2, rate_he, elapsed_min);
+        }
+    }
+}
+```
+
+With that in hand the schedule is the loop described above, using `transit` to move and `step` to wait:
 
 ```rust
 const STOP_INTERVAL: f64 = 3.0;      // metres between stops
@@ -929,7 +961,7 @@ impl Diver {
             }
 
             let travel = (depth - target) / ASCENT_RATE_M_PER_MIN;
-            self.step(target, travel, n2, he);
+            self.transit(depth, target, travel, n2, he);
             depth = target;
             if depth <= 0.0 {
                 break;
@@ -950,21 +982,21 @@ impl Diver {
 }
 ```
 
-The travel legs are charged at the shallower depth, which is the corner cut back in the Ascent Rates chapter showing up in practice. A real planner would use Schreiner's equation across each leg instead.
-
 Run the 40 metre, 25 minute air dive through it at three different settings and the cost of conservatism stops being abstract:
 
 ```
-GF 100/100   6m/2min, 3m/8min                                  10 min of stops
-GF  40/85   12m/2min, 9m/3min, 6m/6min, 3m/10min               21 min of stops
-GF  30/70   15m/2min, 12m/3min, 9m/5min, 6m/8min, 3m/18min     36 min of stops
+GF 100/100   6m/5min, 3m/9min                                            14 min of stops
+GF  40/85   15m/1min, 12m/3min, 9m/3min, 6m/6min, 3m/11min              24 min of stops
+GF  30/70   18m/1min, 15m/2min, 12m/4min, 9m/5min, 6m/10min, 3m/18min   40 min of stops
 ```
 
-Tightening from 100/100 to 30/70 more than triples the time spent hanging on a line, and most of that extra time lands at the 3 metre stop rather than the deep end. Two things in that table are worth noticing.
+Tightening from 100/100 to 30/70 nearly triples the time spent hanging on a line, and most of that extra time lands at the 3 metre stop rather than the deep end. The 30/70 schedule starts at 18 metres, which is the 17.9 metre first stop from the previous section rounded up to the next increment, exactly as it should.
 
-The first is that no schedule starts at 17.9 metres, even though that's where the GF 30/70 ceiling sat when the diver left the bottom. Ascending there takes 2.2 minutes, and the fast compartments off-gas enough on the way up that by the time the diver arrives, the ceiling has already lifted past 18 metres. The stop evaporates before they reach it. A ceiling is a statement about right now, and a schedule is a prediction about a diver who is still moving.
+That last sentence is a correction. The first version of this chapter used `step` for the travel legs instead of `transit`, charging the whole ascent at the shallower of the two depths, and it produced a schedule that started at 15 metres rather than 18. I wrote a confident paragraph explaining why: the fast compartments off-gas during the 2.2 minute ascent, the ceiling lifts past 18 metres before the diver gets there, and the stop evaporates on the way up. It reads well and it is completely wrong. Charging a leg at the shallower depth understates the pressure the diver was actually under for most of it, which under-loads every compartment and produces exactly that spurious lift. The stop was never evaporating. My integration was leaking. Swapping in Schreiner's equation put back roughly four minutes of decompression across every setting and the 18 metre stop with it.
 
-The second is that the 100/100 schedule still has stops at all, for a dive whose ceiling was only 6.5 metres. A ceiling of 6.5 metres doesn't mean "surface after a short pause", it means the diver may not go shallower than 6.5 metres until enough nitrogen has left, and clearing the last few metres is the slow part. That's the shape of every decompression schedule: brief stops deep, and a long one just under the surface.
+I'm leaving the wrong version described rather than quietly deleting it, because the failure mode is the interesting part. The bug produced a plausible physical story, and a plausible physical story is much harder to doubt than an obviously broken number. Nothing crashed, nothing came out negative, no assertion fired. The schedule just came out a little short, in the direction that makes a diver surface sooner.
+
+One other thing in that table is worth noticing. The 100/100 schedule still has 14 minutes of stops for a dive whose ceiling was only 6.5 metres. A ceiling of 6.5 metres doesn't mean "surface after a short pause", it means the diver may not go shallower than 6.5 metres until enough nitrogen has left, and clearing the last few metres is the slow part. That's the shape of every decompression schedule: brief stops deep, and a long one just under the surface.
 
 ## Rebreathers
 
@@ -1085,9 +1117,9 @@ Voting has a failure mode of its own, and it's the reason CCR divers are taught 
 
 This article started with a single question: given everything a diver has breathed so far, how shallow can they safely be right now, and how long until they can go shallower.
 
-The Simplified Algorithm chapter built the smallest thing that could answer it: 16 compartments tracking nitrogen with Haldane's equation, 16 M-values bounding how much each compartment may hold, and a four-step loop to update, evaluate, find the worst case, and turn it into a depth. Nothing after that chapter touched the loop. Six subchapters of Bühlmann ZH-L16 taught `step` to accept a different water density, a different starting altitude, a different oxygen fraction, a second inert gas, and gas switches mid-dive, and none of them changed what the loop did once it had its numbers. Gradient Factors reshaped the ceiling, tighter near the first stop and looser near the surface, but the shape doing the reshaping was still $M(P)$ scaled by a fraction, and turning that ceiling into an actual stop schedule took nothing more than calling `step` in a loop until the ceiling moved. Rebreathers looked like they should break everything, since the breathing gas changes with every metre of depth, and turned out to be one more way of computing `fraction_n2` and `fraction_he` before handing them to the same `step`.
+The Simplified Algorithm chapter built the smallest thing that could answer it: 16 compartments tracking nitrogen with Haldane's equation, 16 M-values bounding how much each compartment may hold, and a four-step loop to update, evaluate, find the worst case, and turn it into a depth. Nothing after that chapter touched the loop. Six subchapters of Bühlmann ZH-L16 taught `step` to accept a different water density, a different starting altitude, a different oxygen fraction, a second inert gas, and gas switches mid-dive, and none of them changed what the loop did once it had its numbers. Gradient Factors reshaped the ceiling, tighter near the first stop and looser near the surface, but the shape doing the reshaping was still $M(P)$ scaled by a fraction, and turning that ceiling into an actual stop schedule took nothing more than moving with `transit`, waiting with `step`, and repeating until the ceiling reached the surface. Rebreathers looked like they should break everything, since the breathing gas changes with every metre of depth, and turned out to be one more way of computing `fraction_n2` and `fraction_he` before handing them to the same `step`.
 
-The honest boundary is worth stating too. This implementation checks out against itself, against Bühlmann's published constants, and against the primary references, and it's still 16 theoretical compartments standing in for a body nobody has been able to measure directly. A bisection search stood in for a quadratic solve. The Schreiner equation got mentioned and never used, so every ascent leg in that schedule is charged at the wrong pressure. VPM and RGBM got discussed and never implemented. Cold, exertion, dehydration, patent foramen ovale, and the dozen other individual factors that make two divers on the same profile end up with different outcomes never entered the model at all[^19]. The flying-after-diving chapter showed what happens when you take the model's word for something it was never fitted to predict. None of this changes when a diver should trust this code: never, for planning an actual dive. That's what the warning at the top of the article was for, and it's just as true down here.
+The honest boundary is worth stating too. This implementation checks out against itself, against Bühlmann's published constants, and against the primary references, and it's still 16 theoretical compartments standing in for a body nobody has been able to measure directly. A bisection search stood in for a quadratic solve. Descents are still charged with the constant-pressure form, so the model is slightly optimistic about the way down even though the way up is integrated properly. VPM and RGBM got discussed and never implemented. Cold, exertion, dehydration, patent foramen ovale, and the dozen other individual factors that make two divers on the same profile end up with different outcomes never entered the model at all[^19]. The flying-after-diving chapter showed what happens when you take the model's word for something it was never fitted to predict. None of this changes when a diver should trust this code: never, for planning an actual dive. That's what the warning at the top of the article was for, and it's just as true down here.
 
 What I hope comes across, more than any single formula, is the shape of the problem. A dive computer isn't magic, and it isn't really one algorithm either. It's a small simulation, a handful of exponentials and a search for the worst case among them, running continuously against whatever numbers a diver, or a rebreather's electronics, feed it. None of that crossed my mind at 16, in the Red Sea. I just wanted to see the fish. It's been worth coming back, years later, to find the algorithm that had been quietly keeping me safe the whole time.
 
