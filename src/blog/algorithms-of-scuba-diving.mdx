@@ -436,7 +436,7 @@ impl Diver {
 
 `surface_interval` now has to forward a gas too, air is the reasonable default for time spent on a boat: `self.step(0.0, minutes, AIR_FRACTION_N2)`. Running the same 30 metre, 30 minute dive on air and on EAN32 side by side, the EAN32 ceiling comes out noticeably shallower, less nitrogen fraction in the mix means less nitrogen dissolves into every compartment for the same depth and time, which is the entire appeal of nitrox for recreational diving: more bottom time, or more margin, for the same profile.
 
-Nitrox doesn't only touch nitrogen, though. Every fraction taken away from nitrogen goes to oxygen, and more oxygen brings its own ceiling, one that has nothing to do with any of the 16 compartments. Breathed at a high enough partial pressure, oxygen itself becomes toxic, causing seizures underwater that have nothing to do with decompression sickness. The convention is to cap the partial pressure of oxygen in a working gas at 1.4 bar[^18], and the maximum operating depth, or MOD, is simply the depth at which a given mix's oxygen fraction reaches that cap:
+Nitrox doesn't only touch nitrogen, though. Every fraction taken away from nitrogen goes to oxygen, and more oxygen brings its own ceiling, one that has nothing to do with any of the 16 compartments. Breathed at a high enough partial pressure, oxygen stresses the central nervous system directly, in a way completely unrelated to nitrogen loading, and beyond some threshold that stress can trigger a seizure underwater, unpredictable, sudden, and, since it usually causes the diver to lose their regulator, frequently fatal[^20]. The convention is to cap the partial pressure of oxygen in a working gas at 1.4 bar[^20], and the maximum operating depth, or MOD, is simply the depth at which a given mix's oxygen fraction reaches that cap:
 
 ```rust
 const MAX_PO2: f64 = 1.4; // bar, conventional working limit
@@ -450,6 +450,8 @@ impl Diver {
 ```
 
 For air's 21% oxygen that comes out to about 56.7 metres, deeper than most recreational divers ever go, which is why this limit rarely comes up on air. For EAN32 it drops to roughly 33.8 metres, noticeably shallower, the same enrichment that buys extra no-decompression time up top puts a hard ceiling on how deep the gas can be taken at all.
+
+1.4 bar isn't a hard physiological cliff edge, it's a safety margin below one. The US Navy and NOAA built their oxygen exposure limits from experimental data on how long divers could tolerate elevated PO2 before showing CNS symptoms, tremors, tunnel vision, nausea, twitching, the warning signs that can precede a seizure, and found that risk climbs steeply and unpredictably somewhere above 1.6 bar, worse with exertion, cold, and CO2 retention, all of which are hard to control for and vary diver to diver[^20]. The US Navy caps closed-circuit rebreather exposure at 1.3 bar; NOAA allows 1.3 bar for up to 180 minutes, or 240 in exceptional cases[^20]; PADI settled on 1.4 bar as the recreational open-circuit convention specifically because it sits below all of that with room to spare. The stretch between 1.4 and 1.6 bar gets called the "yellow light zone" in technical diving[^21], low probability of toxicity, but a thin margin for error, which is why 1.6 is reserved for decompression stops, where a diver is stationary, resting, and not exerting themselves the way they might be on the working, active part of a dive[^20][^21]. `MAX_PO2` in the code above is that convention, not a law of physiology, different agencies, and different phases of the same dive, draw the line in slightly different places.
 
 Oxygen toxicity isn't just a threshold either, it accumulates. Prolonged exposure to elevated oxygen, even below the acute seizure threshold, irritates the lungs, and dive planning software tracks this as oxygen toxicity units, or OTU, using a formula built on the same "how far above a baseline pressure" idea as an M-value[^18]:
 
@@ -635,7 +637,9 @@ $$
 M_{gf}(P) = P + GF(P) \times \bigl(M(P) - P\bigr)
 $$
 
-At $GF = 1$ this is just $M(P)$ again, the raw ceiling from the M Values chapter. At $GF = 0$ it collapses to $P$ itself, no overpressure tolerated at all, equivalent to demanding a compartment be fully equilibrated with ambient pressure before going any shallower. Everything in between is a dial between those two extremes. $GF(P)$ itself isn't fixed, it slides linearly from `low` at the first stop's pressure to `high` at the surface:
+At $GF = 1$ this is just $M(P)$ again, the raw ceiling from the M Values chapter. At $GF = 0$ it collapses to $P$ itself, no overpressure tolerated at all, equivalent to demanding a compartment be fully equilibrated with ambient pressure before going any shallower. Everything in between is a dial between those two extremes, and $GF(P)$ itself isn't fixed, it slides linearly from `low` at the first stop's pressure to `high` at the surface.
+
+### Implementation
 
 ```rust
 #[derive(Debug, Clone, Copy)]
@@ -728,9 +732,13 @@ impl Diver {
 
 ## Rebreathers
 
-Every gas fraction fed into `step` so far has come from a cylinder valve, fixed the moment the diver picked what to breathe. Open circuit works exactly the way the name implies: inhale from a tank, exhale into the water, the fraction of nitrogen or helium in a given breath is whatever was in the tank, unchanged, for the whole time that gas is in use. A rebreather changes that assumption at its root, the gas a diver breathes on a rebreather isn't fixed at all, it's recomputed by the device, breath by breath, for the entire dive.
+Every gas fraction fed into `step` so far has come from a cylinder valve, fixed the moment the diver picked what to breathe. Open circuit works exactly the way the name implies: inhale from a tank, exhale into the water, the fraction of nitrogen or helium in a given breath is whatever was in the tank, unchanged, for the whole time that gas is in use, and every one of those exhaled breaths, still carrying most of its original oxygen, is gone for good. A rebreather changes that at its root: instead of venting exhaled gas, it's kept, cleaned, and reused, and the gas a diver breathes isn't fixed at all, it's recomputed by the device, breath by breath, for the entire dive.
 
-A closed-circuit rebreather, or CCR, doesn't vent exhaled gas to the surface. It scrubs the CO2 out chemically and recirculates the rest in a sealed loop, topping up only the oxygen that got metabolized. Two cylinders feed that loop: a small one of pure oxygen, and a diluent, some breathable inert gas mix, usually air or a trimix, added to keep the loop's volume roughly constant as ambient pressure rises and falls. Oxygen sensors read the loop's actual partial pressure of oxygen continuously, and whenever it drifts below a target the diver sets, called the setpoint, a solenoid fires and injects a shot of pure oxygen until the loop is back at target. That control loop, sensor, setpoint, solenoid, is the whole "set point algorithm": a simple feedback controller holding one number, PO2, constant.
+A closed-circuit rebreather, or CCR, is built around a sealed loop instead of a single hose to the surface. A breath leaves the diver's lungs into one flexible bag, a counterlung, passes through a canister of chemical absorbent, usually soda lime, that scrubs the CO2 out, and arrives at a second counterlung ready to be inhaled again. Nothing about that loop replaces the oxygen consumed along the way, so two more cylinders feed into it: a small one of pure oxygen, topping up whatever the diver's metabolism used, and a diluent, some breathable inert gas mix, usually air or a trimix, added to keep the loop's total volume roughly constant as ambient pressure rises and falls, since a fixed volume of gas simply compresses and expands with depth otherwise. Because the loop only replaces what actually gets consumed, rather than dumping and refilling an entire lungful with every breath, a CCR diver can stay underwater for hours on cylinders barely bigger than the ones open-circuit divers use for far shorter dives.
+
+### Set Point
+
+What actually gets injected into the loop, and when, is decided by a control loop of its own. Oxygen sensors read the loop's partial pressure of oxygen continuously, and whenever it drifts below a target the diver sets, called the setpoint, a solenoid fires and injects a shot of pure oxygen until the loop is back at target. Sensor, setpoint, solenoid: a simple feedback controller holding one number, PO2, constant, for the length of the dive.
 
 Holding PO2 constant is precisely what makes the gas math different from everything built so far in this article. On open circuit, the oxygen fraction is fixed and PO2 climbs with depth, $PO_2 = \text{fraction}_{O_2} \times P_{amb}$, that's the whole basis of the MOD calculation from the Nitrox chapter. On a rebreather, $PO_2$ is pinned to the setpoint instead, so it's the oxygen fraction that has to shrink as ambient pressure rises to keep the product constant:
 
@@ -783,6 +791,47 @@ It also means the diluent has to be chosen for the deepest point of the dive, no
 
 The other half of the appeal shows up on ascent. Nothing stops a diver from raising the setpoint once they're shallow enough for the higher PO2 to still be safe, the same electronics that held it low at depth to manage oxygen toxicity risk can push it up during decompression stops to accelerate off-gassing, the exact effect the Multigas chapter got from physically switching to a richer deco cylinder. On open circuit that meant carrying an extra tank and executing a gas switch by hand. On a rebreather it's a single number typed into a controller, `loop_gas` recomputes the fractions for the new setpoint, and they feed into `Diver::step` exactly the way every other gas source in this article has, the decompression math underneath has no idea, or any need to know, whether those fractions came from a cylinder valve or a solenoid.
 
+### Multiple Oxygen Sensors
+
+Everything in the previous section assumed the controller actually knows the loop's PO2, but that number comes from a physical sensor, and a single sensor is a single point of failure. Galvanic oxygen sensors are small electrochemical cells, they consume themselves slowly as they work, and near the end of their working life their output can lag behind a rising PO2 or read low under load, exactly the kind of failure a diver most needs to catch, because a sensor silently under-reading PO2 tells the controller to inject more oxygen than the loop actually needs. Sensors can also fail suddenly, flooded by a leak or a caustic scrubber failure, rather than just aging out. Because of this, CCR controllers don't trust one sensor, they read three, and vote.
+
+A simple, common approach: take the median of the three readings, treat any sensor within some tolerance of that median as agreeing, and only trust the result if at least two of the three agree with each other.
+
+```rust
+const SENSOR_AGREEMENT_TOLERANCE: f64 = 0.10; // bar
+
+fn consensus_po2(readings: [f64; 3]) -> Option<f64> {
+    let mut sorted = readings;
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let median = sorted[1];
+
+    let agreeing: Vec<f64> = readings
+        .into_iter()
+        .filter(|r| (r - median).abs() <= SENSOR_AGREEMENT_TOLERANCE)
+        .collect();
+
+    if agreeing.len() >= 2 {
+        Some(agreeing.iter().sum::<f64>() / agreeing.len() as f64)
+    } else {
+        None
+    }
+}
+```
+
+Three sensors reading 1.19, 1.20, and 1.21 bar all agree, and `consensus_po2` averages them to 1.20. Let one sensor fail low, say to 0.40 bar while the other two still read 1.20 and 1.21, and the median stays close to the healthy pair, the failed sensor sits 0.8 bar away from it, well outside tolerance, and gets excluded automatically, `consensus_po2` still returns 1.205 from the two that agree. But if all three sensors land far enough apart, say 0.50, 1.20, and 1.80 bar, there's no way to tell which, if any, is correct, and `consensus_po2` returns `None` rather than guessing. A real controller treats that `None` as an emergency: PO2 is now unknowable, so it can't safely keep running the loop, and it alarms, telling the diver to bail out to an independent, known-safe gas supply rather than trust a number it can no longer stand behind.
+
+This is the same lesson as the compartment model underneath it, just one level up: the decompression algorithm is only as good as the numbers fed into it, `step` doesn't know or care whether `fraction_n2` and `fraction_he` came from a cylinder label or a solenoid's math, and the solenoid's math doesn't know or care whether its PO2 reading came from one sensor or a hardware fault, unless something is explicitly built to check.
+
+## Conclusion
+
+This article started with a single question: given everything a diver has breathed so far, how shallow can they safely be right now, and how long until they can go shallower. Every chapter since has been an answer to some part of that question, in code.
+
+The Simplified Algorithm chapter built the smallest version that could answer it at all: 16 compartments tracking nitrogen with Haldane's equation, 16 M-values bounding how much of it each compartment could hold, and a four-step loop, update every compartment, evaluate its M-value, find the controlling compartment, compute a ceiling. That loop is, structurally, the entire algorithm, and nothing after that chapter touched it. Bühlmann ZH-L16 spent six subchapters teaching `step` to accept a different water density, a different starting altitude, a different oxygen fraction, a second inert gas, and gas switches mid-dive, and not one of those changes altered what the loop did with the numbers once it had them. Gradient Factors reshaped the ceiling itself, tighter near the first stop, looser near the surface, but the shape doing the reshaping was still $M(P)$ from the M Values chapter, just scaled by a fraction instead of used raw. Even Rebreathers, which looked like it should break everything, breathing gas that changes with every metre of depth instead of coming from a fixed tank, turned out to be one more way of computing `fraction_n2` and `fraction_he` before handing them to the exact same `step`. The lesson repeated at every layer: the algorithm never cared where its numbers came from, a cylinder valve, a solenoid, a diluent ratio, an altitude formula, it only cared that the numbers were right.
+
+That's also the honest boundary of what got built here. This implementation solves its own version of the problem, checked against itself at every stage and, where it mattered, against Bühlmann's own published constants and a primary reference source, but it's still 16 theoretical compartments standing in for a body nobody has ever been able to measure directly, tuned against decades of real dive data by people far more careful than a blog post can be. A bisection search stood in for the quadratic formula a real computer would use, VPM and RGBM got discussed but never implemented, and cold, exertion, dehydration, and the dozen other individual factors that make two divers on the same profile end up with different outcomes never entered the model at all[^18]. None of that changes when a diver should trust it: never, for planning an actual dive. That's what the warning at the top of this article was for, and it's just as true down here.
+
+What I hope stuck, more than any single formula, is the shape of the problem. A dive computer isn't magic, and it isn't really one algorithm either, it's a small, honest simulation, a handful of exponentials and a search for the worst case among them, running continuously against whatever numbers a diver, or a rebreather's electronics, feed it in real time. None of that crossed my mind at 16, in the Red Sea, I just wanted to see the fish. It's been worth coming back, years later, to find the algorithm that had been quietly keeping me safe the whole time.
+
 [^1]: Wikipedia. _Atmosphere of Earth_ [https://en.wikipedia.org/wiki/Atmosphere_of_Earth](https://en.wikipedia.org/wiki/Atmosphere_of_Earth)
 
 [^2]: Wikipedia. _Partial pressure_ [https://en.wikipedia.org/wiki/Partial_pressure](https://en.wikipedia.org/wiki/Partial_pressure)
@@ -820,3 +869,7 @@ The other half of the appeal shows up on ascent. Nothing stops a diver from rais
 [^18]: Chapman, P. (1999). _An Explanation of Professor A.A. Buehlmann's ZH-L16 Algorithm_ [https://thetechnicaldiver.com/wp-content/uploads/Explanation-of-Buhlmanns-ZHL-16-algorithm.pdf](https://thetechnicaldiver.com/wp-content/uploads/Explanation-of-Buhlmanns-ZHL-16-algorithm.pdf)
 
 [^19]: Divers Alert Network. _Guidelines for Flying After Diving_ [https://dan.org/health-medicine/health-resource/health-safety-guidelines/guidelines-for-flying-after-diving/](https://dan.org/health-medicine/health-resource/health-safety-guidelines/guidelines-for-flying-after-diving/)
+
+[^20]: Divers Alert Network. _Oxygen Toxicity_ [https://dan.org/health-medicine/health-resources/diseases-conditions/oxygen-toxicity/](https://dan.org/health-medicine/health-resources/diseases-conditions/oxygen-toxicity/)
+
+[^21]: Divesoft. _PO₂ Limits 1.4/1.6: When to Use Which and Why_ [https://www.divesoft.com/en/blog/po-limits-1-4-1-6-when-to-use-which-and-why](https://www.divesoft.com/en/blog/po-limits-1-4-1-6-when-to-use-which-and-why)
