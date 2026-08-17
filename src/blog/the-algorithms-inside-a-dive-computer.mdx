@@ -1,14 +1,14 @@
 ---
-slug: algorithms-of-scuba-diving 
-title: "Algorithms of SCUBA Diving"
-description: "A dive into decompression theory and the history of the algorithms running inside SCUBA dive computers, from Haldane's 1908 experiments to Bühlmann ZH-L16 with Gradient Factors."
+slug: the-algorithms-inside-a-dive-computer
+title: "The Algorithms Inside a Dive Computer"
+description: "How the computer on a scuba diver's wrist decides where they can be: decompression theory from Haldane's 1908 experiments to Bühlmann ZH-L16 with Gradient Factors, plus oxygen limits, trimix and rebreathers."
 date: 2026-08-09
 author: "Rok Ajdnik"
-tags: ["scuba-diving", "decompression-theory", "buhlmann-zh-l16", "algorithms", "diving-physics"]
+tags: ["scuba-diving", "dive-computers", "decompression-theory", "buhlmann-zh-l16", "algorithms", "diving-physics"]
 featured: true
 editable: false
 cover:
-  src: "../assets/images/blog/algorithms-of-scuba-diving/cover.webp"
+  src: "../assets/images/blog/the-algorithms-inside-a-dive-computer/cover.webp"
   alt: "Side profile of a scuba diver underwater with a fictitious dive profile overlaid on top"
   caption: "Fictitious dive profile with decompression stops."
 ---
@@ -18,12 +18,12 @@ import Callout from "../components/Callout.astro";
 import CompartmentLoadingDiagram from "../components/CompartmentLoadingDiagram.astro";
 import MValueDiagram from "../components/MValueDiagram.astro";
 import RebreatherLoopDiagram from "../components/RebreatherLoopDiagram.astro";
-import coke from "../assets/images/blog/algorithms-of-scuba-diving/coke-happy-summer.webp";
-import haldane from "../assets/images/blog/algorithms-of-scuba-diving/haldane.webp";
-import tissueLoading from "../assets/images/blog/algorithms-of-scuba-diving/tissue-loading.webp";
-import decoObligation from "../assets/images/blog/algorithms-of-scuba-diving/deco-obligation.webp";
-import gasSwitch from "../assets/images/blog/algorithms-of-scuba-diving/gas-switch.webp";
-import oxygenCells from "../assets/images/blog/algorithms-of-scuba-diving/oxygen-cells.webp";
+import coke from "../assets/images/blog/the-algorithms-inside-a-dive-computer/coke-happy-summer.webp";
+import haldane from "../assets/images/blog/the-algorithms-inside-a-dive-computer/haldane.webp";
+import tissueLoading from "../assets/images/blog/the-algorithms-inside-a-dive-computer/tissue-loading.webp";
+import decoObligation from "../assets/images/blog/the-algorithms-inside-a-dive-computer/deco-obligation.webp";
+import gasSwitch from "../assets/images/blog/the-algorithms-inside-a-dive-computer/gas-switch.webp";
+import oxygenCells from "../assets/images/blog/the-algorithms-inside-a-dive-computer/oxygen-cells.webp";
 
 I fell in love with SCUBA diving on my first dive in the Red Sea, at 16 years old. The colorful corals and fish made the underwater world feel like an alien planet, and a close encounter with a moray eel gave me enough of a thrill to cement that dive as one of my core memories. These days, divers enter that world with a device on their wrist to keep them safe: a watch-sized computer that models how the depths affect the body. It tells them how deep they can go, how long they can stay, and how to return to the surface safely. Given my computer science background, it was inevitable that I'd eventually take a deep dive, pun intended, into how these computers work, specifically, the algorithms keeping divers alive.
 
