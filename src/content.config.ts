@@ -12,6 +12,7 @@ const blogs = defineCollection({
       author: z.union([z.string(), z.array(z.string())]),
       tags: z.array(z.string()),
       featured: z.boolean(),
+      draft: z.boolean().default(false),
       editable: z.boolean().default(false),
       codeLineNumbers: z.boolean().default(true),
       readTime: z.number().optional(),

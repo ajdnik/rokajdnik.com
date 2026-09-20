@@ -2,9 +2,10 @@
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import type { BlogType } from "../../content.config";
+import { isPublished } from "../../utils/publishedBlogs";
 import { SITE_TITLE, SITE_AUTHOR } from "../../consts";
 
-const blogs: BlogType[] = await getCollection("blogs");
+const blogs: BlogType[] = await getCollection("blogs", isPublished);
 const tags = [...new Set(blogs.map((blog) => blog.data.tags).flat())].sort();
 ---
 

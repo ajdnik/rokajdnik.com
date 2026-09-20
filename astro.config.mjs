@@ -5,6 +5,8 @@ import react from "@astrojs/react";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import rehypeTableWrapper from "./src/plugins/rehype-table-wrapper.mjs";
 import lightTheme from "./src/themes/light.json";
 import darkTheme from "./src/themes/dark.json";
@@ -21,8 +23,8 @@ export default defineConfig({
   integrations: [react(), mdx(), sitemap()],
 
   markdown: {
-    remarkPlugins: [remarkGfm],
-    rehypePlugins: [rehypeTableWrapper],
+    remarkPlugins: [remarkGfm, remarkMath],
+    rehypePlugins: [rehypeKatex, rehypeTableWrapper],
     shikiConfig: {
       defaultColor: false,
       themes: {

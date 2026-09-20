@@ -4,6 +4,7 @@ import type { ImageMetadata } from "astro";
 import BlogLayout from "../layouts/BlogLayout.astro";
 import type { BlogType } from "../content.config";
 import { withReadTime } from "../utils/readTime";
+import { isPublished } from "../utils/publishedBlogs";
 
 type SeriesEntry = {
   slug: string;
@@ -24,7 +25,7 @@ type SeriesInfo = {
 };
 
 export async function getStaticPaths() {
-  const blogs: BlogType[] = await getCollection("blogs");
+  const blogs: BlogType[] = await getCollection("blogs", isPublished);
   const blogs_ = withReadTime(blogs);
 
   const seriesGroups = new Map<string, BlogType[]>();

@@ -1,0 +1,142 @@
+.tissue-profile {
+  --tissue-green: #218050;
+  --tissue-yellow: #9a6b00;
+  --tissue-red: #d03643;
+  --tissue-cyan: #007d9a;
+}
+html:not(.light) .tissue-profile {
+  --tissue-green: #60c590;
+  --tissue-yellow: #f2c55b;
+  --tissue-red: #ff7382;
+  --tissue-cyan: #63d5ec;
+}
+.tissue-timeline {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.tissue-timeline-surface {
+  stroke: var(--foreground);
+  opacity: 0.2;
+}
+.tissue-slider-label {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+.tissue-profile input[type="range"] {
+  display: block;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.tissue-profile input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.tissue-columns,
+.tissue-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 68px;
+  gap: 0.6rem;
+  align-items: center;
+}
+.tissue-columns {
+  font-size: 0.6rem;
+  opacity: 0.75;
+  margin: 1rem 0 0.4rem;
+}
+.tissue-columns > :last-child {
+  text-align: right;
+}
+.tissue-row {
+  width: 100%;
+  padding: 0.28rem 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border-radius: 0.2rem;
+}
+.tissue-track {
+  display: block;
+  position: relative;
+  height: 12px;
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+.tissue-fill {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  height: 8px;
+}
+.tissue-below {
+  background: var(--tissue-green);
+}
+.tissue-above {
+  background: var(--tissue-yellow);
+}
+.tissue-over {
+  background: var(--tissue-red);
+}
+.tissue-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+}
+.tissue-inspired {
+  background: var(--tissue-cyan);
+}
+.tissue-ambient {
+  background: var(--tissue-yellow);
+  left: 60%;
+}
+.tissue-limit {
+  background: var(--tissue-red);
+  left: 90%;
+}
+.tissue-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tissue-profile .tissue-legend {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+.tissue-profile .tissue-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  margin: 0;
+}
+.tissue-key {
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+}
+.tissue-profile .tissue-directions {
+  margin: 0;
+}
+@media (max-width: 480px) {
+  .tissue-columns,
+  .tissue-row {
+    grid-template-columns: 20px minmax(0, 1fr) 56px;
+    gap: 0.4rem;
+  }
+  .tissue-columns {
+    font-size: 0.55rem;
+  }
+  .tissue-row {
+    font-size: 0.65rem;
+    padding: 0.4rem 0;
+  }
+}

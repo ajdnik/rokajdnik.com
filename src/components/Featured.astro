@@ -3,9 +3,10 @@ import { getCollection } from "astro:content";
 import type { BlogType } from "../content.config";
 import { withReadTime } from "../utils/readTime";
 import { formatDate } from "../utils/formatDate";
+import { isPublished } from "../utils/publishedBlogs";
 import FeatureCard from "./FeatureCard.astro";
 
-const blogs: BlogType[] = await getCollection("blogs");
+const blogs: BlogType[] = await getCollection("blogs", isPublished);
 const featuredBlogs = withReadTime(blogs)
   .filter((blog: BlogType) => blog.data.featured === true)
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());

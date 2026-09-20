@@ -2,7 +2,7 @@
 import { Image } from "astro:assets";
 const { series } = Astro.props;
 
-if (!series) {
+if (!series || series.total <= 1) {
   return null;
 }
 
@@ -10,22 +10,22 @@ const isFirst = series.first?.slug === series.currentSlug;
 ---
 
 <section class="mt-8 mb-10 w-full max-w-2xl mx-auto rounded-2xl border border-foreground/15 bg-foreground/5 p-5">
-  <div class="flex flex-wrap items-center justify-between gap-4">
-    <div class="flex items-center gap-4">
+  <div class="flex items-center justify-between gap-4">
+    <div class="flex min-w-0 items-center gap-4">
       {series.cover && (
         <div class="size-14 shrink-0 overflow-hidden rounded-xl ring-1 ring-foreground/15">
           <Image src={series.cover.src} alt={series.cover.alt} class="h-full w-full object-cover" />
         </div>
       )}
-      <div>
+      <div class="min-w-0">
         <div class="text-xs uppercase tracking-widest opacity-70">Series</div>
-        <div class="pt-1 text-lg font-semibold">{series.title}</div>
+        <div class="pt-1 truncate text-lg font-semibold">{series.title}</div>
         <div class="text-sm opacity-70">
           Part {series.order} of {series.total}
         </div>
       </div>
     </div>
-    <div class="flex flex-wrap items-center justify-end gap-2">
+    <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
       {!isFirst && series.first && (
         <a href={`/${series.first.slug}`} class="button" aria-label={`Start from ${series.first.title}`}>
           First article
