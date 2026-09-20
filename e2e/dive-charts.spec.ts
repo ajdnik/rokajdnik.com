@@ -104,6 +104,15 @@ test("multilevel profile includes every stay and travels at the specified rates"
   }
 });
 
+function isArticlePublished(slug: string): boolean {
+  const frontmatter = readFileSync(`src/blog/${slug}.mdx`, "utf8").match(
+    /^---\n([\s\S]*?)\n---/,
+  )![1];
+  const draft = /draft:\s*true/.test(frontmatter);
+  const date = new Date(frontmatter.match(/date:\s*(\S+)/)![1]);
+  return !draft && date.getTime() <= Date.now();
+}
+
 const charts = [
   {
     slug: "the-algorithm-inside-a-dive-computer",
@@ -127,6 +136,10 @@ for (const chart of charts) {
     test(`${chart.id} is interactive and fits at ${width}px in both themes`, async ({
       page,
     }, testInfo) => {
+      test.skip(
+        !isArticlePublished(chart.slug),
+        `${chart.slug} is not published yet`,
+      );
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       page.on("console", (message) => {
@@ -200,6 +213,10 @@ for (const chart of charts) {
     browser,
     baseURL,
   }) => {
+    test.skip(
+      !isArticlePublished(chart.slug),
+      `${chart.slug} is not published yet`,
+    );
     const context = await browser.newContext({
       javaScriptEnabled: false,
       viewport: { width: 375, height: 900 },
