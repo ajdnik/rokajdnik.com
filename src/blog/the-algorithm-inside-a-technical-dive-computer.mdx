@@ -1,0 +1,901 @@
+---
+slug: the-algorithm-inside-a-technical-dive-computer
+title: "The Algorithm Inside a Technical Dive Computer"
+description: "Taking a Bühlmann ZH-L16 planner technical: helium and trimix, equivalent narcotic depth, gas switches and counterdiffusion, real-gas cylinder inventory, gradient factors, and rebreather gas calculations."
+date: 2026-08-22
+author: "Rok Ajdnik"
+tags: ["scuba-diving", "dive-computers", "decompression-theory", "buhlmann-zh-l16", "algorithms", "diving-physics"]
+featured: false
+draft: true
+editable: false
+series:
+  id: "dive-algorithm"
+  title: "The Algorithm Inside a Dive Computer"
+  order: 3
+cover:
+  src: "../assets/images/blog/the-algorithms-inside-a-dive-computer/technical-cover.webp"
+  alt: "A technical diver with twin cylinders exploring a wreck's interior staircase"
+  caption: "Technical diving: overhead environments, mixed gas, and no direct ascent to the surface."
+---
+
+import { Image } from "astro:assets";
+import Callout from "../components/Callout.astro";
+import MValueDiagram from "../components/MValueDiagram.tsx";
+import RebreatherLoopDiagram from "../components/RebreatherLoopDiagram.astro";
+import gasSwitch from "../assets/images/blog/the-algorithms-inside-a-dive-computer/gas-switch.webp";
+import oxygenCells from "../assets/images/blog/the-algorithms-inside-a-dive-computer/oxygen-cells.webp";
+
+The [first article](https://rokajdnik.com/the-algorithms-inside-a-dive-computer/) in this series built a Bühlmann ZH-L16 tissue model: sixteen compartments running Haldane's equation on their own half-times, sixteen M-value lines[^1] bounding what each may hold, and a worst-case search that turns the two into a ceiling depth. The [second](https://rokajdnik.com/the-algorithms-inside-a-recreational-dive/) made it survive a real dive site. An `Environment` carries the surface pressure and water density, a `Gas` carries an oxygen fraction, an `OxygenExposure` tracks CNS and OTU against a failure mode the compartments know nothing about, and `plan_ascent` turns a ceiling into a list of stops using Schreiner's equation for the travel legs between them.
+
+Everything it does, it does on one cylinder of one gas, breathed the whole way up, against raw M-values with nothing held in reserve. This article breaks all three assumptions. Helium arrives with its own coefficient table, its own faster half-times, and a structural change to how tissue loading is stored. A diver carrying three cylinders needs a planner that decides which to breathe at which depth, with explicit oxygen limits, switch depths and a gas inventory. Gradient Factors put a tunable margin between the diver and Bühlmann's raw numbers, and make the schedules from the last article considerably longer. Last comes the rebreather, which recomputes the breathing gas with every metre of depth and requires a different inspired-pressure calculation during travel.
+
+<Callout type="warning">
+  This article is for educational purposes only. It is not a guide for building or modifying your own decompression algorithm and using it to dive. Dive computers are life-support equipment, their algorithms must be developed, certified, and verified by qualified professionals and experts. Never dive on unverified or self-made decompression software.
+</Callout>
+
+The Rust blocks develop incrementally, replacing earlier definitions as the model grows. A [complete runnable companion, including the numerical checks](/code/dive-computer-examples.rs) assembles the three stages into separate modules. Inputs use the stated units; assertions in these teaching snippets reject invalid configuration, while the planners return explicit failure results.
+
+## Trimix Diving
+
+Trimix adds a second inert gas, helium, mainly to cut narcosis and gas density at depth. It forces a real structural change, because nitrogen is no longer the only gas tracked: each compartment needs its own helium tension, half-time, and $a$/$b$ pair. `Gas` grows the field it was always going to grow:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct Gas {
+    o2: f64,
+    he: f64,
+}
+
+impl Gas {
+    const AIR: Gas = Gas { o2: 0.21, he: 0.0 };
+    const EAN50: Gas = Gas { o2: 0.50, he: 0.0 };
+    const OXYGEN: Gas = Gas { o2: 1.0, he: 0.0 };
+
+    fn trimix(o2: f64, he: f64) -> Gas {
+        assert!(o2.is_finite() && he.is_finite());
+        assert!(o2 >= 0.0 && he >= 0.0 && o2 + he <= 1.0);
+        Gas { o2, he }
+    }
+
+    fn he(&self) -> f64 {
+        self.he
+    }
+
+    fn n2(&self) -> f64 {
+        1.0 - self.o2 - self.he
+    }
+
+    fn inert(&self) -> f64 {
+        self.n2() + self.he
+    }
+}
+```
+
+`Gas::trimix(0.21, 0.35)` is the mix a diver would call "21/35", named in the order they'd say it. Nitrogen stays the derived field, still whatever's left over. The oxygen methods from Part 2 stay; `nitrox(o2)` now delegates to `trimix(o2, 0.0)`, and all constants include `he: 0.0`.
+
+Bühlmann published a full second coefficient table for helium, with half-times about 2.65 times shorter than the matching nitrogen compartment, reflecting how much faster helium diffuses[^1][^2]. For this article we explicitly use ZH-L16C with the paired 5-minute nitrogen / 1.88-minute helium first compartment, as in Subsurface.[^3] The earlier 4-minute A example would need the matching 1.51-minute helium option and its coefficients; pairing 4 with 1.88 creates a hybrid.[^lessons] This extension therefore rejects A rather than silently mixing the tables:
+
+```rust
+static ZH_L16_HE: GasTable = GasTable {
+    half_times: [
+        1.88, 3.02, 4.72, 6.99, 10.21, 14.48, 20.53, 29.11, 41.20, 55.19, 70.69, 90.34, 115.29,
+        147.42, 188.24, 240.03,
+    ],
+    a: [
+        1.6189, 1.3830, 1.1919, 1.0458, 0.9220, 0.8205, 0.7305, 0.6502, 0.5950, 0.5545, 0.5333,
+        0.5189, 0.5181, 0.5176, 0.5172, 0.5119,
+    ],
+    b: [
+        0.4770, 0.5747, 0.6527, 0.7223, 0.7582, 0.7957, 0.8279, 0.8553, 0.8757, 0.8903, 0.8997,
+        0.9073, 0.9122, 0.9171, 0.9217, 0.9267,
+    ],
+};
+
+impl Variant {
+    fn helium(self) -> &'static GasTable {
+        assert_eq!(self, Variant::C, "this extension supports the C 5/1.88 pair");
+        &ZH_L16_HE
+    }
+}
+```
+
+The helium constants are reference data, not regenerated by applying the nitrogen A regression to the displayed helium half-times. That gives nearby but unequal values in several fast rows and larger differences in slow rows. Neither the rounding differences nor the formula alone establish how each coefficient was originally fitted.
+
+Now `Compartment` would have to double up: a half-time, a tension, and an $a$/$b$ pair per gas, eight fields, four of them copies of a table row that never changes. That's the signal to turn the model inside out. The coefficients already live in `GasTable`, so the only thing worth storing per compartment is the part that actually moves, and sixteen of those are better held as two arrays than as an array of sixteen structs:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct Tissues {
+    n2: [f64; COMPARTMENTS],
+    he: [f64; COMPARTMENTS],
+}
+
+impl Tissues {
+    fn equilibrated(surface_pressure: f64, gas: Gas) -> Self {
+        let breathable = surface_pressure - WATER_VAPOUR;
+        Tissues {
+            n2: [gas.n2() * breathable; COMPARTMENTS],
+            he: [gas.he() * breathable; COMPARTMENTS],
+        }
+    }
+
+    fn tension(&self, i: usize) -> f64 {
+        self.n2[i] + self.he[i]
+    }
+
+    fn constant_depth(&mut self, ambient: f64, gas: Gas, duration: f64, variant: Variant) {
+        let breathable = ambient - WATER_VAPOUR;
+        decay_all(&mut self.n2, variant.nitrogen(), gas.n2() * breathable, duration);
+        decay_all(&mut self.he, variant.helium(), gas.he() * breathable, duration);
+    }
+
+    fn transit(&mut self, from: f64, to: f64, gas: Gas, duration: f64, variant: Variant) {
+        assert!(duration.is_finite() && duration >= 0.0);
+        if duration == 0.0 {
+            assert_eq!(from, to, "movement requires positive duration");
+            return;
+        }
+        let start = from - WATER_VAPOUR;
+        let end = to - WATER_VAPOUR;
+        let rate_n2 = gas.n2() * (end - start) / duration;
+        let rate_he = gas.he() * (end - start) / duration;
+
+        schreiner_all(&mut self.n2, variant.nitrogen(), gas.n2() * start, rate_n2, duration);
+        schreiner_all(&mut self.he, variant.helium(), gas.he() * start, rate_he, duration);
+    }
+}
+
+fn decay_all(tensions: &mut [f64; COMPARTMENTS], table: &GasTable, p_alv: f64, duration: f64) {
+    for (tension, &half_time) in tensions.iter_mut().zip(table.half_times.iter()) {
+        let decay = 2f64.powf(-duration / half_time);
+        *tension = p_alv + (*tension - p_alv) * decay;
+    }
+}
+
+fn schreiner_all(
+    tensions: &mut [f64; COMPARTMENTS],
+    table: &GasTable,
+    p_alv0: f64,
+    rate: f64,
+    duration: f64,
+) {
+    for (tension, &half_time) in tensions.iter_mut().zip(table.half_times.iter()) {
+        let k = std::f64::consts::LN_2 / half_time;
+        let e = (-k * duration).exp();
+        *tension = p_alv0 + rate * (duration - 1.0 / k) - (p_alv0 - *tension - rate / k) * e;
+    }
+}
+```
+
+`decay_all` is Haldane's equation from the first article and `schreiner_all` is the ramp form from the second, both unchanged, each now run once per gas instead of once per compartment. That is the payoff of moving the coefficients out of the compartments: carrying a second inert gas through two integrators meant writing two loops over an array, not editing a struct twice. `record_transit` loses its hand-rolled rate arithmetic and calls `self.tissues.transit(from, to, gas, duration, self.variant)` instead.
+
+`Tissues` stores the 32 evolving inert-gas tensions. Recovering a model after a restart also requires timestamps, pressure history, environment, coefficient selection, oxygen history and gradient-factor settings/reference. An unobserved underwater interval cannot be reconstructed from these arrays alone.
+
+A compartment doesn't get two separate ceilings out of this. It gets one combined M-value, blended from both gases in proportion to how much of each it's currently holding[^2]:
+
+```rust
+impl Tissues {
+    fn blended_a(&self, i: usize, variant: Variant) -> f64 {
+        blend(self.n2[i], self.he[i], variant.nitrogen().a[i], variant.helium().a[i])
+    }
+
+    fn blended_b(&self, i: usize, variant: Variant) -> f64 {
+        blend(self.n2[i], self.he[i], variant.nitrogen().b[i], variant.helium().b[i])
+    }
+
+    fn m_value(&self, i: usize, ambient: f64, variant: Variant) -> f64 {
+        self.blended_a(i, variant) + ambient / self.blended_b(i, variant)
+    }
+
+    fn ceiling_pressure(&self, i: usize, variant: Variant) -> f64 {
+        (self.tension(i) - self.blended_a(i, variant)) * self.blended_b(i, variant)
+    }
+
+    fn controlling_pressure(&self, variant: Variant) -> f64 {
+        (0..COMPARTMENTS)
+            .map(|i| self.ceiling_pressure(i, variant))
+            .fold(f64::NEG_INFINITY, f64::max)
+    }
+}
+
+fn blend(n2: f64, he: f64, coeff_n2: f64, coeff_he: f64) -> f64 {
+    let total = n2 + he;
+    if total <= 0.0 {
+        return coeff_n2;
+    }
+    (coeff_n2 * n2 + coeff_he * he) / total
+}
+```
+
+Blending keeps the rest of the code unchanged: `m_value` and `ceiling_pressure` read exactly as they did in the single-gas version, they just ask for a blended coefficient instead of a stored one. A compartment loaded mostly with nitrogen behaves almost like the single-gas model; one loaded mostly with helium leans on helium's numbers. The guard in `blend` covers a compartment holding no inert gas at all, where the weighted average would divide by zero.
+
+`DecoModel` keeps the parts that aren't tissue loading, and `record` now hands the whole `Gas` down:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct DecoModel {
+    tissues: Tissues,
+    oxygen: OxygenExposure,
+    environment: Environment,
+    variant: Variant,
+    gradient_factors: GradientFactors, // defined below
+    gradient_reference: Option<f64>,
+}
+
+impl DecoModel {
+    fn new(environment: Environment, variant: Variant) -> Self {
+        assert_eq!(variant, Variant::C);
+        Self {
+            tissues: Tissues::equilibrated(environment.surface_pressure, Gas::AIR),
+            oxygen: OxygenExposure::default(), environment, variant,
+            gradient_factors: GradientFactors::RAW, gradient_reference: None,
+        }
+    }
+
+    fn record(&mut self, depth_m: f64, duration: f64, gas: Gas) {
+        assert!(duration.is_finite() && duration >= 0.0);
+        let ambient = self.environment.ambient_at(depth_m);
+        self.tissues.constant_depth(ambient, gas, duration, self.variant);
+        self.oxygen.accumulate(gas.ppo2(ambient), duration);
+        self.refresh_gradient_reference();
+    }
+
+    fn record_transit(&mut self, from_m: f64, to_m: f64, duration: f64, gas: Gas) {
+        assert!(duration.is_finite() && duration >= 0.0);
+        if duration == 0.0 {
+            assert_eq!(from_m, to_m);
+            return;
+        }
+        let steps = (duration * 60.0).ceil() as usize;
+        let dt = duration / steps as f64;
+        for i in 0..steps {
+            let start = self.environment.ambient_at(from_m + (to_m - from_m) * i as f64 / steps as f64);
+            let end = self.environment.ambient_at(from_m + (to_m - from_m) * (i + 1) as f64 / steps as f64);
+            self.tissues.transit(start, end, gas, dt, self.variant);
+            self.oxygen.accumulate(gas.ppo2((start + end) / 2.0), dt);
+            self.refresh_gradient_reference();
+        }
+        if gas.ppo2(self.environment.ambient_at(from_m.max(to_m))) / BAR_PER_ATA > 1.6 {
+            self.oxygen.cns_outside_table = true;
+        }
+    }
+
+    fn surface_interval(&mut self, duration: f64) {
+        self.record(0.0, duration, Gas::AIR);
+        self.oxygen.decay_cns(duration);
+        self.reset_gradient_reference();
+    }
+
+    fn within_gf_limit_at_altitude(&self, altitude_m: f64) -> bool {
+        atmospheric_pressure(altitude_m) >= self.ceiling_pressure()
+    }
+}
+```
+
+The ceiling and gradient-reference methods appear below. `record_transit` refreshes that reference throughout travel, and the model remains `Copy` so a proposed ascent cannot mutate the tracked diver. Resetting the reference between completed dives preserves tissue and oxygen state. If GF settings change during a dive, the reference needs an explicitly defined recomputation policy; these examples set them before recording the profile.
+
+With these matched C tables, helium and nitrogen load at different rates and contribute to one blended ceiling. A deeper initial ceiling on a trimix profile does not by itself establish a longer total ascent: gas switches, subsequent loading and gradient factors all matter. Bühlmann's 1988 abstract reports air and mountain-lake validation and mixed-gas adaptation; it does not establish that helium was never studied or that trimix schedules are clinically validated by this example.[^validation]
+
+### Equivalent Narcotic Depth
+
+Oxygen can be counted as narcotic as well as nitrogen when calculating equivalent narcotic depth, or END. Some software, including Subsurface, makes that choice explicit.[^gaspolicy] Treat equal O₂/N₂ narcotic potency as an operational assumption, not a settled physiological constant. In this simple model helium is treated as non-narcotic, and the reference is air under the **same** assumption:
+
+$$
+P_{equiv}=\begin{cases}
+P_{amb}(F_{O_2}+F_{N_2}), & \text{oxygen counts}\\
+P_{amb}F_{N_2}/0.79, & \text{only nitrogen counts}
+\end{cases}
+$$
+
+```rust
+#[derive(Debug, Clone, Copy)]
+enum NarcosisModel { NitrogenOnly, OxygenAndNitrogen }
+
+impl Gas {
+    fn equivalent_narcotic_depth(&self, ambient: f64, env: &Environment, model: NarcosisModel) -> f64 {
+        let equivalent = match model {
+            NarcosisModel::NitrogenOnly => ambient * self.n2() / 0.79,
+            NarcosisModel::OxygenAndNitrogen => ambient * (self.o2 + self.n2()),
+        };
+        env.depth_at(equivalent).max(0.0)
+    }
+}
+```
+
+At 45 m on 21/35, using a stated 1-bar surface and 10 m/bar convention, END is 25.75 m with oxygen counted or 20.63 m with nitrogen alone. A maximum END can therefore change which mixes a planner offers. This flag does **not** add an oxygen compartment to Bühlmann. For a CCR, END needs the physical loop composition; an effective fraction invented for a decompression equation is a different quantity.
+
+## Multigas Diving
+
+A bottom mix, travel gas and rich decompression gas have different jobs. Changing the gas input updates tissue loading without resetting it. Planning those changes requires more than picking the highest oxygen fraction below a maximum: the mixture must meet a lower oxygen bound, the applicable working/decompression maximum and the selected END policy. Cylinder availability, switch timing and counterdiffusion warnings are separate checks.
+
+<figure>
+  <Image src={gasSwitch} alt="A dive computer showing its current 30/00 gas highlighted at 32.5 metres" />
+  <figcaption>
+    `O2/HE 30/00` is the currently selected gas, consistent with `GasPO2 1.27`.
+    Its highlight prompts consideration of a better configured gas; the image
+    does not identify that replacement gas.[^petrel] Photo by Peter Southwood,
+    [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), via
+    [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Dive_computer_display_suggesting_gas_switch_to_a_preloaded_decompression_gas_P8070327.jpg).
+  </figcaption>
+</figure>
+
+### Gas Selection and Switch Events
+
+The working and deco maxima remain independently configurable. This example assigns a phase to each available gas: bottom/travel entries use `Working`; a gas specifically planned for decompression uses `Decompression`. This is a defined teaching policy, not a claim that every device classifies gases the same way.[^petrel]
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct AvailableGas {
+    gas: Gas,
+    cylinder: usize,
+    switch_depth: f64, // enabled at and shallower than this planned depth
+    phase: OxygenPhase,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct GasPolicy {
+    oxygen: OxygenLimits,
+    narcosis: NarcosisModel,
+    max_end: f64,
+}
+
+fn best_gas_for_leg(
+    gases: &[AvailableGas], from: f64, to: f64, env: &Environment, policy: GasPolicy,
+) -> Option<AvailableGas> {
+    gases.iter().copied().filter(|entry| {
+        from <= entry.switch_depth && [from, to].iter().all(|&depth| {
+            let p = env.ambient_at(depth);
+            policy.oxygen.accepts(entry.gas, p, entry.phase)
+                && entry.gas.equivalent_narcotic_depth(p, env, policy.narcosis) <= policy.max_end
+        })
+    }).max_by(|a, b| a.gas.o2.total_cmp(&b.gas.o2))
+}
+```
+
+Checking both endpoints is sufficient for these fixed-mixture oxygen/END constraints on a monotonic ascent; tissue ceilings still need the travel checks from Part 2. A zero-oxygen gas is rejected. A hypoxic bottom gas cannot silently remain selected all the way to the surface. Choosing the richest eligible gas is a heuristic, not a proof of globally minimum decompression time.
+
+The event list combines stop-grid depths with configured switch depths. If the diver is at 40 m, the next stop target is 9 m, and EAN50 becomes available at 21 m, the travel must split at 21 m. The richer gas is selected *after* arriving there. Replacing a gas lookup in a single 40→9 m transit would miss that event.
+
+```rust
+#[derive(Debug)]
+struct CylinderLeg { leg: Leg, cylinder: usize }
+
+#[derive(Debug)]
+struct MultiGasPlan {
+    legs: Vec<CylinderLeg>,
+    warnings: Vec<(f64, usize)>, // depth, compartment index for the ICD heuristic below
+    final_model: DecoModel,
+}
+
+fn plan_multigas(
+    model: &DecoModel, from: f64, gases: &[AvailableGas],
+    config: &AscentConfig, policy: GasPolicy,
+) -> Result<MultiGasPlan, PlanError> {
+    config.validate(from)?;
+    if !from.is_finite() || from < 0.0 || !policy.max_end.is_finite() || policy.max_end < 0.0
+        || gases.iter().any(|g| !g.switch_depth.is_finite() || g.switch_depth < 0.0)
+    { return Err(PlanError::InvalidConfig); }
+    let mut events = vec![0.0];
+    let mut grid = config.last_stop;
+    while grid < from { events.push(grid); grid += config.stop_interval; }
+    events.extend(gases.iter().map(|g| g.switch_depth).filter(|&d| d > 0.0 && d < from));
+    events.sort_by(|a, b| b.total_cmp(a));
+    events.dedup();
+    let mut probe = *model;
+    let mut depth = from;
+    let mut waited = 0;
+    let mut legs = Vec::new();
+    let mut warnings = Vec::new();
+    if probe.oxygen.cns_outside_table { return Err(PlanError::OxygenOutsideTable); }
+    if probe.ceiling() > depth + 1e-8 { return Err(PlanError::CeilingViolation); }
+    for target in events.into_iter().filter(|&d| d < from) {
+        loop {
+            let entry = best_gas_for_leg(gases, depth, target, &probe.environment, policy)
+                .ok_or(PlanError::NoUsableGas)?;
+            let mut leg_config = *config;
+            leg_config.oxygen_limits = policy.oxygen;
+            leg_config.phase = entry.phase;
+            let before = probe;
+            let trial = if probe.ceiling() <= target + 1e-8 {
+                checked_transit(&probe, depth, target, entry.gas, &leg_config)?
+            } else { None };
+            let leg = if let Some(arrived) = trial {
+                probe = arrived;
+                Leg { from: depth, to: target, duration: (depth - target) / config.ascent_rate, gas: entry.gas }
+            } else {
+                if waited >= config.max_wait { return Err(PlanError::TimeLimit); }
+                probe.record(depth, 1.0, entry.gas);
+                if probe.oxygen.cns_outside_table { return Err(PlanError::OxygenOutsideTable); }
+                if probe.ceiling() > depth + 1e-8 { return Err(PlanError::CeilingViolation); }
+                waited += 1;
+                Leg { from: depth, to: depth, duration: 1.0, gas: entry.gas }
+            };
+            if let Some(i) = counterdiffusion_warning(&before, &probe) {
+                warnings.push((depth, i));
+            }
+            let arrived = leg.to == target;
+            legs.push(CylinderLeg { leg, cylinder: entry.cylinder });
+            if arrived { depth = target; break; }
+        }
+    }
+    Ok(MultiGasPlan { legs, warnings, final_model: probe })
+}
+```
+
+This is still a bounded, discrete planner. It can return “no usable gas” or fail to find an ascent within its wait limit. Switch handling is instantaneous here; a nonzero switch duration must be added as a breathing leg and charged to tissue loading, oxygen exposure and the appropriate cylinder. Requiring the next event's ceiling to clear before leaving is the same conservative policy as Part 2.
+
+### Oxygen at Six Metres and Rounding
+
+Using 1.01325 bar surface pressure and 10 m/bar, pure oxygen at 6 m gives 1.61325 bar. That exceeds a strict 1.6-**bar** maximum but is below 1.6 **ATA** (1.6212 bar). EAN50 reaches 1.6 bar at 21.87 m, making 21 m eligible on a 3 m grid. Under a strict 1.6-bar setting, this example must switch oxygen shallower than 6 m, use a shallower grid stop, or explicitly choose a different maximum; no hidden depth tolerance overrides the selected pressure bound.
+
+Subsurface's `gas_mod` includes a documented rounding adjustment of 0.1 of a depth increment.[^gaspolicy] That is a specific implementation convention, not a reason to describe an exceeded user limit as satisfied. At altitude the sign also matters: lower surface pressure means a **greater** water depth is needed to reach the same oxygen pressure. At a 2000 m lake, a 1.6-bar oxygen MOD is about 8.21 m in fresh water, compared with 6.12 m under a rounded 1-bar surface assumption.
+
+### Nitrogen/Helium Counterdiffusion Warnings
+
+Switching from helium-rich trimix to a gas with more oxygen can also increase its nitrogen fraction. For example, 18/47 contains 35% nitrogen; EAN50 contains 50%. At a fixed pressure the nitrogen input rises even as helium input falls. Their different exchange rates can temporarily increase total modeled inert tension: isobaric counterdiffusion, or ICD.
+
+Inner-ear models investigate this mechanism, while later analysis qualifies its role in actual inner-ear decompression sickness.[^icd2003][^icd2015] A nitrogen increase or a particular depth alone does not predict an injury, and the absence of a warning does not establish safety.
+
+Subsurface provides a useful implementation example: it flags a segment if the guiding compartment takes up nitrogen, releases helium and gains total inert loading.[^3] The following related heuristic compares the tissue changes across each simulated leg, using the compartment controlling the ceiling at the beginning. It runs after travel and waiting, so a helium-to-nitrogen switch is assessed against the diver's tissue history rather than fractions alone:
+
+```rust
+fn counterdiffusion_warning(before: &DecoModel, after: &DecoModel) -> Option<usize> {
+    let i = (0..COMPARTMENTS).max_by(|&a, &b| {
+        before.compartment_ceiling(a).total_cmp(&before.compartment_ceiling(b))
+    })?;
+    let dn2 = after.tissues.n2[i] - before.tissues.n2[i];
+    let dhe = after.tissues.he[i] - before.tissues.he[i];
+    if dn2 > 0.0 && dhe < 0.0 && dn2 + dhe > 0.0 { Some(i) } else { None }
+}
+```
+
+This leg-level warning is coarser than checking each internal integration segment and is not identical to Subsurface's implementation. A finer implementation should evaluate it at each step and retain the warning on the relevant switch/segment. Warnings accompany the plan for review; they do not automatically prohibit every nitrogen increase or claim to diagnose inner-ear DCS.
+
+### Cylinder Inventory and Real Gas
+
+A decompression schedule can meet every ceiling and still require more gas than the diver carries. Attach each leg to a cylinder, record its water volume, gas, pressure, temperature and reserve state, and sum demand across both travel and stops. Two cylinders holding the same mixture remain separate inventories.
+
+The ideal shortcut, cylinder volume multiplied by pressure, ignores compressibility. A real-gas calculation uses $PV=ZnRT$, where $Z$ depends on gas composition, pressure and temperature. Expressing contents as free-gas volume at reference conditions gives:
+
+$$
+V_{ref}=V_{cyl}\frac{P_{cyl}}{P_{ref}}\frac{Z_{ref}}{Z_{cyl}}\frac{T_{ref}}{T_{cyl}}
+$$
+
+Pressures must be absolute and temperatures Kelvin. A gauge reading needs the local external pressure added. Usable gas is the amount at the starting state **minus the amount at the reserve state**, evaluating each state's own Z and temperature. Applying one correction percentage to the pressure difference is generally wrong.
+
+For a concrete approximation, Subsurface uses gas-specific polynomial fits at 300 K over 0–500 bar.[^zfactor] The following expresses those published coefficients mathematically; it is a mixture approximation at that temperature, not exact “true volume” or a general equation of state:
+
+```rust
+fn z_at_300k(gas: Gas, pressure_bar: f64) -> f64 {
+    assert!(pressure_bar.is_finite() && (0.0..=500.0).contains(&pressure_bar));
+    let p = pressure_bar;
+    let o2 = -7.18092073703e-4 * p + 2.81852572808e-6 * p*p - 1.50290620492e-9 * p*p*p;
+    let n2 = -2.19260353292e-4 * p + 2.92844845532e-6 * p*p - 2.07613482075e-9 * p*p*p;
+    let he =  4.87320026468e-4 * p - 8.83632921053e-8 * p*p + 5.33304543646e-11 * p*p*p;
+    1.0 + gas.o2 * o2 + gas.n2() * n2 + gas.he * he
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Cylinder {
+    gas: Gas,
+    water_litres: f64,
+    start_bar_absolute: f64,
+    reserve_bar_absolute: f64,
+}
+
+impl Cylinder {
+    fn usable_litres_at_300k(&self, reference_bar: f64) -> f64 {
+        assert!(reference_bar.is_finite() && reference_bar > 0.0);
+        assert!(self.water_litres.is_finite() && self.water_litres > 0.0);
+        assert!(self.reserve_bar_absolute > 0.0 && self.start_bar_absolute >= self.reserve_bar_absolute);
+        let inventory = |p| self.water_litres * (p / reference_bar)
+            * z_at_300k(self.gas, reference_bar) / z_at_300k(self.gas, p);
+        inventory(self.start_bar_absolute) - inventory(self.reserve_bar_absolute)
+    }
+}
+
+fn remaining_ascent_gas(
+    plan: &MultiGasPlan, cylinders: &[Cylinder], env: &Environment,
+    breathing_litres_per_minute: f64, reference_bar: f64,
+) -> Result<Vec<f64>, &'static str> {
+    if !breathing_litres_per_minute.is_finite() || breathing_litres_per_minute <= 0.0 {
+        return Err("invalid breathing demand");
+    }
+    let mut remaining: Vec<f64> = cylinders.iter()
+        .map(|c| c.usable_litres_at_300k(reference_bar)).collect();
+    for item in &plan.legs {
+        let cylinder = cylinders.get(item.cylinder).ok_or("unknown cylinder")?;
+        let leg = item.leg;
+        if cylinder.gas.o2 != leg.gas.o2 || cylinder.gas.he != leg.gas.he {
+            return Err("leg gas does not match cylinder");
+        }
+        let steps = (leg.duration * 60.0).ceil().max(1.0) as usize;
+        for i in 0..steps {
+            let depth = leg.from + (leg.to - leg.from) * (i as f64 + 0.5) / steps as f64;
+            let p = env.ambient_at(depth);
+            let demand = breathing_litres_per_minute * leg.duration / steps as f64
+                * (p / reference_bar) * z_at_300k(leg.gas, reference_bar) / z_at_300k(leg.gas, p);
+            remaining[item.cylinder] -= demand;
+        }
+    }
+    if remaining.iter().any(|&litres| litres < 0.0) { return Err("ascent exceeds usable gas"); }
+    Ok(remaining)
+}
+```
+
+Here breathing demand is a constant lung-volume rate at ambient pressure; both breathing gas and cylinders are modeled at 300 K, so temperature ratios cancel. A general implementation needs temperature-dependent Z and the temperature ratio in the equation. Common RMV planning approximates Z as one at breathing pressure; the larger correction is usually in the high-pressure cylinder inventory.
+
+`start_bar_absolute` must describe each cylinder's contents **at the start of the planned ascent**, after descent and bottom consumption. An end-to-end plan would charge those legs too. `remaining_ascent_gas` checks the resulting ascent against explicit reserves; the chosen reserve and demand scenarios, including elevated demand or sharing/bailout, are inputs rather than conclusions of this calculation. Z changes inventory and demand conversion, not Bühlmann's tissue-pressure equations.
+
+## Gradient Factors
+
+Bühlmann's raw M-values define the model's maximum tolerated supersaturation. They are not a bubble-formation threshold or a guarantee against decompression sickness.[^5] His own answer to that was ZH-L16B and ZH-L16C, hand-tuned coefficients for specific compartments. Gradient Factors[^4] are a different answer to the same problem: leave Bühlmann's numbers alone, shrink how much of the M-value the algorithm is allowed to use, and let the diver dial that percentage themselves.
+
+A Gradient Factor is a fraction between 0 and 1, expressed as a pair, GF Low and GF High, like 30/70 or 20/85. At 100/100 it leaves the selected coefficient set unchanged. Here that is C; the earlier articles' numerical examples used A. Below that, GF Low controls how conservative the deepest stop is and GF High controls how conservative the final approach to the surface is, with every stop in between sliding linearly from one to the other. A lower GF Low pushes the first stop deeper, spreading the ascent's conservatism across more of the water column instead of saving it all for the shallow end. A lower GF High keeps more margin at the very end of the dive.
+
+Erik Baker described gradient factors in his late-1990s papers.[^5][^6] They allow a dissolved-gas model to produce deeper initial stops without adding a full bubble simulation. Bubble models such as VPM-B also track dissolved-gas loading; they add assumptions about bubble nuclei and growth rather than abandoning tissue tensions.[^3]
+
+Deeper stops are not automatically more protective. A Navy experiment reported in 2011 compared two air schedules of equal total duration and found more decompression sickness in the schedule with time redistributed deeper.[^9] The trials began earlier, in 2005, and did not directly compare GF pairs. The result does not establish an optimal GF setting for every gas or dive.
+
+Mechanically, a Gradient Factor redefines the tolerated tension for a compartment. Instead of tolerating tension up to the full M-value, it tolerates the ambient pressure plus a GF-sized fraction of the gap between ambient pressure and the M-value:
+
+$$
+M_{gf}(P) = P + GF(P) \times \bigl(M(P) - P\bigr)
+$$
+
+At $GF = 1$ this is $M(P)$ again, the raw ceiling from the first article's M Values chapter. At $GF = 0$ it collapses to $P$ itself, no overpressure tolerated at all, requiring inert tension not to exceed total ambient pressure. That is not equilibrium with inspired inert-gas pressure, which is lower. Everything in between is a dial between those two extremes, and $GF(P)$ itself isn't fixed. In this implementation it slides linearly from `low` at an unrounded reference ceiling pressure to `high` at the surface.
+
+<figure>
+  <MValueDiagram client:visible />
+  <figcaption>
+    The whole chapter in one picture. Both axes are pressure in bar. The dashed
+    diagonal is where tissue tension equals total ambient pressure. The solid line above it is that compartment's raw
+    M-value. After 25 minutes at 40 m on air the controlling compartment holds
+    3.55 bar, and reading left along that tension until it meets the M-value
+    line gives a raw ceiling of 6.5 m. The coloured line is the same compartment
+    under GF 30/70, running from 30% of the gap at the reference ceiling to 70% at the
+    surface. It meets 3.55 bar much deeper, at 17.9 m.
+  </figcaption>
+</figure>
+
+### Implementation
+
+The pair itself knows how to interpolate between its own two ends, given the first stop and the surface to interpolate across:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct GradientFactors {
+    low: f64,
+    high: f64,
+}
+
+impl GradientFactors {
+    const RAW: GradientFactors = GradientFactors { low: 1.0, high: 1.0 };
+    const GF_40_85: GradientFactors = GradientFactors { low: 0.40, high: 0.85 };
+    const GF_30_70: GradientFactors = GradientFactors { low: 0.30, high: 0.70 };
+
+    fn new(low: f64, high: f64) -> Self {
+        assert!(low.is_finite() && high.is_finite());
+        assert!(0.0 < low && low <= high && high <= 1.0);
+        GradientFactors { low, high }
+    }
+
+    fn at(&self, pressure: f64, first_stop: f64, surface: f64) -> f64 {
+        let span = first_stop - surface;
+        if span <= 0.0 {
+            // No obligation was ever established, so there's no deep end to
+            // interpolate from. GF High governs the whole ascent.
+            return self.high;
+        }
+        let fraction = ((first_stop - pressure) / span).clamp(0.0, 1.0);
+        self.low + (self.high - self.low) * fraction
+    }
+}
+```
+
+`new` rejects non-finite values and requires `0 < low <= high <= 1`. Equal values are supported. This constructor deliberately excludes zero as an operational setting, although GF zero remains useful for explaining the equation.
+
+`DecoModel` gains two fields, `gradient_factors: GradientFactors` and `gradient_reference: Option<f64>`, the pressure GF Low is anchored to. The `Option` matters: before any decompression obligation exists there is no first stop to anchor to, and the honest way to say so is to store nothing, not a sentinel that reads like a real pressure.
+
+That reference is the deepest unrounded low-GF ceiling the loading has demanded so far, found by asking where the ceiling would be if GF Low applied uniformly everywhere. With a single fixed gradient factor $M_{gf}(P)$ is linear in $P$, so this case has a closed form. Solve $M_{gf}(P) = \text{tension}$ for $P$ directly:
+
+```rust
+impl DecoModel {
+    fn refresh_gradient_reference(&mut self) {
+        let gf_low = self.gradient_factors.low;
+        let surface = self.environment.surface_pressure;
+        let mut deepest = surface;
+
+        for i in 0..COMPARTMENTS {
+            let a = self.tissues.blended_a(i, self.variant);
+            let b = self.tissues.blended_b(i, self.variant);
+            let p = (self.tissues.tension(i) - gf_low * a) / (1.0 - gf_low + gf_low / b);
+            if p > deepest {
+                deepest = p;
+            }
+        }
+
+        if deepest > surface && self.gradient_reference.map_or(true, |old| deepest > old) {
+            self.gradient_reference = Some(deepest);
+        }
+    }
+
+    fn reset_gradient_reference(&mut self) {
+        self.gradient_reference = None;
+    }
+}
+```
+
+`record` and `record_transit` refresh this reference; it only moves deeper during a dive. At a fixed intermediate pressure, a deeper reference moves the interpolated GF toward GF High. Letting the reference drift shallower would instead tighten the allowance. Resetting it between dives avoids carrying that previous, deeper anchor into a new ascent.
+
+Linear interpolation of **GF itself**, followed by multiplication into the M-value gap, gives a quadratic allowed-tension curve between the endpoints. Other implementations interpolate a tolerated-pressure line instead; Subsurface's explicit expression is one example.[^3] Equal endpoint labels therefore do not guarantee equal intermediate ceilings or schedules.
+
+Here bisection is valid with the maintained reference invariant: at and beyond the reference pressure, every compartment satisfies its low-GF limit. Below it the quadratic is concave, giving at most one upward crossing before that permitted endpoint. With no reference the GF is constant. This argument depends on valid coefficients, nonnegative tensions and refreshing the reference after loading; bisection is not automatically valid for any arbitrary curve.
+
+```rust
+const CEILING_ITERATIONS: u32 = 30;
+
+impl DecoModel {
+    fn effective_reference(&self) -> f64 {
+        self.gradient_reference
+            .unwrap_or(self.environment.surface_pressure)
+    }
+
+    fn gradient_factor_at(&self, pressure: f64) -> f64 {
+        self.gradient_factors.at(
+            pressure,
+            self.effective_reference(),
+            self.environment.surface_pressure,
+        )
+    }
+
+    fn allowed_tension(&self, i: usize, pressure: f64) -> f64 {
+        let gf = self.gradient_factor_at(pressure);
+        pressure + gf * (self.tissues.m_value(i, pressure, self.variant) - pressure)
+    }
+
+    fn compartment_ceiling(&self, i: usize) -> f64 {
+        let tension = self.tissues.tension(i);
+        let (mut lo, mut hi) = (0.0_f64, tension);
+        for _ in 0..CEILING_ITERATIONS {
+            let mid = (lo + hi) / 2.0;
+            if self.allowed_tension(i, mid) < tension {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        hi
+    }
+
+    fn ceiling_pressure(&self) -> f64 {
+        (0..COMPARTMENTS)
+            .map(|i| self.compartment_ceiling(i))
+            .fold(f64::NEG_INFINITY, f64::max)
+    }
+
+    fn ceiling(&self) -> f64 {
+        self.environment.depth_at(self.ceiling_pressure()).max(0.0)
+    }
+
+    fn raw_ceiling(&self) -> f64 {
+        self.environment
+            .depth_at(self.tissues.controlling_pressure(self.variant))
+            .max(0.0)
+    }
+}
+```
+
+`compartment_ceiling` searches for the pressure where a compartment's tension sits on `allowed_tension`. `hi` starts at the compartment's own tension, since at that pressure the compartment has no supersaturation relative to ambient. Thirty halvings give a pressure resolution equal to the initial bracket divided by roughly a billion: about 3.3 nanobar for a 3.55-bar bracket. This is numerical resolution, not physiological accuracy.
+
+`ceiling_pressure` remains a pressure rather than a depth clamped to the surface. The earlier altitude comparison is explicitly replaced by `within_gf_limit_at_altitude`, which calls this GF-aware method. It is still only a model-pressure comparison, not a flying-after-diving recommendation. `raw_ceiling` exposes the same tissue state against unmodified C coefficients.
+
+Run the 40 metre, 25 minute air dive through this at 100/100 and the ceiling comes out at 6.5 metres, identical to the plain M-value ceiling, as it should. Switch to 30/70 and it jumps to 17.9 metres, nearly three times deeper.
+
+### What Gradient Factors Cost
+
+The single-gas planner calls `ceiling`, so it now applies gradient factors to every wait and travel check. All rows below use **C with the 5/1.88 first-compartment pair**, 1.01325 bar surface pressure, 10 m/bar, an instantaneous descent followed by 40 m/25 min on air, 10 m/min ascent and the Part 2 stop policy:
+
+```
+GF 100/100   6m/5min, 3m/12min                                      17 min waiting; 21 min TTS
+GF  40/85   15m/1min, 12m/3min, 9m/3min, 6m/7min, 3m/17min          31 min waiting; 35 min TTS
+GF  30/70   18m/1min, 15m/2min, 12m/4min, 9m/6min, 6m/10min, 3m/26min
+                                                                    49 min waiting; 53 min TTS
+```
+
+These are outputs of this specified educational implementation, not settings recommendations or a reproduction of a manufacturer's planner. Travel contributes four minutes in every row; the waiting totals are separate. Changing A to C is also a model change, so the raw row need not equal Part 2's A schedule.
+
+The first rounded target and first positive-duration stop can differ because correctly modeled off-gassing continues during travel. Tighter gradient factors can add substantial shallow-stop time, but a deeper first ceiling alone does not quantify total decompression or physiological benefit.
+
+## Rebreathers
+
+Every `Gas` fed into `record` so far came from a cylinder valve, fixed the moment the diver picked what to breathe. Open circuit works the way the name implies: inhale from a tank, exhale into the water, and every exhaled breath, still carrying most of its original oxygen, is gone for good. A rebreather changes that at the root. Exhaled gas is kept, cleaned, and reused, and the gas a diver breathes is recomputed by the device, breath by breath, for the entire dive.
+
+A closed-circuit rebreather, or CCR, recycles gas through a breathing loop.[^ccr] A breath leaves the lungs into a flexible bag called a counterlung, passes through a canister of soda lime that scrubs out the CO2, and comes back ready to inhale. Nothing in the loop replaces the oxygen the diver consumed, so two cylinders feed it: a small one of pure oxygen topping up what metabolism used, and a diluent, an oxygen/inert-gas mix chosen for the planned depths, added to keep the loop's volume roughly constant as ambient pressure changes. Because the loop only replaces what gets consumed, a CCR diver can stay under for hours on cylinders barely bigger than the ones open-circuit divers empty in a fraction of the time.
+
+<figure>
+  <RebreatherLoopDiagram />
+  <figcaption>
+    An electronic CCR loop and its feedback controller. Expanding gas is vented
+    during ascent; “closed circuit” does not mean nothing ever leaves the loop. The neutral path is
+    breathing gas; the coloured path is the control logic deciding when to
+    inject oxygen. Every gas mixture in this series up to now has been the
+    equivalent of the diluent cylinder on its own.
+  </figcaption>
+</figure>
+
+### Set Point
+
+In an electronic CCR, oxygen cells provide feedback to a controller that adds oxygen toward a selected PO₂ setpoint. The details differ by unit. A simple steady-state model assumes the setpoint is reached when physically possible; it does not simulate solenoid dynamics, metabolism, leaks, flushing or pressure transients.[^ccr]
+
+Two quantities must remain separate. Physical loop composition determines oxygen exposure, END and density. Inspired inert-gas pressures are the inputs to decompression. For physical composition, use $F_{O_2}=P_{O_2}/P_{amb}$, capped at one, and split the remainder in the diluent's nitrogen/helium ratio.
+
+For decompression we explicitly adopt the common simplified CCR convention used by Subsurface: subtract water-vapour pressure and loop PO₂ from ambient pressure, clamp the remaining inspired inert pressure to zero, and divide it between nitrogen and helium.[^3] This is a model convention, not an assertion that an effective fraction represents a measured physical loop mixture. It differs slightly from first computing a physical oxygen fraction and then humidifying every fraction uniformly.
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct LoopSample {
+    physical_gas: Gas,
+    inspired_n2: f64,
+    inspired_he: f64,
+    ppo2: f64, // bar, used directly for the oxygen clock
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Rebreather { setpoint: f64, diluent: Gas }
+
+impl Rebreather {
+    fn sample(&self, ambient: f64) -> LoopSample {
+        assert!(ambient.is_finite() && ambient > WATER_VAPOUR);
+        assert!(self.setpoint.is_finite() && self.setpoint > 0.0);
+        assert!(self.diluent.inert() > 0.0, "this example requires inert-bearing diluent");
+        let ppo2 = self.setpoint.min(ambient);
+        let o2 = ppo2 / ambient;
+        let helium_share = self.diluent.he / self.diluent.inert();
+        let inspired_inert = (ambient - WATER_VAPOUR - ppo2).max(0.0);
+        LoopSample {
+            physical_gas: Gas::trimix(o2, (1.0 - o2) * helium_share),
+            inspired_n2: inspired_inert * (1.0 - helium_share),
+            inspired_he: inspired_inert * helium_share,
+            ppo2,
+        }
+    }
+
+    fn diluent_meets_flush_limits(&self, ambient: f64, minimum: f64, maximum: f64) -> bool {
+        assert!(minimum.is_finite() && maximum.is_finite() && minimum > 0.0 && maximum >= minimum);
+        let p = self.diluent.ppo2(ambient);
+        p.is_finite() && p >= minimum && p <= maximum
+    }
+}
+```
+
+At 15 m in the conventional sea-level environment, a 1.2-bar setpoint gives about 47.75% physical oxygen. At 45 m it gives 21.77%. The oxygen clock receives **1.2 bar in both cases**, rather than an effective fraction multiplied by ambient pressure a second time. END uses `physical_gas` and the chosen oxygen-narcosis assumption.
+
+A setpoint above the available ambient pressure is unattainable; the idealization then returns pure oxygen and a lower actual PO₂. This is not a description of every CCR at the surface. Many units use a low surface setpoint; the AP manual, for example, describes 0.7 and 1.3 bar low/high settings.[^ccr]
+
+### Rebreather Travel Is a Different Ramp
+
+Calling the open-circuit `Tissues::transit` with one frozen `Gas` would be wrong: loop fractions change during travel. For a fixed setpoint under the convention above, inspired inert pressures are piecewise linear in ambient pressure. Split travel at clamp boundaries, then apply Schreiner directly to the inspired-pressure endpoints. Oxygen is charged separately:
+
+```rust
+impl DecoModel {
+    fn record_ccr_transit(&mut self, from_m: f64, to_m: f64, duration: f64, ccr: Rebreather) {
+        assert!(duration.is_finite() && duration >= 0.0);
+        if duration == 0.0 { assert_eq!(from_m, to_m); return; }
+        let from = self.environment.ambient_at(from_m);
+        let to = self.environment.ambient_at(to_m);
+        let steps = (duration * 60.0).ceil() as usize;
+        let mut cuts: Vec<f64> = (0..=steps).map(|i| i as f64 / steps as f64).collect();
+        if from != to {
+            for pressure in [ccr.setpoint, ccr.setpoint + WATER_VAPOUR] {
+                let fraction = (pressure - from) / (to - from);
+                if fraction > 0.0 && fraction < 1.0 { cuts.push(fraction); }
+            }
+        }
+        cuts.sort_by(f64::total_cmp);
+        cuts.dedup();
+        for window in cuts.windows(2) {
+            let (a, b) = (window[0], window[1]);
+            let dt = duration * (b - a);
+            let start = ccr.sample(from + (to - from) * a);
+            let end = ccr.sample(from + (to - from) * b);
+            schreiner_all(&mut self.tissues.n2, self.variant.nitrogen(),
+                start.inspired_n2, (end.inspired_n2 - start.inspired_n2) / dt, dt);
+            schreiner_all(&mut self.tissues.he, self.variant.helium(),
+                start.inspired_he, (end.inspired_he - start.inspired_he) / dt, dt);
+            self.oxygen.accumulate((start.ppo2 + end.ppo2) / 2.0, dt);
+            if start.ppo2.max(end.ppo2) / BAR_PER_ATA > 1.6 {
+                self.oxygen.cns_outside_table = true;
+            }
+            self.refresh_gradient_reference();
+        }
+    }
+}
+```
+
+Equal start/end depths cover a constant-depth CCR segment too. A setpoint change is a separate segment boundary. Tissue integration is analytic within each linear piece; oxygen integration is still the short-step approximation from Part 2. A CCR ascent planner must call this adapter in its trial legs and check loop PO₂ and physical END along them. The open-circuit gas selector and cylinder-demand calculation above do not become a CCR consumption or bailout planner merely by receiving a loop mixture.
+
+Diluent suitability also deserves a separate question. With 21/35 at 60 m, diluent PO₂ is about 1.47 bar: an oxygen controller cannot instantaneously remove that oxygen after a diluent flush to reach 1.2 bar. `diluent_meets_flush_limits` compares against explicitly selected flush limits; it is not called `can_hold_setpoint`, because steady state and a flush transient are different problems. The device manual determines the limits and procedures; AP discusses diluent PO₂ and flush suitability separately.[^ccr]
+
+Raising a setpoint for decompression is another explicit policy and segment change. Its effect belongs in oxygen exposure as well as inert loading, and remains subject to the unit's control behavior and the diver's selected limits.
+
+### Multiple Oxygen Sensors
+
+The previous section assumed the controller knows the loop's PO2, but that number comes from a physical sensor, and one sensor is one point of failure. Galvanic oxygen sensors are electrochemical cells that consume themselves as they work. Near end of life they go current-limited: the output stops rising with PO2 and flattens, so the cell reads plausibly at 0.7 bar and badly low at 1.3. That's the failure a diver most needs to catch, because a sensor under-reading PO2 tells the controller to inject more oxygen than the loop needs, and the diver ends up hyperoxic while the display insists everything is fine. Cells can also fail abruptly, flooded by a leak or caustic scrubber breakthrough. Many electronic CCRs use three cells and a voting scheme, with device-specific validity checks and responses.[^ccr][^cells]
+
+<figure>
+  <Image
+    src={oxygenCells}
+    alt="Two galvanic oxygen sensor cells, one showing a caustic warning label and one with its connector and circuit board visible"
+  />
+  <figcaption>
+    Galvanic oxygen cells, commonly used in groups of three in electronic CCRs. Photo by Peter Southwood,
+    [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), via
+    [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Oxygen_cells_P4260436.jpg).
+  </figcaption>
+</figure>
+
+Here is an illustrative closest-pair voter, not a reproduction of a particular controller. It first rejects non-finite and out-of-range readings. Its 0.02–2.55 bar sensor range follows the AP manual example, while the 0.10-bar agreement tolerance is a deliberately stated example setting; AP's actual voting/warning rules differ.[^ccr]
+
+```rust
+const SENSOR_AGREEMENT_TOLERANCE: f64 = 0.10;
+
+fn consensus_ppo2(readings: [f64; 3]) -> Option<f64> {
+    let mut valid: Vec<f64> = readings.into_iter()
+        .filter(|r| r.is_finite() && (0.02..=2.55).contains(r)).collect();
+    valid.sort_by(f64::total_cmp);
+    let pair = valid.windows(2).min_by(|a, b| {
+        (a[1] - a[0]).total_cmp(&(b[1] - b[0]))
+    })?;
+    if pair[1] - pair[0] > SENSOR_AGREEMENT_TOLERANCE { return None; }
+    Some((pair[0] + pair[1]) / 2.0)
+}
+```
+
+Readings of 1.19, 1.20 and 1.21 bar produce the mean of a closest pair, about 1.20 bar. With 0.40, 1.20 and 1.21, the result is 1.205 bar. Widely separated readings, or fewer than two valid readings, return `None`. NaN does not panic, and three zero or negative readings cannot become a plausible consensus.
+
+That value alone cannot decide whether automatic oxygen control should continue. Agreement is not proof of accuracy, and loss of consensus must feed a device-specific alarm and control policy. Manufacturer procedures may involve manual control, verification or bailout depending on the situation; this helper does not implement those decisions.[^cells]
+
+Voting has a failure mode of its own, and it's why CCR divers are taught to distrust their electronics. Two cells failing the same way at the same time outvote the healthy one, and this is not hypothetical: cells bought together, installed together, and aged together in the same warm humid loop reach end of life together. The counter is procedural, not algorithmic. Maintenance and verification follow the unit's instructions. Where an oxygen-flush check is specified, its shallow-depth restriction is essential: the AP manual restricts oxygen flushing to shallower than 6 m.[^ccr] An arbitrary “known depth” is not sufficient.
+
+## Conclusion
+
+This series started with a single question: given everything a diver has breathed so far, how shallow can they safely be right now, and how long until they can go shallower.
+
+The first article built a dissolved-gas model and a simplified no-stop calculation. The second separated pressure from displayed depth, preserved residual loading, added oxygen accounting and checked a simulated ascent. This article added a matched nitrogen/helium table pair, explicit gas-switch events and warnings, END assumptions, cylinder inventory and gradient factors. The CCR adapter needed its own inspired-pressure inputs and travel integration because a loop is not a fixed cylinder mixture.
+
+Those pieces answer different questions. END is a narcosis convention; an ICD warning is a heuristic; Z corrects a gas inventory; gradient factors modify modeled supersaturation. None is a direct measurement of an individual diver's decompression risk. The examples omit descent time in their square profiles, use selected numerical integration steps and stop policies, and do not include a complete device controller, CCR gas-consumption model, bailout strategy or physiological validation. The warning at the beginning still applies.
+
+What I hope comes across, more than any single formula, is the shape of the problem. A dive computer isn't magic, and it isn't really one algorithm either. It's a small simulation, a handful of exponentials and a search for the worst case among them, running continuously against whatever numbers a diver, or a rebreather's electronics, feed it. None of that crossed my mind at 16, in the Red Sea. I just wanted to see the fish. It's been worth coming back, years later, to find the algorithm that had been quietly keeping me safe the whole time.
+
+[^1]: Wikipedia. _Bühlmann decompression algorithm_ [https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm](https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm)
+
+[^2]: Chapman, P. (1999). _An Explanation of Professor A.A. Buehlmann's ZH-L16 Algorithm_ [https://thetechnicaldiver.com/wp-content/uploads/Explanation-of-Buhlmanns-ZHL-16-algorithm.pdf](https://thetechnicaldiver.com/wp-content/uploads/Explanation-of-Buhlmanns-ZHL-16-algorithm.pdf)
+
+[^3]: Subsurface, an open source dive log and planner. Bühlmann implementation in `core/deco.cpp`, depth and gas switch handling in `core/dive.cpp` [core/deco.cpp](https://github.com/subsurface/subsurface/blob/master/core/deco.cpp)
+
+[^4]: Divers Alert Network. (November 1, 2015) _Gradient Factors_ [https://dan.org/alert-diver/article/gradient-factors/](https://dan.org/alert-diver/article/gradient-factors/)
+
+[^5]: Baker, E. C. _Understanding M-values_ [Manufacturer-hosted PDF](https://cdn.shopify.com/s/files/1/0838/3732/1530/files/understanding_m-values.pdf?v=1712803291)
+
+[^6]: Baker, E. C. _Clearing Up The Confusion About "Deep Stops"_ [https://www.shearwater.com/wp-content/uploads/2012/08/Deep-Stops.pdf](https://www.shearwater.com/wp-content/uploads/2012/08/Deep-Stops.pdf)
+
+[^9]: Doolette, D. J., Gerth, W. A., Gault, K. A. (2011). _Redistribution of Decompression Stop Time from Shallow to Deep Stops Increases Incidence of Decompression Sickness in Air Decompression Dives_, US Navy Experimental Diving Unit TR 2011-06 [https://indepthmag.com/wp-content/uploads/2019/10/NEDU_TR_2011-06.pdf](https://indepthmag.com/wp-content/uploads/2019/10/NEDU_TR_2011-06.pdf)
+
+[^lessons]: Baker, E. C. _Introductory Deco Lessons_, p. 15, paired first-compartment options. [PDF](https://cdn.shopify.com/s/files/1/0838/3732/1530/files/Introductory-Deco-Lessons.pdf?v=1710181582).
+
+[^validation]: Bühlmann, A. A. (1988). _Computation of low-risk compression. Computation model and results of experimental decompression research_ (English title in PubMed). [Abstract](https://pubmed.ncbi.nlm.nih.gov/3363309/).
+
+[^gaspolicy]: Subsurface. `gas_mnd`, `best_he` and `gas_mod`, including the selectable oxygen-narcosis assumption and MOD rounding. [core/dive.cpp](https://github.com/subsurface/subsurface/blob/master/core/dive.cpp).
+
+[^petrel]: Shearwater. _Petrel 3 Technical Manual_, gas switching and Advanced Config 2. [Manual](https://cdn.shopify.com/s/files/1/0838/3732/1530/files/Petrel-3_Technical_Manual_RevB.pdf?v=1710193368).
+
+[^icd2003]: Doolette, D. J., Mitchell, S. J. (2003). _Biophysical basis for inner ear decompression sickness_. [Paper abstract](https://pubmed.ncbi.nlm.nih.gov/12562679/).
+
+[^icd2015]: Mitchell, S. J., Doolette, D. J. (2015). _Pathophysiology of inner ear decompression sickness: potential role of the persistent foramen ovale_. [Paper abstract](https://pubmed.ncbi.nlm.nih.gov/26165533/).
+
+[^zfactor]: Subsurface. `gas_compressibility_factor`: mixture approximation using gas-specific fits at 300 K over 0–500 bar. [core/gas-model.cpp](https://github.com/subsurface/subsurface/blob/master/core/gas-model.cpp).
+
+[^ccr]: AP Diving. _Inspiration / Evolution Closed Circuit Rebreather Instruction Manual_, §§1.7, 1.12, 3.5.4 and Appendix 7. [Manufacturer manual](https://www.apdiving.com/en/?ddownload=7894).
+
+[^cells]: AP Diving. _Rebreather Cell Warning Advice_. [Manufacturer guidance](https://www.apdiving.com/en/cell-warning-blog-by-mike-fowler/).

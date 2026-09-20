@@ -5,6 +5,7 @@ import PostCard from "../../components/PostCard.astro";
 import Pagination from "../../components/Pagination.astro";
 import type { BlogType } from "../../content.config";
 import { formatDate } from "../../utils/formatDate";
+import { isPublished } from "../../utils/publishedBlogs";
 import { SITE_TITLE, SITE_AUTHOR } from "../../consts";
 import Year from "../../components/Year.astro";
 
@@ -13,12 +14,12 @@ export async function getStaticPaths({
 }: {
   paginate: (data: BlogType[], options: { pageSize: number }) => unknown;
 }) {
-  const blogs = await getCollection("blogs");
+  const blogs = await getCollection("blogs", isPublished);
   const years = [
     ...new Set(
       blogs.map((blog: BlogType) => new Date(blog.data.date).getFullYear()),
     ),
-  ];
+  ].sort((a, b) => b - a);
   blogs.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
   return paginate(blogs, { pageSize: 8, props: { years } });

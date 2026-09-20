@@ -1,0 +1,650 @@
+---
+slug: the-algorithm-inside-a-recreational-dive-computer
+title: "The Algorithm Inside a Recreational Dive Computer"
+description: "Taking a Bühlmann ZH-L16 tissue model from a textbook dive to a real one: fresh water, repetitive dives, altitude and flying afterwards, nitrox and its oxygen clocks, and turning a ceiling into an ascent schedule."
+date: 2026-09-20
+author: "Rok Ajdnik"
+tags: ["scuba-diving", "dive-computers", "decompression-theory", "buhlmann-zh-l16", "algorithms", "diving-physics"]
+featured: false
+draft: true
+editable: false
+series:
+  id: "dive-algorithm"
+  title: "The Algorithm Inside a Dive Computer"
+  order: 2
+cover:
+  src: "../assets/images/blog/the-algorithms-inside-a-dive-computer/recreational-cover.webp"
+  alt: "A recreational diver hovering mid-water over a reef, arms outstretched"
+  caption: "A recreational dive: open water, no overhead, and a computer tracking everything described in the article."
+---
+
+import Callout from "../components/Callout.astro";
+
+The [first article](https://rokajdnik.com/the-algorithms-inside-a-dive-computer/) in this series built a decompression model from scratch: sixteen theoretical tissue compartments, each chasing the inspired nitrogen pressure on its own half-time through Haldane's equation, and sixteen Bühlmann M-value lines[^1] bounding how much each may hold at a given ambient pressure. The worst compartment sets the ceiling, the shallowest depth permitted by the current model. Solving Haldane's equation for the surface M-value gives an instantaneous-surfacing no-stop time. It all hangs off one entry point, `DecoModel::record(depth, duration)`, called every sample tick.
+
+It also cheats in four places. It assumes saltwater, sea level, a diver who has not dived recently, and a cylinder of plain air. Each of those is a number the algorithm treats as constant and a real dive treats as a setting, and this article turns them into settings one at a time. The tissue equations stay the same, but their inputs and the checks surrounding them become explicit.
+
+Then, with a model that survives contact with a real dive site, the last chapter answers the half of the question the first article left open. A ceiling says how shallow a diver may be. It says nothing about how long they hang there, and that is what a computer's display is mostly showing.
+
+<Callout type="warning">
+  This article is for educational purposes only. It is not a guide for building or modifying your own decompression algorithm and using it to dive. Dive computers are life-support equipment, their algorithms must be developed, certified, and verified by qualified professionals and experts. Never dive on unverified or self-made decompression software.
+</Callout>
+
+The Rust blocks develop incrementally, replacing earlier definitions as the model grows. A [complete runnable companion, including the numerical checks](/code/dive-computer-examples.rs) assembles the three stages into separate modules. Inputs use the stated units; assertions in these teaching snippets reject invalid configuration, while the planners return explicit failure results.
+
+## Water Density and EN13319
+
+A pressure sensor measures pressure, not metres. Converting the water's pressure contribution into depth requires a density assumption:
+
+$$
+h = \frac{\Delta P_{bar}\times100{,}000}{\rho g}, \qquad g=9.80665\ \mathrm{m/s^2}
+$$
+
+Fresh water, salt water and EN13319 are useful menu choices, but the last is a calibration convention, not a third natural water type. Shearwater documents freshwater density as 1000 kg/m³, EN13319 as 1020 kg/m³, and salt water around 1025–1035 kg/m³.[^density] At the same measured pressure increase of 3 bar:
+
+| Depth convention | Density (kg/m³) | Displayed depth |
+| --- | ---: | ---: |
+| Fresh water | 1000 | 30.59 m |
+| EN13319 | 1020 | 29.99 m |
+| Salt water, example | 1025 | 29.85 m |
+
+Changing that menu setting does not change the pressure the diver experienced. At the same *geometric* depth, however, denser water really does produce higher pressure. A planner converts geometric depths using the assumed physical density; a computer converts measured pressures for display using its selected calibration. Tissue calculations should receive absolute pressure directly, avoiding a round trip through a differently calibrated depth.
+
+```rust
+const CONVENTIONAL_M_PER_BAR: f64 = 10.0; // rounded, close to EN13319
+const FRESH_WATER_M_PER_BAR: f64 = 100_000.0 / (1000.0 * 9.80665);
+const EN13319_M_PER_BAR: f64 = 100_000.0 / (1020.0 * 9.80665);
+const SALT_WATER_M_PER_BAR: f64 = 100_000.0 / (1025.0 * 9.80665);
+
+fn meters_per_bar_from_density(density_kg_m3: f64) -> f64 {
+    assert!(density_kg_m3.is_finite() && density_kg_m3 > 0.0);
+    100_000.0 / (density_kg_m3 * 9.80665)
+}
+```
+
+For continuity with Part 1, the numerical square-profile examples retain the explicitly rounded 10 m/bar convention at sea level. The freshwater examples use the density-derived conversion above. Neither should be labeled an exact description of all seawater.
+
+## Repetitive Dives
+
+Surfacing after completing the modeled ascent does not return the compartments to their starting tensions. Residual nitrogen remains, and its evolution during the surface interval affects the next dive. Surfacing with a positive ceiling would instead violate the model; the 2.9 m ceiling from Part 1 is not permission to finish that obligation above water.
+
+This one's almost a non-event in code. A printed dive table has to represent "how loaded is this diver right now" as a letter grade, a repetitive group, because a table can't carry 16 continuously updating numbers around with you. Between dives it hands you a second table to convert that letter and a surface interval into a new starting letter for the next dive. It's a clever way to approximate a continuous process using paper, and it's still an approximation.
+
+Our `DecoModel` doesn't have that problem. It never resets, the 16 compartments hold their actual tension between calls to `record`, so a surface interval is time spent at zero depth:
+
+```rust
+impl DecoModel {
+    fn surface_interval(&mut self, duration: f64) {
+        self.record(0.0, duration);
+    }
+}
+```
+
+Calling `model.record(0.0, 1.0)` sixty times to simulate an hour on the boat does the same math as diving at 0 metres. The ambient pressure comes out to `SURFACE_PRESSURE`, and each compartment approaches inspired surface nitrogen pressure, about 0.751 bar here, at its own half-time, the way it would mid-dive. Chain a second `record` sequence for a repetitive dive straight after and the compartments keep going from wherever the surface interval left them. Table-based systems need dedicated repetitive-dive logic because they discretize state into letters. A real-time model never loses that state to begin with.
+
+## Altitude Diving
+
+Diving at altitude changes the one number we've treated as constant since the first version of this algorithm: `SURFACE_PRESSURE`. Climb to a 2000 metre lake and there's less atmosphere overhead, so the starting pressure is lower. Depth-to-pressure conversion uses that local surface pressure, and the M-value equations are evaluated at the resulting absolute ambient pressure.
+
+Atmospheric pressure as a function of altitude follows the standard barometric formula[^2]:
+
+$$
+P_{atm}(h) = 1.01325 \times \left(1 - 2.25577 \times 10^{-5} \times h\right)^{5.25588}
+$$
+
+That's the second number in a row describing where the dive is happening, not the diver doing it, and two is enough to justify a type. Both exist to answer the same two questions, so those become its methods:
+
+```rust
+fn atmospheric_pressure(altitude_m: f64) -> f64 {
+    assert!(altitude_m.is_finite() && (0.0..=11_000.0).contains(&altitude_m));
+    1.01325 * (1.0 - 2.25577e-5 * altitude_m).powf(5.25588)
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Environment {
+    surface_pressure: f64,
+    meters_per_bar: f64,
+}
+
+impl Environment {
+    const SEA_LEVEL_CONVENTIONAL: Environment = Environment {
+        surface_pressure: SURFACE_PRESSURE,
+        meters_per_bar: CONVENTIONAL_M_PER_BAR,
+    };
+
+    const SEA_LEVEL_FRESH: Environment = Environment {
+        surface_pressure: SURFACE_PRESSURE,
+        meters_per_bar: FRESH_WATER_M_PER_BAR,
+    };
+
+    fn fresh_at_altitude(altitude_m: f64) -> Self {
+        Environment {
+            surface_pressure: atmospheric_pressure(altitude_m),
+            meters_per_bar: FRESH_WATER_M_PER_BAR,
+        }
+    }
+
+    fn ambient_at(&self, depth_m: f64) -> f64 {
+        assert!(depth_m.is_finite() && depth_m >= 0.0);
+        self.surface_pressure + depth_m / self.meters_per_bar
+    }
+
+    fn depth_at(&self, pressure: f64) -> f64 {
+        (pressure - self.surface_pressure) * self.meters_per_bar
+    }
+}
+```
+
+`depth_at` can return a negative number: a water-equivalent pressure difference below the site's surface pressure. It is not a height above the lake. Atmospheric altitude must be calculated separately. This standard-atmosphere formula approximates the troposphere; measured local surface pressure is preferable when available.
+
+The model now carries the site instead of two loose fields:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct DecoModel {
+    compartments: [Compartment; COMPARTMENTS],
+    environment: Environment,
+}
+
+impl DecoModel {
+    fn new(environment: Environment, variant: Variant) -> Self {
+        let table = variant.nitrogen();
+        let surface_n2 = FRACTION_N2 * (environment.surface_pressure - WATER_VAPOUR);
+        DecoModel {
+            compartments: std::array::from_fn(|i| Compartment {
+                half_time: table.half_times[i],
+                tension: surface_n2,
+                a: table.a[i],
+                b: table.b[i],
+            }),
+            environment,
+        }
+    }
+
+    fn record(&mut self, depth_m: f64, duration: f64) {
+        let ambient = self.environment.ambient_at(depth_m);
+        let p_alv = FRACTION_N2 * (ambient - WATER_VAPOUR);
+        for c in &mut self.compartments {
+            c.constant_depth(p_alv, duration);
+        }
+    }
+
+    fn ceiling(&self) -> f64 {
+        self.environment
+            .depth_at(self.controlling_pressure())
+            .max(0.0)
+    }
+}
+```
+
+`Environment::SEA_LEVEL_CONVENTIONAL` is exactly what the earlier chapters were building by hand, and `atmospheric_pressure(0.0)` returns 1.01325 bar, confirming the constant those chapters started from. Run the same 30 metre, 30 minute dive at sea level and in a 2000 metre lake, where the atmosphere is down to 0.795 bar, and the mountain dive ends with a 3.68 metre ceiling against 2.94 at sea level. A lower starting pressure means every depth along the way represents a proportionally bigger pressure swing on ascent, which is why altitude diving calls for more conservative profiles in practice.
+
+The constructor assumes the diver has equilibrated at the site. Someone arriving from sea level retains their previous tissue loading: changing `environment` must not reset it, and the pressure history of the journey needs to be modeled.
+
+Altitude doesn't only matter for the dive itself. Off-gassing continues well past the moment a diver leaves the water, and climbing a mountain pass or boarding a flight lowers ambient pressure again, exactly like an ascent without any water involved. Do that before the compartments have caught up and it's possible to develop decompression sickness on a chairlift or at cruising altitude, with no dive computer around to warn anyone.
+
+The model already has what it needs. A compartment's ceiling is a pressure, not a depth, and pressure behaves the same whether water or air is doing the pressing. All that's missing is comparing that pressure against a destination directly instead of converting it to a depth first:
+
+```rust
+impl DecoModel {
+    fn controlling_pressure(&self) -> f64 {
+        self.compartments
+            .iter()
+            .map(Compartment::ceiling_pressure)
+            .fold(f64::NEG_INFINITY, f64::max)
+    }
+
+    fn within_raw_limit_at_altitude(&self, altitude_m: f64) -> bool {
+        atmospheric_pressure(altitude_m) >= self.controlling_pressure()
+    }
+}
+```
+
+`controlling_pressure` is the max-across-compartments logic `ceiling` was already doing, given a name and left as a pressure. Note where the fold starts: negative infinity, not surface pressure. The answer has to be allowed to come out above the surface, and `ceiling` is where it gets clamped, only because a depth below water can't be negative. `within_raw_limit_at_altitude` asks the direct question: is the destination's atmospheric pressure still at or above the greatest minimum pressure any compartment currently requires?
+
+Three kinds of quantity flow through these functions as bare `f64`: pressures in bar, depths in metres, durations in minutes. Converting between the first two needs both the water density and the site's surface pressure, and that's the conversion nobody notices forgetting. A real implementation gives each its own type so a mix-up is a compile error; this article keeps the `_m` suffixes because the formulas read better that way on a page.
+
+That comparison answers only whether the *current* tissue state satisfies the raw M-value at a destination pressure. It does not simulate the journey or authorize flying. In particular, instantly surfacing from the earlier 30 m/30 min example would violate its 2.94 m ceiling, so timing a flight from that state would compound two different mistakes.
+
+Flying-after-diving guidance comes from a separate body of evidence, including trials involving reduced cabin pressure. DAN recommends at least 12 hours after a single no-decompression dive and 18 hours after multiple dives per day or multiple days of diving; dives requiring decompression call for substantially longer than 18 hours.[^4] The guidance has stated exposure and population limits. A simple tissue-pressure comparison cannot replace it, and tuning gradient factors until it returns a familiar waiting time is not validation.
+
+## Nitrox Diving
+
+Nitrox, or enriched air, replaces some of the nitrogen a diver breathes with extra oxygen. EAN32 means 32% oxygen and 68% nitrogen, instead of air's 21% and 79%. Nothing about the algorithm changes to support it. `FRACTION_N2` was already the one input controlling how much nitrogen ends up in `p_alv`, it just stops being a constant and becomes a type:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct Gas {
+    o2: f64,
+}
+
+impl Gas {
+    const AIR: Gas = Gas { o2: 0.21 };
+    const EAN50: Gas = Gas { o2: 0.50 };
+    const OXYGEN: Gas = Gas { o2: 1.0 };
+
+    fn nitrox(o2: f64) -> Gas {
+        assert!(o2.is_finite() && (0.0..=1.0).contains(&o2));
+        Gas { o2 }
+    }
+
+    fn o2(&self) -> f64 {
+        self.o2
+    }
+
+    fn n2(&self) -> f64 {
+        1.0 - self.o2
+    }
+
+    fn ppo2(&self, ambient: f64) -> f64 {
+        self.o2 * ambient
+    }
+}
+```
+
+Storing the oxygen fraction and deriving nitrogen matches how divers label cylinders and how they talk: EAN32 and 21/35 both name the oxygen first, and nobody has ever asked for a fill by its nitrogen content. `Gas::AIR.n2()` comes out at 0.79, the constant the model has used all along. `record` takes one:
+
+```rust
+impl DecoModel {
+    fn record(&mut self, depth_m: f64, duration: f64, gas: Gas) {
+        let ambient = self.environment.ambient_at(depth_m);
+        let p_alv = gas.n2() * (ambient - WATER_VAPOUR);
+        for c in &mut self.compartments {
+            c.constant_depth(p_alv, duration);
+        }
+    }
+}
+```
+
+`surface_interval` now has to forward a gas too, and air is the reasonable default for time spent on a boat: `self.record(0.0, duration, Gas::AIR)`. Running the same 30 metre, 30 minute dive on air and on EAN32 side by side, the air ceiling comes out at 2.94 m and the EAN32 ceiling at 0.40 m. Less nitrogen in the mix means less nitrogen dissolved into every compartment for the same depth and time, which is the entire appeal of nitrox for recreational diving: more bottom time, or more margin, for the same profile.
+
+Nitrox also increases oxygen partial pressure. Elevated oxygen exposure can cause CNS toxicity, including seizures, with risk influenced by duration, exertion and carbon dioxide retention.[^5] The operating limit is a selected policy, not a physiological cliff.
+
+### Separate Working and Decompression Limits
+
+Technical computers commonly expose separate bottom/working and decompression oxygen maxima. For example, the Petrel 3 manual describes OC MOD and OC Deco PO₂, with gas classification and mode determining which applies.[^petrel] Merely starting an ascent does not automatically make the higher maximum appropriate.
+
+Here the settings are explicitly in **bar**. Sources that give 1.4 or 1.6 **ATA** mean 1.41855 or 1.6212 bar: one ATA is 1.01325 bar. We deliberately use illustrative 1.4/1.6-bar settings for gas selection and convert to ATA for the exposure table below.
+
+```rust
+#[derive(Debug, Clone, Copy)]
+enum OxygenPhase { Working, Decompression }
+
+#[derive(Debug, Clone, Copy)]
+struct OxygenLimits {
+    minimum: f64,    // bar; independent hypoxia bound
+    working_max: f64,
+    deco_max: f64,
+}
+
+impl OxygenLimits {
+    fn new(minimum: f64, working_max: f64, deco_max: f64) -> Self {
+        assert!([minimum, working_max, deco_max].iter().all(|x| x.is_finite()));
+        assert!(minimum > 0.0 && working_max >= minimum && deco_max >= minimum);
+        Self { minimum, working_max, deco_max }
+    }
+
+    fn maximum(self, phase: OxygenPhase) -> f64 {
+        match phase {
+            OxygenPhase::Working => self.working_max,
+            OxygenPhase::Decompression => self.deco_max,
+        }
+    }
+
+    fn accepts(self, gas: Gas, ambient: f64, phase: OxygenPhase) -> bool {
+        let p = gas.ppo2(ambient);
+        p.is_finite() && p >= self.minimum && p <= self.maximum(phase)
+    }
+}
+
+impl Gas {
+    fn max_operating_depth(&self, max_ppo2_bar: f64, env: &Environment) -> Option<f64> {
+        assert!(max_ppo2_bar.is_finite() && max_ppo2_bar > 0.0);
+        if self.o2 == 0.0 { return None; }
+        Some(env.depth_at(max_ppo2_bar / self.o2))
+    }
+}
+
+fn record_planned_work(
+    model: &mut DecoModel, depth: f64, duration: f64, gas: Gas, limits: OxygenLimits,
+) -> Result<(), PlanError> {
+    if !limits.accepts(gas, model.environment.ambient_at(depth), OxygenPhase::Working) {
+        return Err(PlanError::NoUsableGas);
+    }
+    let mut trial = *model;
+    trial.record(depth, duration, gas);
+    if trial.oxygen.cns_outside_table { return Err(PlanError::OxygenOutsideTable); }
+    *model = trial;
+    Ok(())
+}
+```
+
+`OxygenLimits::new(0.16, 1.4, 1.6)` is one illustrative configuration, not a recommendation. `record_planned_work` checks a planned bottom segment with `Working`; a gas explicitly designated for a decompression phase uses `Decompression`. Observed dive samples still go through `record` even if a limit was exceeded: dropping them would corrupt tissue history. Alarms on an actual computer and assumptions in its ascent prediction may have different rules, as the manufacturer's manual explains.[^petrel]
+
+MOD now uses the site's surface pressure. A negative result means the chosen upper limit is exceeded even at the surface; clamping it to zero would hide that. `None` means no upper oxygen MOD exists for an oxygen-free gas, **not** that it is breathable: `accepts` rejects it using the lower bound. At 1.01325 bar surface pressure and 10 m/bar, air's 1.4-bar MOD is 56.53 m and EAN32's is 33.62 m. Using a rounded 1-bar surface gives the familiar 56.67 m and 33.75 m. Those conventions must not be interchanged halfway through a gas check.
+
+### Oxygen Exposure Clocks
+
+The traditional NOAA single-exposure scheme assigns time limits in ATA: 45 minutes at 1.6, 120 at 1.5, 150 at 1.4, 180 at 1.3, and 210 at 1.2.[^oxygenmath] Each segment contributes duration divided by its limit to the CNS fraction. It is an exposure index, not the probability of a seizure. Ten minutes at 1.6 ATA contributes about 22%; ten at 1.3 ATA about 6%.
+
+Pulmonary exposure is tracked separately with oxygen toxicity units:
+
+$$
+\mathrm{OTU}=t\left(\frac{P_{O_2,ATA}-0.5}{0.5}\right)^{5/6},\quad P_{O_2,ATA}>0.5
+$$
+
+The calculation contributes zero at or below 0.5 ATA. This is an empirical exposure convention, unrelated to the tissue M-value equations. Baker describes both calculations and the conventional 90-minute CNS half-time used during surface intervals; that half-time is not a universal physiological recovery law.[^oxygenmath]
+
+```rust
+const BAR_PER_ATA: f64 = 1.01325;
+const CNS_HALF_TIME_MINUTES: f64 = 90.0;
+const CNS_LIMITS: [(f64, f64); 12] = [ // ATA, minutes
+    (0.5, 900.0), (0.6, 720.0), (0.7, 570.0), (0.8, 450.0),
+    (0.9, 360.0), (1.0, 300.0), (1.1, 240.0), (1.2, 210.0),
+    (1.3, 180.0), (1.4, 150.0), (1.5, 120.0), (1.6, 45.0),
+];
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum CnsLimit { BelowThreshold, Minutes(f64), OutsideTable }
+
+fn cns_limit_minutes(ppo2_ata: f64) -> CnsLimit {
+    assert!(ppo2_ata.is_finite() && ppo2_ata >= 0.0);
+    if ppo2_ata <= 0.5 { return CnsLimit::BelowThreshold; }
+    for pair in CNS_LIMITS.windows(2) {
+        let [(p0, t0), (p1, t1)] = [pair[0], pair[1]];
+        if ppo2_ata <= p1 {
+            return CnsLimit::Minutes(t0 + (t1 - t0) * (ppo2_ata - p0) / (p1 - p0));
+        }
+    }
+    CnsLimit::OutsideTable
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct OxygenExposure {
+    cns_fraction: f64,
+    cns_outside_table: bool,
+    otu: f64, // cumulative dose, NOT a daily or rolling-window budget
+}
+
+impl OxygenExposure {
+    fn accumulate(&mut self, ppo2_bar: f64, duration: f64) {
+        assert!(duration.is_finite() && duration >= 0.0);
+        assert!(ppo2_bar.is_finite() && ppo2_bar >= 0.0);
+        if duration == 0.0 { return; }
+        let p = ppo2_bar / BAR_PER_ATA;
+        match cns_limit_minutes(p) {
+            CnsLimit::BelowThreshold => return,
+            CnsLimit::Minutes(limit) => self.cns_fraction += duration / limit,
+            CnsLimit::OutsideTable => self.cns_outside_table = true,
+        }
+        self.otu += duration * ((p - 0.5) / 0.5).powf(5.0 / 6.0);
+    }
+
+    fn decay_cns(&mut self, elapsed: f64) {
+        assert!(elapsed.is_finite() && elapsed >= 0.0);
+        self.cns_fraction *= 2f64.powf(-elapsed / CNS_HALF_TIME_MINUTES);
+    }
+
+    fn cns_percent(&self) -> Option<f64> {
+        if self.cns_outside_table { None } else { Some(self.cns_fraction * 100.0) }
+    }
+}
+```
+
+Above 1.6 ATA, this implementation marks the CNS estimate incomplete; it does not return an unsupported 45-minute allowance. The flag persists through a surface interval because decaying the known fraction cannot reconstruct the missing exposure. Other operational tables cover other conditions, but their limits cannot simply be borrowed here. The traditional table is also not the last word: a 2025 expert reassessment addresses specific working/resting exposures at 1.3 ATA, without replacing every row of this scheme.[^oxygen2025]
+
+The model gains an `oxygen` field initialized with `OxygenExposure::default()`:
+
+```rust
+#[derive(Debug, Clone, Copy)]
+struct DecoModel {
+    compartments: [Compartment; COMPARTMENTS],
+    environment: Environment,
+    oxygen: OxygenExposure,
+}
+
+impl DecoModel {
+    fn record_pressure(&mut self, ambient: f64, duration: f64, gas: Gas) {
+        assert!(ambient.is_finite() && ambient > WATER_VAPOUR);
+        assert!(duration.is_finite() && duration >= 0.0);
+        let p_alv = gas.n2() * (ambient - WATER_VAPOUR);
+        for c in &mut self.compartments {
+            c.constant_depth(p_alv, duration);
+        }
+        self.oxygen.accumulate(gas.ppo2(ambient), duration);
+    }
+
+    fn record(&mut self, depth_m: f64, duration: f64, gas: Gas) {
+        self.record_pressure(self.environment.ambient_at(depth_m), duration, gas);
+    }
+
+    fn surface_interval(&mut self, duration: f64) {
+        self.record(0.0, duration, Gas::AIR);
+        self.oxygen.decay_cns(duration); // assumes surface air below the exposure threshold
+    }
+}
+```
+
+On open circuit, the oxygen clock uses the breathing-gas fraction times absolute ambient pressure; the simplified inspired inert-gas calculation subtracts water vapour. One hour at 30 m on EAN32 in the conventional sea-level environment gives 1.284 bar, or 1.267 ATA, about 86 OTU and 32% CNS for this table. That is an oxygen-accounting example, not a complete dive profile.
+
+The `otu` field is only a cumulative integral. Daily and multiday REPEX comparisons need dated dose records, splitting segments at the chosen day/window boundaries and summing the appropriate periods.[^8] An application would store those records separately; carrying one ever-growing scalar through a holiday does not implement a daily budget. The examples here make no claim to implement that ledger.
+
+## From Ceiling to Schedule
+
+The no-decompression limit says when a diver has to start up. The ceiling says how shallow they may be once they do. Neither says how long they hang there, and that last number is the one a diver actually reads off their wrist.
+
+Getting from a ceiling to a schedule is a loop: consider the next shallower level on a stop grid, conventionally 3 metres, simulate whether it can be reached, and wait if it cannot. Grid levels crossed without waiting are travel waypoints rather than decompression stops.
+
+The ascent between stops is where Schreiner's equation[^9] earns its place. A diver leaving 40 metres for a 6 metre stop at 10 metres per minute spends 3.4 minutes at continuously falling pressure, and `constant_depth` has no way to express that. So `transit` gets written out properly, with the rate term, next to `constant_depth` on `Compartment`:
+
+```rust
+impl Compartment {
+    fn transit(&mut self, p_alv0: f64, rate: f64, duration: f64) {
+        let k = std::f64::consts::LN_2 / self.half_time;
+        let e = (-k * duration).exp();
+        self.tension = p_alv0 + rate * (duration - 1.0 / k) - (p_alv0 - self.tension - rate / k) * e;
+    }
+}
+
+impl DecoModel {
+    fn record_transit(&mut self, from_m: f64, to_m: f64, duration: f64, gas: Gas) {
+        assert!(duration.is_finite() && duration >= 0.0);
+        if duration == 0.0 {
+            assert_eq!(from_m, to_m, "movement requires positive duration");
+            return;
+        }
+        let from = self.environment.ambient_at(from_m);
+        let to = self.environment.ambient_at(to_m);
+        let start = gas.n2() * (from - WATER_VAPOUR);
+        let end = gas.n2() * (to - WATER_VAPOUR);
+        let rate = (end - start) / duration;
+
+        for c in &mut self.compartments {
+            c.transit(start, rate, duration);
+        }
+        // The exposure functions are nonlinear: integrate in <= 1-second slices.
+        let steps = (duration * 60.0).ceil() as usize;
+        for step in 0..steps {
+            let fraction = (step as f64 + 0.5) / steps as f64;
+            let ambient = from + (to - from) * fraction;
+            self.oxygen.accumulate(gas.ppo2(ambient), duration / steps as f64);
+        }
+        if gas.ppo2(from.max(to)) / BAR_PER_ATA > 1.6 {
+            self.oxygen.cns_outside_table = true;
+        }
+    }
+}
+```
+
+`transit` sits beside `constant_depth` and does the same job across a ramp instead of a step. Set `rate` to zero and the two agree exactly. `record_transit` is the only place that has to know the difference: it turns both depths into pressures, works out how fast inspired nitrogen is falling, and hands every compartment the same pair of numbers.
+
+Charging an entire ascent at its shallow endpoint underestimates the pressure breathed, giving falsely low tissue tensions. But a stop can also disappear during a correctly integrated ascent as tissues off-gas. The distinction is whether the full pressure history was integrated. Oxygen's one-second midpoint integration is an approximation; the tissue ramp solution is analytic for a fixed mixture. Reducing the oxygen step size provides a convergence check, and Baker gives analytic exposure integrals as an alternative.[^oxygenmath]
+
+The schedule itself is the loop described above, `record_transit` to move and `record` to wait. The knobs come out as a config, since the last stop depth and the ascent rate are both things a diver sets:
+
+```rust
+const STOP_INTERVAL: f64 = 3.0;
+
+#[derive(Debug, Clone, Copy)]
+struct Leg { from: f64, to: f64, duration: f64, gas: Gas }
+
+#[derive(Debug, Clone, Copy)]
+struct AscentConfig {
+    stop_interval: f64,
+    ascent_rate: f64,
+    last_stop: f64,
+    max_wait: u32,
+    oxygen_limits: OxygenLimits,
+    phase: OxygenPhase,
+}
+
+impl Default for AscentConfig {
+    fn default() -> Self {
+        Self {
+            stop_interval: STOP_INTERVAL, ascent_rate: 10.0,
+            last_stop: STOP_INTERVAL, max_wait: 600,
+            oxygen_limits: OxygenLimits::new(0.16, 1.4, 1.6),
+            phase: OxygenPhase::Working,
+        }
+    }
+}
+
+impl AscentConfig {
+    fn validate(&self, from_depth_m: f64) -> Result<(), PlanError> {
+    if ![from_depth_m, self.stop_interval, self.ascent_rate, self.last_stop]
+        .iter().all(|v| v.is_finite())
+        || from_depth_m < 0.0 || self.stop_interval <= 0.0
+        || self.ascent_rate <= 0.0 || self.last_stop < self.stop_interval
+        || from_depth_m / self.stop_interval > 10_000.0
+        || from_depth_m / self.ascent_rate > 600.0
+        || (self.last_stop / self.stop_interval).fract().abs() > 1e-8
+    { return Err(PlanError::InvalidConfig); }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+enum PlanError { InvalidConfig, CeilingViolation, NoUsableGas, TimeLimit, OxygenOutsideTable }
+
+#[derive(Debug)]
+struct AscentPlan {
+    legs: Vec<Leg>, // includes travel AND waiting
+    final_model: DecoModel,
+}
+
+impl AscentPlan {
+    fn time_to_surface(&self) -> f64 {
+        self.legs.iter().map(|leg| leg.duration).sum()
+    }
+}
+
+fn checked_transit(
+    model: &DecoModel, from: f64, to: f64, gas: Gas, config: &AscentConfig,
+) -> Result<Option<DecoModel>, PlanError> {
+    let duration = (from - to) / config.ascent_rate;
+    let steps = (duration * 60.0).ceil().max(1.0) as usize;
+    let dt = duration / steps as f64;
+    let mut trial = *model;
+    for i in 0..steps {
+        let start = from + (to - from) * i as f64 / steps as f64;
+        let end = from + (to - from) * (i + 1) as f64 / steps as f64;
+        for depth in [start, end] {
+            if !config.oxygen_limits.accepts(gas, trial.environment.ambient_at(depth), config.phase) {
+                return Err(PlanError::NoUsableGas);
+            }
+        }
+        if trial.ceiling() > start + 1e-8 { return Ok(None); }
+        trial.record_transit(start, end, dt, gas);
+        if trial.oxygen.cns_outside_table { return Err(PlanError::OxygenOutsideTable); }
+        if trial.ceiling() > end + 1e-8 { return Ok(None); }
+    }
+    Ok(Some(trial))
+}
+
+fn plan_ascent(
+    model: &DecoModel, from_depth_m: f64, gas: Gas, config: &AscentConfig,
+) -> Result<AscentPlan, PlanError> {
+    config.validate(from_depth_m)?;
+    let mut probe = *model;
+    let mut legs = Vec::new();
+    let mut depth = from_depth_m;
+    let mut waited = 0;
+    if probe.oxygen.cns_outside_table { return Err(PlanError::OxygenOutsideTable); }
+    if probe.ceiling() > depth + 1e-8 { return Err(PlanError::CeilingViolation); }
+    while depth > 0.0 {
+        let target = if depth <= config.last_stop { 0.0 } else {
+            (((depth / config.stop_interval).ceil() - 1.0) * config.stop_interval)
+                .max(config.last_stop)
+        };
+        // Deliberately require the next level to clear before departing.
+        // Then check that it stays clear during the simulated travel.
+        let trial = if probe.ceiling() <= target + 1e-8 {
+            checked_transit(&probe, depth, target, gas, config)?
+        } else { None };
+        if let Some(arrived) = trial {
+            legs.push(Leg { from: depth, to: target,
+                duration: (depth - target) / config.ascent_rate, gas });
+            probe = arrived;
+            depth = target;
+        } else {
+            if waited >= config.max_wait { return Err(PlanError::TimeLimit); }
+            if !config.oxygen_limits.accepts(gas, probe.environment.ambient_at(depth), config.phase) {
+                return Err(PlanError::NoUsableGas);
+            }
+            probe.record(depth, 1.0, gas);
+            if probe.oxygen.cns_outside_table { return Err(PlanError::OxygenOutsideTable); }
+            if probe.ceiling() > depth + 1e-8 { return Err(PlanError::CeilingViolation); }
+            legs.push(Leg { from: depth, to: depth, duration: 1.0, gas });
+            waited += 1;
+        }
+    }
+    Ok(AscentPlan { legs, final_model: probe })
+}
+```
+
+`plan_ascent` takes the model by shared reference and works on `probe`, a copy. Projecting an ascent is answering a hypothetical, and a planner that mutated the tissue state of the diver actually in the water would be computing a schedule for a dive that never happened. That's the argument for calling the type `DecoModel` rather than `Diver` in the first place.
+
+The planner visits successive grid levels, including ones requiring no wait. It also works when called from a stop already in progress. A time limit returns `Err(TimeLimit)`, never a partial schedule presented as complete. Successful completion includes arrival at surface pressure with no remaining ceiling, and the returned `final_model` is the state from which a hypothetical surface interval begins. The real tracked model remains untouched.
+
+Configuration validation also caps the grid at 10,000 levels and travel at 600 minutes to bound the computation; these are software limits, not diving limits. These are discrete feasibility checks at intervals of at most one second, not a proof of the continuous trajectory. The extra rule that the next level must clear *before* departure is deliberately conservative relative to planners that credit off-gassing en route. Different choices here can change stop times even with identical coefficients.
+
+For an instantaneous descent followed by 30 m/15 min on air, the result has travel legs but no waiting legs. The three-minute ascent is part of time to surface. An optional safety stop would be an additional policy, not an obligation inferred from the M-values.
+
+For the same square-profile convention at 40 m/25 min on air, the displayed A table gives:
+
+```
+6 m for 5 min, 3 m for 9 min
+14 min waiting + 4 min travel = 18 min time to surface
+```
+
+The initial 6.47 m ceiling rounds *deeper* to 9 m on a 3 m grid. By arrival at 9 m, correct travel integration has lifted it to about 5.65 m, so no wait is needed there. The first positive-duration stop is at 6 m. Confusing the first rounded target with the first waiting stop was the source of an earlier incorrect explanation.
+
+All these numerical examples use the displayed raw A coefficients, 1.01325 bar at the surface and 10 m/bar. They omit descent time rather than charging it at the final depth. Charging a real descent wholly at its deep endpoint would instead overestimate inert loading relative to a ramp. Bottom oxygen limits must be checked when accepting a planned profile; the ascent routine checks only the portion it simulates.
+
+## Where This Leaves Us
+
+The tissue model now has an environment, persistent loading, a gas input, oxygen accounting and a bounded ascent simulation. That is still a teaching model: oxygen's daily ledger, gas supply, device alarm rules and physiological validation are separate concerns.
+
+The [third article](https://rokajdnik.com/the-algorithms-inside-a-technical-dive/) adds helium and equivalent narcotic depth, gas-switch events and counterdiffusion warnings, real-gas cylinder inventory, gradient factors and rebreather gas calculations.
+
+Cover photograph: Peter Southwood, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Shearwater_Perdix_showing_decompression_obligations_just_before_ascent_P5230276.jpg).
+
+[^1]: Wikipedia. _Bühlmann decompression algorithm_ [https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm](https://en.wikipedia.org/wiki/Bühlmann_decompression_algorithm)
+
+[^2]: Wikipedia. _Barometric formula_ [https://en.wikipedia.org/wiki/Barometric_formula](https://en.wikipedia.org/wiki/Barometric_formula)
+
+[^4]: Divers Alert Network. _Guidelines for Flying After Diving_ [https://dan.org/health-medicine/health-resource/health-safety-guidelines/guidelines-for-flying-after-diving/](https://dan.org/health-medicine/health-resource/health-safety-guidelines/guidelines-for-flying-after-diving/)
+
+[^5]: Divers Alert Network. _Oxygen Toxicity_ [https://dan.org/health-medicine/health-resources/diseases-conditions/oxygen-toxicity/](https://dan.org/health-medicine/health-resources/diseases-conditions/oxygen-toxicity/)
+
+[^8]: Hamilton, R. W., et al. (1988). _Repetitive Excursions (REPEX) habitat diving procedures_, summarised in Cumbria Hyperbaric, _Oxygen Tolerance Part Three: Pulmonary Oxygen Toxicity & The Repex Method_ [https://cumbria-hyperbaric.org/2019/09/09/oxygen-tolerance-part-three-pulmonary-oxygen-toxicity-the-repex-method/](https://cumbria-hyperbaric.org/2019/09/09/oxygen-tolerance-part-three-pulmonary-oxygen-toxicity-the-repex-method/)
+
+[^9]: Schreiner, H. R., Kelley, P. L. (1971). _A Pragmatic View of Decompression_, in Proceedings of the Fourth Symposium on Underwater Physiology. The equation and derivation are reproduced in Baker, E. C., _Introductory Deco Lessons_, pp. 4–9. [PDF](https://cdn.shopify.com/s/files/1/0838/3732/1530/files/Introductory-Deco-Lessons.pdf?v=1710181582)
+
+[^density]: Shearwater. _Predator support_, explanation of depth readings and salinity settings. [Manufacturer documentation](https://shearwater.com/en-eu/pages/predator-support).
+
+[^petrel]: Shearwater. _Petrel 3 Technical Manual_, Advanced Config 2: OC MOD and OC Deco PO₂. Settings are documented in ATA; policies depend on mode and gas classification. [Manual](https://cdn.shopify.com/s/files/1/0838/3732/1530/files/Petrel-3_Technical_Manual_RevB.pdf?v=1710193368).
+
+[^oxygenmath]: Baker, E. C. _Oxygen Toxicity Calculations_. [PDF](https://cdn.shopify.com/s/files/1/0838/3732/1530/files/Oxygen_Toxicity_Calculations.pdf?v=1710181583).
+
+[^oxygen2025]: Hoyt et al. (2025). Expert reassessment of oxygen exposure guidance at 1.3 atmospheres. [Full paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC12500339/).

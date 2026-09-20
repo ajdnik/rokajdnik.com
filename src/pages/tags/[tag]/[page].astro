@@ -6,10 +6,11 @@ import { getCollection } from "astro:content";
 import Pagination from "../../../components/Pagination.astro";
 import type { BlogType } from "../../../content.config";
 import { formatDate } from "../../../utils/formatDate";
+import { isPublished } from "../../../utils/publishedBlogs";
 import { SITE_TITLE, SITE_AUTHOR } from "../../../consts";
 
 export const getStaticPaths = (async ({ paginate }) => {
-  const blogs: BlogType[] = await getCollection("blogs");
+  const blogs: BlogType[] = await getCollection("blogs", isPublished);
   const tags = [...new Set(blogs.flatMap((blog) => blog.data.tags))];
 
   return tags.flatMap((tag) => {
