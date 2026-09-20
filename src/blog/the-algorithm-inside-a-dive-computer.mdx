@@ -2,7 +2,7 @@
 slug: the-algorithm-inside-a-dive-computer
 title: "The Algorithm Inside a Dive Computer"
 description: "An introductory exploration into the algorithm driving dive computers: decompression theory, the Bühlmann ZH-L16 tissue model, M-values, and no-stop time, built step by step in Rust."
-date: 2026-08-09
+date: 2026-09-20
 author: "Rok Ajdnik"
 tags: ["scuba-diving", "dive-computers", "decompression-theory", "buhlmann-zh-l16", "diving-physics", "rust"]
 featured: true
@@ -27,7 +27,7 @@ import coke from "../assets/images/blog/the-algorithms-inside-a-dive-computer/co
 import tissueLoading from "../assets/images/blog/the-algorithms-inside-a-dive-computer/tissue-loading.webp";
 import decoObligation from "../assets/images/blog/the-algorithms-inside-a-dive-computer/deco-obligation.webp";
 
-I fell in love with SCUBA diving on my first dive in the Red Sea, at 16 years old. The colorful corals and fish made the underwater world feel like an alien planet, and a close encounter with a moray eel gave me enough of a thrill to cement that dive as one of my core memories. These days, divers enter that world with a device on their wrist to keep them safe: a watch-sized computer that models how the depths affect the body. It tells them how deep they can go, how long they can stay, and how to return to the surface safely. Given my computer science background, it was inevitable that I'd eventually take a deep dive, pun intended, into how these computers work, specifically, the algorithm keeping divers alive. Since the algorithm used in dive computers is relativelly complex, we'll break it down into smaller pieces and slowly build it together while exploring the wider concepts related to decompression theory which is the basis of algorithms running on dive computers.
+I fell in love with SCUBA diving on my first dive in the Red Sea, at 16 years old. The colorful corals and fish made the underwater world feel like an alien planet, and a close encounter with a moray eel gave me enough of a thrill to cement that dive as one of my core memories. In this article we'll explore decompression theory by building a simplified Bühlmann model in Rust. By the end you should have a better understanding of the science and math that keeps me and all the other divers alive when exploring the underwater world.
 
 <Callout type="warning">
   This article is for educational purposes only. It is not a guide for building or modifying your own decompression algorithm and using it to dive. Dive computers are life-support equipment, the algorithm must be developed, certified, and verified by qualified professionals and experts. Never dive on unverified or self-made decompression software.
@@ -53,7 +53,7 @@ Descending changes the pressure, and therefore the equilibrium. A diver at 30 me
   </figcaption>
 </figure>
 
-The trouble starts on the way back up. Think of a carbonated drink, bottled under high pressure so large amounts of CO₂ dissolve into the liquid. Pop the cap, the pressure drops, the equilibrium breaks, and the gas escapes as bubbles. The same happens in a diver's body during ascent. Some level of bubbling is normal and the body tolerates it fine. The bubbles are transported through the cardiovascular system to our lungs and we exhale them. But if bubbles form in the wrong place, quantity or volume, they can also cause all kinds of harm. When they do, we call it decompression sickness[^dcs].
+The trouble starts on the way back up. Think of a carbonated drink, bottled under high pressure so large amounts of CO₂ dissolve into the liquid. Pop the cap, the pressure drops, the equilibrium breaks, and the gas escapes as bubbles. The same happens in a diver's body during ascent. Similarly in our body nitrogen normally leaves the tissues dissolved in blood and diffuses into the lungs to be exhaled. Bubbles can also form, sometimes without symptoms, but they can cause decompression sickness.[^dcs].
 
 Now shake that bottle and open it slowly. Crack the cap, let some pressure out, wait, crack it further. The drink stays in the bottle. That's the whole idea behind a controlled ascent, and what decompression algorithms are built to schedule.
 
@@ -63,13 +63,13 @@ Now shake that bottle and open it slowly. Crack the cap, let some pressure out, 
 
 ## Simplified Algorithm 
 
-We'll implement arguably the most popular decompression algorithm, the Bühlmann ZH-L16[^buhlmann] with Gradient Factors. But we'll do it in peacemeal fashion, starting with a simpler version, not the fully featured one present in dive software. The Bühlmann ZH-L16 is commonly used in dive computers and for building dive tables meant for recreational[^recreational] and technical[^technical] SCUBA divers, while commercial[^commercial] and military divers normally use different algorithms[^thalmann][^dciem] custom designed for their needs. Besides ZH-L16, recreational and technical dive computers also use VPM-B[^vpm] or RGBM[^rgbm] models, but the focus here will be ZH-L16 as it seems to be most widely used.
+We'll implement arguably the most popular decompression algorithm, the Bühlmann ZH-L16[^buhlmann] with Gradient Factors. But we'll do it in piecemeal fashion, starting with a simpler version, not the fully featured one present in dive software. The Bühlmann ZH-L16 is commonly used in dive computers and for building dive tables[^dtables] meant for recreational[^recreational] and technical[^technical] SCUBA divers, while commercial[^commercial] and military divers normally use different algorithms[^thalmann][^dciem] custom designed for their needs. Besides ZH-L16, recreational and technical dive computers also use VPM-B[^vpm] or RGBM[^rgbm] models, but the focus here will be ZH-L16 as it seems to be most widely used.
 
 We'll start with a simplified version of the algorithm to master the basic concepts. For starters we'll focus on building an algorithm that can model a single dive to arbitrary depth, the dive will start at sea level and will be an ocean dive, meaning the diver will be diving in saltwater. The diver will also be breathing a single gas mixture of air. Parameters like repetitive dives, altitude of the dive, multiple breathing mixtures, water type all affect the physics of decompression and make the decompression model more complex. We'll also skip gradient factors[^gradientfactors], for now.
 
-### Modeling Human Body
+### Modeling the Human Body
 
-A dive computer does not measure dissolved nitrogen in the diver's tissues. Instead it measures pressure and elapsed time, combines them with the selected breathing gas, and mathematically models what's happening in your body based on the input parameters. These models are generic, they aren't customized for each person and their body composition. They were built through decades of experiments, starting with John Scott Haldane[^haldane], alongside Arthur Boycott and Guybon Damant[^boycott], who in 1908 proposed first such model.
+A dive computer does not measure dissolved nitrogen in the diver's tissues. Instead it measures pressure and elapsed time, combines them with the selected breathing gas, and mathematically models what's happening in your body based on the input parameters. These models are generic, they aren't customized for each person and their body composition. They were built through decades of experiments, starting with John Scott Haldane[^haldane], alongside Arthur Boycott and Guybon Damant[^boycott], who in 1908 proposed the first such model.
 
 They treated the body as a set of theoretical compartments, five in total, each a sponge soaking up and releasing gas at its own fixed rate. Bühlmann ZH-L16[^buhlmann] uses sixteen, numbered fastest to slowest. Compartment 1's half-time is 4 minutes and stands in for well-perfused, blood-rich tissue such as blood itself or the brain; compartment 16's is 635 minutes, over 10 hours, standing in for poorly perfused tissue like fat, ligaments, or cartilage. None correspond to a specific organ. They're a mathematical convenience covering the range of speeds real tissue might load and unload nitrogen at, and the 16 in ZH-L16 refers to them.
 
@@ -107,9 +107,9 @@ impl Compartment {
 }
 ```
 
-The code assumes, similarly as Haldane's equation, that the inspired pressure didn't change during the while duration. Real dive computers normally sample pressure multiple times per second, filtering readings to reduce noise, then they update compartment tensions once per second to mitigate Haldane's assumption and to provide a more accurate modeling of tissues.
+The code assumes, similarly as Haldane's equation, that the inspired pressure didn't change throught the interval. Real dive computers normally sample pressure multiple times per second, filtering readings to reduce noise, then they update compartment tensions once per second to mitigate Haldane's assumption and to provide a more accurate modeling of tissues.
 
-We'll model 16 tissue compartment like Bühlmann's, and use his published half-times in ZH-L16[^buhlmann].
+We'll model 16 tissue compartments like Bühlmann's, and use his published half-times in ZH-L16[^buhlmann].
 
 ```rust
 const COMPARTMENTS: usize = 16;
@@ -134,7 +134,7 @@ fn equilibrated(surface_n2: f64) -> [Compartment; COMPARTMENTS] {
 
 ### M Values
 
-Tracking nitrogen loading is only half the problem. A tissue tension on its own isn't useful, to answer the question posed at the begining of the article, we need to compare the tissue tenson against another value. M-value[^mvalues] is a ceiling value for a compartment: the tissues's maximum tolerated nitrogen tension at a given ambient pressure. Exceeding M-value doesn't mean a diver will automatically get a decompression sickness, staying below the M-value also doesn't mean they won't. The value is just a statistical limit where keeping tissues below their M-value tension significantly reduces the risk of decompression sickness.
+Tracking nitrogen loading is only half the problem. A tissue tension on its own isn't useful, to answer the question posed at the beginning of the article, we need to compare the tissue tension against another value. M-value[^mvalues] is a ceiling value for a compartment: the tissue's maximum tolerated nitrogen tension at a given ambient pressure. Exceeding M-value doesn't mean a diver will automatically develop decompression sickness, staying below the M-value also doesn't mean they won't. The value is just a statistical limit where keeping tissues below their M-value tension significantly reduces the risk of decompression sickness.
 
 Robert Workman introduced them at the US Navy in 1965[^workman], replacing Haldane's fixed 2:1 ratio with the observation that each compartment tolerates a different absolute overpressure, and that the tolerance changes with depth. Bühlmann used Workman's M-value equation, but he modified it to use ambient pressure instead of depth, which made it portable to altitude diving[^chapman]:
 
@@ -210,7 +210,7 @@ static ZH_L16C_N2: GasTable = GasTable {
 };
 ```
 
-The `HALF_TIMES` array from the previous section has been absorbed into `ZH_L16C_N2.half_times`, with one difference, the first compartment's half-time is 5 minutes instead of 4. These arrays follow Subsurface's published C implementation.[^subsurface]. The $a$ and $b$ coefficients are for nitrogen specifically, other gasses have different coefficients. Bühlmann produced 3 sets of a/b coefficients for nitrogen. A, B, and C, and which one a given piece of software implements changes how conservative the resulting model is.
+The `HALF_TIMES` array from the previous section has been absorbed into `ZH_L16C_N2.half_times`. We've expanded the model to include `a` and `b` arrays from the Subsurface's published C implementation[^subsurface]. The $a$ and $b$ coefficients are for nitrogen specifically, other gases have different coefficients. Bühlmann produced 3 sets of a/b coefficients for nitrogen. A, B, and C, and which one a given piece of software implements changes how conservative the resulting model is.
 
 ZH-L16A[^buhlmann] is the original, purely mathematical dataset, where Bühlmann derived $a$ and $b$ directly from each compartment's half-time. ZH-L16B tightens the $a$ coefficient for some compartments, while leaving the rest of the table equal to A[^buhlmann]. Bühlmann recommended B for table calculation and C for dive computers.[^mvalues] Rounding a table toward greater depth and longer time can add conservatism; rounding in the opposite direction can remove it.
 
@@ -222,7 +222,7 @@ With Haldane's equation to track nitrogen loading and M-values to define a model
 2. Update all 16 compartments using Haldane's equation, based on how long the diver has been at that depth.
 3. Find the controlling compartment based on M-value parameters for each compartment and determine the ceiling pressure.
 
-If the pressure is 0, that means the diver can surface safely, if it starts increasing it means the diver needs to wait at the defined depth before surfacing. It's worth mentioning that dive computers usually have a safety stop programmed in, which is enforced even when ceiling pressure is 0. It's there for extra safety and is usually a 3 minute stop at 5 meters. The stop is included because, as previously mentioned, the algorithm can't model diver's body and tissues, it's just a series of statistical curves fitted over a population.
+If the ceiling depth is zero, that means the diver can surface safely, if it starts increasing it means the diver needs to wait at the defined depth before surfacing. It's worth mentioning that dive computers usually have a safety stop programmed in, which is normally configured to triger even when ceiling depth is 0. It's there for extra safety and is usually a 3 minute stop at 5 meters. The stop is included because, as previously mentioned, the algorithm can't model diver's body and tissues, it's just a series of statistical curves fitted over a population. This stop isn't a decompression stop, those are defined when ceiling depth is greater than 0.
 
 <figure>
   <Image
@@ -230,7 +230,7 @@ If the pressure is 0, that means the diver can surface safely, if it starts incr
     alt="A Shearwater Perdix dive computer at 42.6 metres, showing a stop depth of 18 metres, a ceiling of 17 metres and a total ascent time of 29 minutes"
   />
   <figcaption>
-    Dive computer in action. This diver is at 42.6 m with 26 minutes of elapsed dive time on a special gas mixture called 26/15 trimix. `CEIL 17` is the ceiling depth, `STOP 18` is that ceiling rounded to the next 3 m increment, and `TTS 29` is the total time to surface if the diver starts ascending. Photo by Peter Southwood, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Shearwater_Perdix_showing_decompression_obligations_just_before_ascent_P5230276.jpg).
+    Dive computer in action. This diver is at 42.6 m with 26 minutes of elapsed dive time on a special gas mixture called 26/15 trimix. `CEIL 17` is the ceiling depth, `STOP 18` is the next predicted decompression stop, and `TTS 29` is the total time to surface if the diver starts ascending. Photo by Peter Southwood, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Shearwater_Perdix_showing_decompression_obligations_just_before_ascent_P5230276.jpg).
   </figcaption>
 </figure>
 
@@ -247,7 +247,7 @@ struct DecoModel {
 }
 
 impl DecoModel {
-    fn new(table: GasTable) -> Self {
+    fn new(table: &GasTable) -> Self {
         let surface_n2 = FRACTION_N2 * (SURFACE_PRESSURE - WATER_VAPOUR);
         DecoModel {
             compartments: std::array::from_fn(|i| Compartment {
@@ -290,7 +290,7 @@ We'll run `record` to log each discrete time step and update tissue tension for 
 Here's how we can simulate a 45 minute dive at 30 meters, breathing air:
 
 ```rust
-let mut model = DecoModel::new(ZH_L16C_N2);
+let mut model = DecoModel::new(&ZH_L16C_N2);
 
 for minute in 1..=45 {
     model.record(30.0, 1.0);
@@ -301,15 +301,15 @@ for minute in 1..=45 {
 }
 ```
 
-This square-profile[^dprofile] simulation omits descent time. It assumes the diver will immediatelly descend down to 30 meters, stay at that depth the whole time and then immediatelly ascend to the surface. Before dive computers were invented these kind of profiles were more common and were usually calculated manually based of dive tables[^dtables]. Running the code above we'd see no ceiling for the first 16 minutes. At 17 minutes a ceiling appears, 14 centimetres of it, and it grows the longer the bottom time stretches: 0.95 m at 20 minutes, 2.9 m at 30, 4.8 m at 45.
+This simulation simplifies a few things, for one it assumes the diver just teleports themselves down to 30 meters and then teleport themselves to the ceiling depth, it doesn't account for descent and ascent. The other simplification is that the diver will remain at 30 meters throughout the whole dive, while is also inaccurate. Real dive profiles[^dprofile] are much more noisy. Running the code above we'd see no ceiling for the first 16 minutes. At 17 minutes a ceiling appears, 14 centimetres of it, and it grows the longer the bottom time stretches: 0.95 m at 20 minutes, 2.9 m at 30, 4.9 m at 45.
 
-We can use a mathematical shortcut to compute no-stop time[^ndl] for dives like these. Modern computers usually have a "Plan Dive" feature which displays no-stop time for a selected depth so the diver knows how long they could stay at a given depth without hitting the ceiling and having to perform decompression stops. We just need to solve Haldane's equation for when the inspired pressure $P_i$ crosses the surface M-value $M_s$, and then use the below equation to get the time: 
+We can use a mathematical shortcut to compute no-stop time[^ndl] for dives like these. Modern computers usually have a "Plan Dive" feature which displays no-stop time for a selected depth so the diver knows how long they could stay at a given depth without hitting the ceiling and having to perform decompression stops. We just need to solve Haldane's equation for when the tissue tension crosses the surface M-value $M_s$, and then use the below equation to get the time: 
 
 $$
 t = -h\log_2\left(\frac{P_i-M_s}{P_i-P_0}\right)
 $$
 
-Finding the compartment where this time $t$ is the smallest gives us the no-stop time. If no compartments crosses their surface M-value $M_s$ at a given depth, then the diver can theoretically stay at that depth indefinitelly and always be able to surface without any ceilings.
+Finding the compartment where this time $t$ is the smallest gives us the no-stop time. If no compartment crosses their surface M-value $M_s$ at a given depth, then the diver can theoretically stay at that depth indefinitely and always be able to surface without any ceilings. Similarly as dive computer's "Plan Dive" function this calculation also assumes constant depth and no gas changes during ascent.
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -342,13 +342,11 @@ impl DecoModel {
 }
 ```
 
-At 30 metres on air from surface-equilibrated tissues, this returns 16.54 minutes. At sufficiently shallow depths it returns `Unlimited`, this infinite ceiling only applies to nitrogen loading in tissues, when doing multi hour dives at shallower depths we also need to account for oxygen exposure limits. But that's a story for another time.
+At 30 metres on air from surface-equilibrated tissues, this returns 16.54 minutes. At sufficiently shallow depths it returns `Unlimited`, this infinite ceiling only applies to nitrogen loading in tissues, when doing multi hour dives at shallower depths we also need to account for gas supply limits and thermal exposure limits. Those limits are normaly managed by divers themselves, not dive algorithms.
 
 ### Ascent Rates
 
-The model we were using so far assumed the diver immediatelly descends to the target depth and after the dive's end immediatelly surfces. This discrete time stemp approach works for dive computers since they can sample its sensors every second and update the loop, doing this every second hides the problem of ascent and descent rates from the math. That said, dive computers still monitor ascent rates and warn divers if the exceed the recommended ascent rate according to dive standards.
-
-Dive planning software has the opposite problem: it wants to project an ascent that hasn't happened yet, in one calculation, over minutes at a time. To solve this Schreiner and Kelley[^schreiner] published an equation in 1971, which extends Haldane's equation with a term for a linearly changing inspired pressure:
+The model we were using so far relied on frequent updates through `record` calls to approximate changing pressure through discrete constant-pressure intervals. For a dive computer which samples ambient pressure every second and updates the tissue compartments, that's good enough. But if we'd building a dive planning software, we need to have a way to account for pressure change when computing tissue tension. To solve this Schreiner and Kelley[^schreiner] published an equation in 1971, which extends Haldane's equation with a term for a linearly changing inspired pressure:
 
 $$
 P(t) = P_{alv_0} + R\left(t - \frac{1}{k}\right) - \left(P_{alv_0} - P_0 - \frac{R}{k}\right)e^{-kt}
@@ -374,7 +372,7 @@ Comparing the function to `constant_depth` it takes in one additional parameter 
 
 The decompression model we've implemented so far is simple enough to write on a napkin, we're modeling 16 tissue compartments, using Haldane's equation to calculate tissue pressure and M-values to determine compartment limits. We've implemented a simple loop which can be used to simulate a dive or update it in real-time. Lastly we've implemented a no-stop time computation and accounted for ascent rates.
 
-That said, the model still makes a lot of assumptions. It assumes seawater, sea level, one dive, and one cylinder of air. And importantly, the model can only answer one part of the original question we defined. It can only answer how shallow a diver can safely be at any given time, but nothing about how long they must wait to go shallower.
+That said, the model still makes a lot of assumptions. It assumes seawater, sea level, one dive, and one cylinder of air. Most importantly, the model only tries answering one part of the original question we defined: what's the shallowest depth permitted by the model. But it can't help us figure out how long the diver should stay at a certain depth before ascending.
 
 We'll continue building the model in the second article of the series.
 
