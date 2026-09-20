@@ -232,8 +232,10 @@ export function DiveChartTooltip({
   payload,
   label,
   formatLabel,
+  formatValue = (value) => `${value.toFixed(3)} bar`,
 }: TooltipContentProps<number, string> & {
   formatLabel: (value: number) => string;
+  formatValue?: (value: number) => string;
 }) {
   if (!active || !payload?.length || label === undefined) return null;
   return (
@@ -243,7 +245,7 @@ export function DiveChartTooltip({
         {payload.map((entry) => (
           <li key={String(entry.dataKey)}>
             <span>{entry.name}</span>
-            <strong>{Number(entry.value).toFixed(3)} bar</strong>
+            <strong>{formatValue(Number(entry.value))}</strong>
           </li>
         ))}
       </ul>

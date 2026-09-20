@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { diveProfileData } from "../src/components/dive-profile-data";
 import {
   loadingData,
   loadingCompartments,
@@ -12,8 +13,8 @@ import {
 
 test("loading samples retain the article's verified square-profile values", () => {
   expect(loadingData[0].compartment1).toBeCloseTo(0.7509345, 10);
-  expect(loadingData[8].compartment1).toBeCloseTo(1.9359345, 10); // one 4-minute half-time
-  expect(loadingData[60].compartment1).toBeCloseTo(3.1078419760045928, 10);
+  expect(loadingData[10].compartment1).toBeCloseTo(1.9359345, 10); // one 5-minute half-time
+  expect(loadingData[60].compartment1).toBeCloseTo(3.08390325, 10);
   expect(loadingData.at(-1)!.compartment16).toBeCloseTo(0.8179140520228215, 10);
   expect(loadingData[59].inspired).toBeCloseTo(3.1209345, 10);
   expect(loadingData[60].inspired).toBeCloseTo(0.7509345, 10);
@@ -27,7 +28,7 @@ test("loading samples retain the article's verified square-profile values", () =
 
 test("M-value plot agrees with all sixteen C compartments and the verified intersections", () => {
   const article = readFileSync(
-    "src/blog/the-algorithms-inside-a-dive-computer.mdx",
+    "src/blog/the-algorithm-inside-a-dive-computer.mdx",
     "utf8",
   );
   const table = article.match(
@@ -71,13 +72,54 @@ test("M-value plot agrees with all sixteen C compartments and the verified inter
   }
 });
 
+test("multilevel profile includes every stay and travels at the specified rates", () => {
+  expect(diveProfileData).toHaveLength(1906); // surface, then 1,905 seconds
+  for (const [second, depth] of [
+    [0, 0],
+    [75, 25],
+    [375, 25],
+    [465, 10],
+    [1665, 10],
+    [1695, 5],
+    [1875, 5],
+    [1905, 0],
+  ]) {
+    expect(diveProfileData[second].time).toBeCloseTo(second / 60, 10);
+    expect(diveProfileData[second].depth).toBe(depth);
+  }
+  for (let second = 1; second < diveProfileData.length; second++) {
+    const previous = diveProfileData[second - 1];
+    const current = diveProfileData[second];
+    const speed =
+      (current.depth - previous.depth) / (current.time - previous.time);
+    const expected =
+      second <= 75
+        ? 20
+        : (second > 375 && second <= 465) ||
+            (second > 1665 && second <= 1695) ||
+            second > 1875
+          ? -10
+          : 0;
+    expect(speed).toBeCloseTo(expected, 8);
+  }
+});
+
 const charts = [
   {
-    slug: "the-algorithms-inside-a-dive-computer",
+    slug: "the-algorithm-inside-a-dive-computer",
     id: "compartment-loading",
     lines: 5,
   },
-  { slug: "the-algorithms-inside-a-technical-dive", id: "m-values", lines: 4 },
+  {
+    slug: "the-algorithm-inside-a-dive-computer",
+    id: "dive-profile",
+    lines: 1,
+  },
+  {
+    slug: "the-algorithm-inside-a-technical-dive-computer",
+    id: "m-values",
+    lines: 4,
+  },
 ];
 
 for (const chart of charts) {
@@ -115,7 +157,9 @@ for (const chart of charts) {
       await svg.focus();
       await page.keyboard.press("ArrowRight");
       await expect(plot.locator(".dive-chart-tooltip")).toBeVisible();
-      await expect(plot.locator(".dive-chart-tooltip")).toContainText("bar");
+      await expect(plot.locator(".dive-chart-tooltip")).toContainText(
+        chart.id === "dive-profile" ? " m" : "bar",
+      );
       await page.keyboard.press("Escape");
       await expect(plot.locator(".dive-chart-tooltip")).not.toBeVisible();
       await page.mouse.move(0, 0);

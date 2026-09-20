@@ -14,7 +14,7 @@ export function haldane(
 }
 
 export const loadingCompartments = [
-  { key: "compartment1", number: 1, halfTime: 4 },
+  { key: "compartment1", number: 1, halfTime: 5 },
   { key: "compartment5", number: 5, halfTime: 27 },
   { key: "compartment9", number: 9, halfTime: 109 },
   { key: "compartment16", number: 16, halfTime: 635 },
