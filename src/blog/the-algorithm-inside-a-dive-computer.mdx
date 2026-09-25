@@ -374,7 +374,7 @@ Compared with `constant_depth`, this function takes one additional parameter, `r
 
 ## Putting It All Together
 
-Let's give the model a complete dive, from leaving the surface to returning to it. We'll descend at 20 metres per minute, spend five minutes at 25 metres, then ascend at 10 metres per minute to 10 metres for another 20 minutes. On the way back to the surface, we'll include a three-minute safety stop at five metres.
+Let's give the model a complete dive, from leaving the surface to returning to it. We'll descend at 20 metres per minute, spend five minutes at 25 metres, then ascend at 10 metres per minute to 10 metres for another 20 minutes. On the way back to the surface, we'll include a three-minute safety stop at five metres. We want to understand if we'll remain within the no-stop limits, or if we'll hit a decompression ceiling. Remember, our model doesn't have the ability to recommend decompression stops given a ceiling, yet. Unfortunatelly, we can't use the `no_stop_time` since that equation isn't capable of modeling complex multi-level dive profiles. 
 
 <figure>
   <DiveProfileDiagram client:visible />
@@ -383,7 +383,7 @@ Let's give the model a complete dive, from leaving the surface to returning to i
   </figcaption>
 </figure>
 
-We can also watch the nitrogen tensions behind this profile. Move the slider below to see all sixteen compartments at that moment. The arrows show whether each compartment is taking up or releasing nitrogen. A compartment can be off-gassing while its tension is still below ambient pressure.
+The interactive display below is our model in action for the described profile. Move the slider below to see all sixteen compartments at that moment. The arrows show whether each compartment is taking up or releasing nitrogen. A compartment can be off-gassing while its tension is still below ambient pressure. If at any point in time any of the compartments would exceed the red limit, that would indicate that we've hit a decompression ceiling.
 
 <figure>
   <TissueProfileDiagram client:visible />
@@ -574,7 +574,7 @@ Initial no-stop time at 25 m: 26.23 min
 No positive ceiling at any of the seven section boundaries.
 ```
 
-All seven assertions pass. The dive takes 31 minutes 45 seconds, including descent, ascent and the three-minute safety stop. The safety stop is part of our planned profile; the model does not request it as a decompression stop. This result applies to the air-only ZH-L16C model above, starting from surface equilibrium without gradient factors. It is an educational model check, not a guarantee against decompression sickness.
+All seven assertions pass. The dive takes 31 minutes 45 seconds, including descent, ascent and the three-minute safety stop. This result applies to the air-only ZH-L16C model above, starting from surface equilibrium without gradient factors. It is an educational model check, not a guarantee against decompression sickness. Based on our model the dive profile tested wouldn't hit any decompression ceilings at any point.
 
 ## Where This Leaves Us
 
