@@ -55,13 +55,13 @@ Descending changes the pressure, and therefore the equilibrium. A diver at 30 me
   </figcaption>
 </figure>
 
-The trouble starts on the way back up. Think of a carbonated drink, bottled under high pressure so large amounts of CO₂ dissolve into the liquid. Pop the cap, the pressure drops, the equilibrium breaks, and the gas escapes as bubbles. In a diver's body, nitrogen normally leaves the tissues dissolved in blood and diffuses into the lungs to be exhaled. Bubbles can also form, sometimes without symptoms, but they can cause decompression sickness[^dcs].
+The trouble starts on the way back up. Think of a carbonated drink, bottled under high pressure so large amounts of CO₂ dissolve into the liquid. Pop the cap, the pressure drops, the equilibrium breaks, and the gas escapes as bubbles. In a diver's body, nitrogen normally leaves the tissues dissolved in blood and diffuses into the lungs to be exhaled. Bubbles can also form, sometimes without symptoms, but they can cause decompression sickness[^dcs]. In very simple terms, decompression sickness is a lot like when you shake a coke bottle and open it, most of the liquid as well as a ton of bubbles will escape and you'll have a mess. This is of course a very simplified representation, and in most cases it's not as dramatic as described, but an excessive amount of bubbles and their location can lead to lethal outcomes in certain cases. 
 
 Now shake that bottle and open it slowly. Crack the cap, let some pressure out, wait, crack it further. Releasing the pressure gradually helps keep the drink in the bottle. The analogy illustrates why the rate of pressure reduction matters. A controlled ascent gives dissolved nitrogen time to leave the body through the lungs, and decompression algorithms help schedule that ascent.
 
 > **A decompression algorithm answers one question:**
 >
-> Given everything I have breathed so far, how shallow does the model permit me to be right now, and how long must I wait before I can go shallower?
+> Given everything I have breathed so far, how shallow does the algorithm permit me to be right now, and how long must I wait before I can go shallower?
 
 ## Simplified Algorithm
 
@@ -71,7 +71,7 @@ We'll start with a simplified version of the algorithm to master the basic conce
 
 ### Modelling the Human Body
 
-A dive computer does not measure dissolved nitrogen in the diver's tissues. Instead it measures pressure and elapsed time, combines them with the selected breathing gas, and mathematically models what's happening in your body based on those inputs. These models are generic; they aren't customised for each person and their body composition. They were built through decades of experiments, starting with John Scott Haldane[^haldane], alongside Arthur Boycott and Guybon Damant[^boycott], who in 1908 proposed the first such model.
+A dive computer does not measure dissolved nitrogen in the diver's tissues. Instead it measures environmental pressure and elapsed time, combines them with the selected breathing gas, and mathematically models what's happening in your body based on those inputs. These models are generic; they aren't customised for each person and their body composition. They were built through decades of experiments, starting with John Scott Haldane[^haldane], alongside Arthur Boycott and Guybon Damant[^boycott], who in 1908 proposed the first such model.
 
 They treated the body as a set of theoretical compartments, five in total, each a sponge soaking up and releasing gas with its own half-time. Bühlmann ZH-L16[^buhlmann] uses sixteen, numbered fastest to slowest. In the ZH-L16C table we'll use[^subsurface], compartment 1's half-time is 5 minutes, representing rapid gas exchange in well-perfused tissue; compartment 16's is 635 minutes, over 10 hours, representing slower gas exchange in poorly perfused tissue. None correspond to a specific organ. They're a mathematical convenience covering the range of speeds real tissue might load and unload nitrogen at, and the 16 in ZH-L16 refers to them.
 
@@ -111,7 +111,7 @@ impl Compartment {
 
 Like Haldane's equation, the code assumes that inspired pressure remains constant throughout the interval. To approximate a changing depth, we can divide the profile into short discrete intervals and update the compartment tensions using a constant pressure for each one. Sampling and update frequencies depend on the implementation; one-second intervals are an example we'll use here.
 
-We'll model 16 tissue compartments using the nitrogen half-times from the ZH-L16C table in Subsurface[^subsurface].
+We'll model 16 tissue compartments using the nitrogen half-times from the ZH-L16C table in Subsurface[^subsurface]. As a fun tangent, one of the original contributors to Subsurface, a desktop dive planning and logging software, is the myth, the legend, Linus Torvalds[^torvalds] himself, and he still occasionally contributes changes. 
 
 ```rust
 const COMPARTMENTS: usize = 16;
@@ -158,7 +158,7 @@ Comparing tissue tensions against their M-values gives us the ceiling depth, the
   </figcaption>
 </figure>
 
-Back in the code, each `Compartment` picks up its `a` and `b` coefficients, plus a way to evaluate its own M-value at a given ambient pressure and, by rearranging that same line, the ambient pressure at which its current tension would sit exactly on the M-value:
+Back in the code, each `Compartment` picks up its `a` and `b` coefficients, plus a way to evaluate its own M-value at a given ambient pressure and, by rearranging that same equation, the ambient pressure at which its current tension would sit exactly on the M-value:
 
 ```rust
 #[derive(Debug, Clone, Copy)]
@@ -212,21 +212,21 @@ static ZH_L16C_N2: GasTable = GasTable {
 };
 ```
 
-The `HALF_TIMES` array from the previous section has been absorbed into `ZH_L16C_N2.half_times`. We've expanded the model to include `a` and `b` arrays from Subsurface's published C++ implementation[^subsurface]. These coefficients are for nitrogen; helium has its own coefficients and half-times. Bühlmann produced three sets of a/b coefficients for nitrogen: A, B, and C. The choice of dataset affects how conservative the resulting model is.
+The `HALF_TIMES` array from the previous section has been absorbed into `ZH_L16C_N2.half_times`. We've expanded the model to include `a` and `b` arrays from Subsurface's published C++ implementation[^subsurface]. These coefficients are for nitrogen; helium, another common gas divers breathe, has its own coefficients and half-times. Bühlmann produced three sets of a/b coefficients for nitrogen: A, B, and C. The choice of dataset affects how conservative the resulting model is.
 
 ZH-L16A[^buhlmann] is the original, purely mathematical dataset, where Bühlmann derived $a$ and $b$ directly from each compartment's half-time. ZH-L16B tightens the $a$ coefficient for some compartments, while leaving the rest of the table equal to A[^buhlmann]. Bühlmann recommended B for table calculation and C for dive computers[^mvalues]. Rounding a table toward greater depth and longer time can add conservatism; rounding in the opposite direction can remove it.
 
 ### The Loop
 
-With Haldane's equation to track nitrogen loading and M-values to define a model ceiling, the algorithm itself is mostly a loop. At each time step, for example once per second, it does the same three things:
+With Haldane's equation to track nitrogen loading and M-values to define a model ceiling, the algorithm itself is mostly a loop. At each discrete time step, for example once per second, it does the same three things:
 
 1. Read absolute ambient pressure from the pressure sensor, or convert a planned depth into pressure, then calculate inspired nitrogen pressure.
 2. Update all 16 compartments using Haldane's equation, based on how long the diver has been at that depth.
 3. Find the controlling compartment based on M-value parameters for each compartment and determine the ceiling pressure.
 
-If the ceiling depth is zero, no compartment currently requires the diver to remain below the surface under this model. A positive ceiling sets a depth the diver must not ascend above while it remains in effect. It does not necessarily imply a future stop at that exact depth: gas exchange during ascent may lift the ceiling before the diver reaches it.
+If the ceiling depth is zero, no compartment currently requires the diver to remain below the surface under this model. A positive ceiling sets a depth the diver must not ascend above while it remains in effect. It does not necessarily imply a future stop at that exact depth: gas exchange during ascent to the ceiling depth may lift the ceiling before the diver reaches it.
 
-Many dive computers also display a recommended safety stop, commonly three minutes at five metres, even when no decompression stop is required. This provides an additional margin. The model estimates tissue loading but cannot capture every physiological factor affecting decompression risk[^gradientfactors]. A safety stop is distinct from a required decompression stop, which is needed when continued ascent would violate the model's limits.
+Many dive computers also display a recommended safety stop, commonly three minutes at five metres, even when no decompression stop is required. This provides an additional margin for satefy. The model estimates tissue loading but cannot capture every physiological factor affecting decompression risk[^gradientfactors]. A safety stop is distinct from a required decompression stop, which is needed when continued ascent would violate the model's limits.
 
 <figure>
   <Image
@@ -582,7 +582,7 @@ The core of the decompression model we've implemented is compact. We're modellin
 
 The example still assumes seawater, sea level, one dive from equilibrated tissues, and one breathing mixture: air. So far, it answers only one part of our original question: what is the shallowest depth permitted by the model right now? We can now follow a planned ascent and check its ceiling, but we haven't yet implemented stop scheduling to calculate how long the diver must wait before going shallower when a positive ceiling appears.
 
-We'll continue building the model in the second article of the series.
+We'll continue building the model in a future article, where we'll try and implement a fully featured model needed for recreational dives.
 
 [^atmosphere]: Wikipedia. _Atmosphere of Earth_ [https://en.wikipedia.org/wiki/Atmosphere_of_Earth](https://en.wikipedia.org/wiki/Atmosphere_of_Earth)
 
@@ -633,3 +633,5 @@ We'll continue building the model in the second article of the series.
 [^dprofile]: Wikipedia. _Dive Profile_ [https://en.wikipedia.org/wiki/Dive_profile](https://en.wikipedia.org/wiki/Dive_profile)
 
 [^dtables]: Wikipedia. _Decompression tables_ [https://en.wikipedia.org/wiki/Decompression_tables](https://en.wikipedia.org/wiki/Decompression_tables)
+
+[^torvalds]: Wikipedia. _Linus Torvalds_ [https://en.wikipedia.org/wiki/Linus_Torvalds](https://en.wikipedia.org/wiki/Linus_Torvalds)
