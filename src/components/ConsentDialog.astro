@@ -1,0 +1,116 @@
+---
+// Privacy preferences dialog, opened by any element with [data-privacy-settings]
+const buttonClass =
+  "rounded-lg border border-foreground/20 px-4 py-2 text-sm font-medium transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-pressed:border-accent aria-pressed:bg-foreground/10";
+---
+
+<dialog
+  id="privacy-dialog"
+  aria-labelledby="privacy-dialog-title"
+  aria-describedby="privacy-dialog-description"
+  class="bg-background text-foreground m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-foreground/15 p-0 shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+>
+  <div class="flex flex-col gap-4 p-6">
+    <div class="flex items-start justify-between gap-4">
+      <h2 id="privacy-dialog-title" class="text-lg font-semibold">
+        Privacy settings
+      </h2>
+      <button
+        type="button"
+        data-privacy-close
+        aria-label="Close privacy settings"
+        class="hover:text-accent animation -mr-1 -mt-1 rounded p-1 text-foreground/70"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+    <div id="privacy-dialog-description" class="flex flex-col gap-3 text-sm text-foreground/80">
+      <p>
+        With your permission, this site uses
+        <a href="https://posthog.com" class="link" target="_blank" rel="noopener noreferrer">PostHog</a>
+        analytics to learn which pages are read, where visitors come from, and
+        which browsers and devices they use. It helps me decide what to write
+        next.
+      </p>
+      <p>
+        Analytics stores an identifier in your browser and stays off unless you
+        allow it. No ads, and your data is never sold.
+      </p>
+    </div>
+    <p class="text-sm" aria-live="polite">
+      Analytics: <span data-privacy-status class="font-medium">Off (no choice yet)</span>
+    </p>
+    <div class="grid grid-cols-2 gap-3">
+      <button type="button" data-consent-choice="denied" aria-pressed="false" class={buttonClass}>
+        Reject
+      </button>
+      <button type="button" data-consent-choice="granted" aria-pressed="false" class={buttonClass}>
+        Accept
+      </button>
+    </div>
+    <p class="text-xs text-foreground/60">
+      Your choice is saved in this browser. You can change it anytime via
+      “Privacy settings” in the footer.
+    </p>
+  </div>
+</dialog>
+
+<script>
+  import {
+    getAnalyticsConsent,
+    onAnalyticsConsentChange,
+    setAnalyticsConsent,
+    type ConsentDecision,
+    type ConsentState,
+  } from "../utils/consent";
+
+  const dialog = document.getElementById("privacy-dialog") as HTMLDialogElement;
+  const status = dialog.querySelector<HTMLElement>("[data-privacy-status]")!;
+  const choices = dialog.querySelectorAll<HTMLButtonElement>(
+    "[data-consent-choice]",
+  );
+
+  const statusText: Record<ConsentState, string> = {
+    unset: "Off (no choice yet)",
+    granted: "On",
+    denied: "Off",
+  };
+
+  function render(state: ConsentState) {
+    status.textContent = statusText[state];
+    choices.forEach((button) =>
+      button.setAttribute(
+        "aria-pressed",
+        String(button.dataset.consentChoice === state),
+      ),
+    );
+  }
+
+  document.addEventListener("click", (event) => {
+    const trigger = (event.target as Element).closest("[data-privacy-settings]");
+    if (!trigger) return;
+    render(getAnalyticsConsent());
+    dialog.showModal();
+  });
+
+  choices.forEach((button) =>
+    button.addEventListener("click", () => {
+      setAnalyticsConsent(button.dataset.consentChoice as ConsentDecision);
+      dialog.close();
+    }),
+  );
+
+  dialog
+    .querySelector("[data-privacy-close]")!
+    .addEventListener("click", () => dialog.close());
+
+  // Clicks on the dialog element itself land on the backdrop.
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  onAnalyticsConsentChange(render);
+</script>
