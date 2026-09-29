@@ -1,0 +1,134 @@
+---
+// Accessible privacy settings dialog. Opened by any `[data-privacy-settings]`
+// trigger (the floating consent card and the footer link).
+---
+
+<dialog
+  id="consent-dialog"
+  aria-labelledby="consent-title"
+  aria-describedby="consent-description"
+  class="consent-dialog m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl bg-background p-0 text-foreground shadow-2xl ring-1 ring-foreground/15 backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
+>
+  <div class="space-y-4 p-6 max-sm:p-5">
+    <div class="flex items-start justify-between gap-4">
+      <h2 id="consent-title" class="text-xl font-semibold tracking-wide">
+        Privacy settings
+      </h2>
+      <button
+        type="button"
+        data-consent-close
+        aria-label="Close privacy settings"
+        class="hover:text-accent animation -mr-1 rounded p-1"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+    <p id="consent-description" class="text-sm leading-relaxed text-foreground/85">
+      With your permission, this site uses PostHog analytics to learn which
+      articles are read and how visitors find them. Analytics stays off unless
+      you accept.
+    </p>
+    <ul class="list-disc space-y-1 pl-5 text-sm leading-relaxed text-foreground/75">
+      <li>Collects pages visited, referrer, and browser/device details.</li>
+      <li>Stores a pseudonymous ID in your browser to recognise repeat visits.</li>
+      <li>Rejecting or withdrawing later stops tracking and clears that ID.</li>
+    </ul>
+    <p class="text-sm" aria-live="polite">
+      Current setting: <strong data-consent-status class="font-semibold">Not set</strong>
+    </p>
+    <div class="flex flex-wrap justify-end gap-3 pt-1">
+      <button
+        type="button"
+        data-consent-choice="denied"
+        aria-pressed="false"
+        class="button aria-pressed:bg-accent aria-pressed:text-background"
+      >
+        Reject
+      </button>
+      <button
+        type="button"
+        data-consent-choice="granted"
+        aria-pressed="false"
+        class="button aria-pressed:bg-accent aria-pressed:text-background"
+      >
+        Accept
+      </button>
+    </div>
+    <p class="text-xs text-foreground/60">
+      You can change this anytime via “Privacy settings” in the footer.
+    </p>
+  </div>
+</dialog>
+
+<script>
+  import {
+    getAnalyticsConsent,
+    onAnalyticsConsentChange,
+    setAnalyticsConsent,
+    type ConsentState,
+  } from "../utils/consent";
+
+  const dialog = document.getElementById("consent-dialog") as HTMLDialogElement;
+  const status = dialog.querySelector<HTMLElement>("[data-consent-status]")!;
+  const choices = dialog.querySelectorAll<HTMLButtonElement>(
+    "[data-consent-choice]",
+  );
+
+  const labels: Record<ConsentState, string> = {
+    unset: "Not set (analytics off)",
+    granted: "Analytics accepted",
+    denied: "Analytics rejected",
+  };
+
+  function render(state: ConsentState = getAnalyticsConsent()) {
+    status.textContent = labels[state];
+    for (const choice of choices) {
+      choice.setAttribute(
+        "aria-pressed",
+        String(choice.dataset.consentChoice === state),
+      );
+    }
+  }
+
+  document.addEventListener("click", (event) => {
+    const trigger = (event.target as Element | null)?.closest(
+      "[data-privacy-settings]",
+    );
+    if (!trigger || dialog.open) return;
+    render();
+    dialog.showModal();
+  });
+
+  for (const choice of choices) {
+    choice.addEventListener("click", () => {
+      setAnalyticsConsent(choice.dataset.consentChoice as "granted" | "denied");
+      dialog.close();
+    });
+  }
+
+  dialog
+    .querySelector("[data-consent-close]")!
+    .addEventListener("click", () => dialog.close());
+
+  // Close when clicking the backdrop.
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  onAnalyticsConsentChange(render);
+  render();
+</script>

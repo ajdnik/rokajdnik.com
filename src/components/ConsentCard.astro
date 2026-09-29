@@ -1,0 +1,84 @@
+---
+// Subtle floating card shown until the visitor makes an analytics choice.
+// Clicking it opens the privacy settings dialog.
+---
+
+<button
+  id="consent-card"
+  type="button"
+  data-privacy-settings
+  aria-haspopup="dialog"
+  aria-controls="consent-dialog"
+  hidden
+  class="consent-card animation fixed bottom-6 left-6 z-40 flex items-center gap-3 rounded-xl bg-background/85 px-4 py-2.5 text-left text-foreground shadow-lg ring-1 ring-foreground/15 backdrop-blur-sm select-none hover:ring-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none max-sm:bottom-4 max-sm:left-4 max-sm:gap-2 max-sm:rounded-full max-sm:px-3 max-sm:py-1.5 max-sm:shadow-md"
+>
+  <span class="relative flex size-2 shrink-0" aria-hidden="true">
+    <span class="consent-nudge absolute inline-flex size-full rounded-full bg-accent"></span>
+    <span class="relative inline-flex size-2 rounded-full bg-accent"></span>
+  </span>
+  <span class="flex flex-col leading-tight">
+    <span class="text-sm font-medium tracking-wide max-sm:text-xs">
+      <span class="sm:hidden">Privacy</span>
+      <span class="max-sm:hidden">Privacy choices</span>
+    </span>
+    <span class="text-xs text-foreground/70 max-sm:hidden">
+      Analytics is off until you choose
+    </span>
+  </span>
+</button>
+
+<style>
+  .consent-card:not([hidden]) {
+    animation: consent-card-in 400ms ease-out both;
+  }
+
+  .consent-nudge {
+    opacity: 0;
+    animation: consent-nudge 1.6s cubic-bezier(0, 0, 0.2, 1) 1.2s 3;
+  }
+
+  @keyframes consent-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes consent-nudge {
+    0% {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    75%,
+    100% {
+      opacity: 0;
+      transform: scale(2.5);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .consent-card:not([hidden]),
+    .consent-nudge {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  import {
+    getAnalyticsConsent,
+    onAnalyticsConsentChange,
+  } from "../utils/consent";
+
+  const card = document.getElementById("consent-card")!;
+  const update = () => {
+    card.hidden = getAnalyticsConsent() !== "unset";
+  };
+
+  update();
+  onAnalyticsConsentChange(update);
+</script>
