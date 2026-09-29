@@ -160,21 +160,59 @@ test.describe("Analytics", () => {
       local: localStorage.getItem("ph_test_posthog"),
       session: sessionStorage.getItem("ph_test_window_id"),
       cookie: document.cookie.includes("ph_test_posthog"),
-      // Calls queued on the PostHog stub before the library loads.
-      calls: (window.posthog as unknown[])
-        .filter(Array.isArray)
-        .map((call) => call[0]),
+      // The library never loaded, so the pending stub is discarded.
+      posthog: "posthog" in window,
     }));
     expect(state.local).toBeNull();
     expect(state.session).toBeNull();
     expect(state.cookie).toBe(false);
-    expect(state.calls).toEqual(
-      expect.arrayContaining(["opt_out_capturing", "reset"]),
-    );
+    expect(state.posthog).toBe(false);
 
     await page.reload();
     await page.waitForTimeout(500);
     expect(await page.evaluate(() => "posthog" in window)).toBe(false);
+  });
+
+  test("withdrawing consent opts out and resets a loaded PostHog client", async ({
+    page,
+  }) => {
+    // Stand-in for the PostHog library that records the calls it receives.
+    await page.route("https://tm.rokajdnik.com/static/array.js", (route) =>
+      route.fulfill({
+        contentType: "text/javascript",
+        body: `(function () {
+          var calls = [];
+          var ph = { __loaded: true, calls: calls };
+          ["init", "opt_out_capturing", "opt_in_capturing", "reset", "set_config"]
+            .forEach(function (m) { ph[m] = function () { calls.push(m); }; });
+          window.posthog = ph;
+        })();`,
+      }),
+    );
+    await seedConsent(page, "granted");
+    await page.goto("/");
+    await page.waitForFunction(() => window.posthog?.__loaded === true);
+
+    const choose = async (name: "Accept" | "Reject") => {
+      await page.getByRole("button", { name: "Privacy settings" }).click();
+      await page
+        .getByRole("dialog", { name: "Privacy settings" })
+        .getByRole("button", { name })
+        .click();
+    };
+
+    await choose("Reject");
+    expect(await page.evaluate(() => window.posthog.calls)).toEqual([
+      "opt_out_capturing",
+      "set_config",
+      "reset",
+    ]);
+
+    await choose("Accept");
+    expect(await page.evaluate(() => window.posthog.calls.slice(3))).toEqual([
+      "set_config",
+      "opt_in_capturing",
+    ]);
   });
 
   test.describe("mobile viewport", () => {
@@ -185,7 +223,10 @@ test.describe("Analytics", () => {
 
       const card = page.locator("#consent-card");
       await expect(card).toBeVisible();
-      await expect(card.getByText("Privacy choices")).toBeHidden();
+      await expect(card).toHaveAccessibleName("Privacy choices");
+      await expect(
+        card.getByText("Analytics is off until you decide."),
+      ).toBeHidden();
       const box = (await card.boundingBox())!;
       expect(box.width).toBeLessThanOrEqual(48);
       expect(box.height).toBeLessThanOrEqual(48);

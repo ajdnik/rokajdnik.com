@@ -9,7 +9,6 @@
   data-privacy-settings
   aria-haspopup="dialog"
   aria-controls="privacy-dialog"
-  aria-label="Privacy choices: analytics is off until you decide"
   hidden
   class="consent-card group fixed bottom-6 left-6 z-40 flex h-10 w-10 items-center justify-center gap-3 rounded-full bg-foreground/10 text-left text-foreground backdrop-blur-sm transition-colors hover:bg-accent hover:text-background sm:h-auto sm:w-auto sm:max-w-xs sm:rounded-lg sm:border sm:border-foreground/15 sm:bg-background/80 sm:px-3 sm:py-2 sm:shadow-sm sm:hover:border-accent sm:hover:bg-background/80 sm:hover:text-foreground"
 >
@@ -19,7 +18,8 @@
     </svg>
     <span class="consent-nudge bg-accent absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full" aria-hidden="true"></span>
   </span>
-  <span class="hidden flex-col sm:flex" aria-hidden="true">
+  <span class="sr-only sm:hidden">Privacy choices</span>
+  <span class="hidden flex-col sm:flex">
     <span class="text-sm font-medium">Privacy choices</span>
     <span class="text-xs text-foreground/70">Analytics is off until you decide.</span>
   </span>

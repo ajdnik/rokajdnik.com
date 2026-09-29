@@ -35,7 +35,9 @@ function parse(raw: string | null): ConsentState {
 
 export function getAnalyticsConsent(): ConsentState {
   try {
-    return parse(localStorage.getItem(CONSENT_STORAGE_KEY));
+    const stored = parse(localStorage.getItem(CONSENT_STORAGE_KEY));
+    // Storage may be readable but not writable (e.g. quota exceeded).
+    return stored === "unset" ? memoryConsent : stored;
   } catch {
     return memoryConsent;
   }

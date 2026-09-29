@@ -47,6 +47,12 @@
   }
 
   function disableAnalytics() {
+    if (initialized && !window.posthog.__loaded) {
+      // The library is still downloading: drop the queued init so it never runs.
+      window.posthog._i = [];
+      delete (window as Partial<Window>).posthog;
+      initialized = false;
+    }
     if (initialized) {
       window.posthog.opt_out_capturing();
       window.posthog.set_config({ disable_persistence: true });
