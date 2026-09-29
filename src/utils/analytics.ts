@@ -19,10 +19,13 @@ let enabled = false;
 let initialized = false;
 let scheduled = false;
 
-const schedule =
-  typeof window.requestIdleCallback === "function"
-    ? (callback: () => void) => window.requestIdleCallback(callback)
-    : (callback: () => void) => window.setTimeout(callback, 1);
+function schedule(callback: () => void) {
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(callback);
+  } else {
+    window.setTimeout(callback, 1);
+  }
+}
 
 // PostHog storage: `ph_<key>_*` persistence (distinct/device/session IDs)
 // and the `__ph_opt_in_out_<key>` capture flag.
@@ -94,10 +97,8 @@ export function disableAnalytics() {
     window.posthog.opt_out_capturing();
   }
   // Remove PostHog identifiers, but keep the opt-out flag so a still-loaded
-  // client on this page cannot resume capturing.
-  const keep = initialized
-    ? (name: string) => name.startsWith(OPT_OUT_PREFIX)
-    : undefined;
+  // client on this page cannot resume capturing. It is cleared on re-grant.
+  const keep = (name: string) => name.startsWith(OPT_OUT_PREFIX);
   clearStorage(localStorage, keep);
   clearStorage(sessionStorage, keep);
   clearCookies(keep);
