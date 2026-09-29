@@ -6,17 +6,26 @@ import Socials from "./Socials.astro";
   <div class="flex flex-col items-center justify-center gap-3">
     <Socials />
     <span class="text-foreground/70 text-sm">© {new Date().getFullYear()} MIT License</span>
-    <span class="text-foreground/70 text-sm">
-      powered by <a href="https://astro.build" class="link" target="_blank" rel="noopener noreferrer">Astro</a>
-    </span>
-    <button
-      type="button"
-      data-privacy-settings
-      aria-haspopup="dialog"
-      aria-controls="privacy-dialog"
-      class="text-foreground/70 hover:text-accent animation text-sm"
+    <div
+      class="text-foreground/70 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm"
     >
-      Privacy settings
-    </button>
+      <span>
+        powered by <a
+          href="https://astro.build"
+          class="link"
+          target="_blank"
+          rel="noopener noreferrer">Astro</a
+        >
+      </span>
+      <button
+        type="button"
+        data-privacy-settings
+        aria-haspopup="dialog"
+        aria-controls="privacy-dialog"
+        class="link animation focus-visible:outline-accent cursor-pointer underline focus-visible:outline-2 focus-visible:outline-offset-2"
+      >
+        Privacy settings
+      </button>
+    </div>
   </div>
 </footer>
