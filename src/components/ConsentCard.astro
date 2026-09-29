@@ -1,0 +1,78 @@
+---
+// Subtle floating card shown until the visitor makes an analytics choice.
+// Collapses to an icon button on small screens.
+---
+
+<button
+  id="consent-card"
+  type="button"
+  data-privacy-settings
+  aria-haspopup="dialog"
+  aria-controls="privacy-dialog"
+  hidden
+  class="consent-card group fixed bottom-6 left-6 z-40 flex h-10 w-10 items-center justify-center gap-3 rounded-full bg-foreground/10 text-left text-foreground backdrop-blur-sm transition-colors hover:bg-accent hover:text-background sm:h-auto sm:w-auto sm:max-w-xs sm:rounded-lg sm:border sm:border-foreground/15 sm:bg-background/80 sm:px-3 sm:py-2 sm:shadow-sm sm:hover:border-accent sm:hover:bg-background/80 sm:hover:text-foreground"
+>
+  <span class="relative flex shrink-0 sm:group-hover:text-accent">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+    </svg>
+    <span class="consent-nudge bg-accent absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full" aria-hidden="true"></span>
+  </span>
+  <span class="sr-only sm:hidden">Privacy choices</span>
+  <span class="hidden flex-col sm:flex">
+    <span class="text-sm font-medium">Privacy choices</span>
+    <span class="text-xs text-foreground/70">Analytics is off until you decide.</span>
+  </span>
+</button>
+
+<style>
+  .consent-card:not([hidden]) {
+    animation: consent-enter 0.4s ease-out both;
+  }
+
+  .consent-nudge::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: inherit;
+    animation: consent-ping 1.6s ease-out 1s 3;
+  }
+
+  @keyframes consent-enter {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+  }
+
+  @keyframes consent-ping {
+    to {
+      opacity: 0;
+      transform: scale(2.5);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .consent-card:not([hidden]),
+    .consent-nudge::after {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  import {
+    getAnalyticsConsent,
+    onAnalyticsConsentChange,
+    type ConsentState,
+  } from "../utils/consent";
+
+  const card = document.getElementById("consent-card")!;
+  const render = (state: ConsentState) => {
+    card.hidden = state !== "unset";
+  };
+
+  render(getAnalyticsConsent());
+  onAnalyticsConsentChange(render);
+</script>

@@ -17,6 +17,8 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import BackToTop from "../components/BackToTop.astro";
 import PostHog from '../components/PostHog.astro'
+import ConsentCard from "../components/ConsentCard.astro";
+import ConsentDialog from "../components/ConsentDialog.astro";
 import "../styles/global.css";
 const { title, description, author, url, pubDate, image } = Astro.props;
 ---
@@ -57,5 +59,7 @@ const { title, description, author, url, pubDate, image } = Astro.props;
       <Footer />
     </div>
     <BackToTop />
+    <ConsentCard />
+    <ConsentDialog />
   </body>
 </html>
