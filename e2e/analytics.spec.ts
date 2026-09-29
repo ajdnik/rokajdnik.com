@@ -94,6 +94,32 @@ test.describe("Analytics", () => {
     expect(await page.evaluate(() => "posthog" in window)).toBe(false);
   });
 
+  test("privacy copy spaces the PostHog link and footer settings open the dialog", async ({
+    page,
+  }) => {
+    await seedConsent(page, "denied");
+    await page.goto("/");
+
+    const footer = page.locator("footer");
+    const attribution = footer.getByText("powered by Astro");
+    const settings = footer.getByRole("button", { name: "Privacy settings" });
+    await expect(settings).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(settings).toHaveAttribute("aria-controls", "privacy-dialog");
+    await expect(settings).toHaveCSS("cursor", "pointer");
+    await expect(settings).toHaveCSS("text-decoration-line", "underline");
+
+    const attributionBox = (await attribution.boundingBox())!;
+    const settingsBox = (await settings.boundingBox())!;
+    expect(Math.abs(attributionBox.y - settingsBox.y)).toBeLessThan(10);
+
+    await settings.click();
+    const dialog = page.getByRole("dialog", { name: "Privacy settings" });
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.locator("#privacy-dialog-description p").first(),
+    ).toContainText(/uses\s+PostHog\s+analytics/);
+  });
+
   test("consent persists across navigation and reload", async ({ page }) => {
     await page.goto("/");
     await page.locator("#consent-card").click();
@@ -217,6 +243,24 @@ test.describe("Analytics", () => {
 
   test.describe("mobile viewport", () => {
     test.use({ viewport: { width: 375, height: 667 } });
+
+    test("keeps footer settings inline without overflowing", async ({
+      page,
+    }) => {
+      await seedConsent(page, "denied");
+      await page.goto("/");
+
+      const footer = page.locator("footer");
+      const attributionBox = (await footer
+        .getByText("powered by Astro")
+        .boundingBox())!;
+      const settingsBox = (await footer
+        .getByRole("button", { name: "Privacy settings" })
+        .boundingBox())!;
+      expect(Math.abs(attributionBox.y - settingsBox.y)).toBeLessThan(10);
+      expect(settingsBox.x).toBeGreaterThanOrEqual(0);
+      expect(settingsBox.x + settingsBox.width).toBeLessThanOrEqual(375);
+    });
 
     test("shows a compact card that opens the dialog", async ({ page }) => {
       await page.goto("/");
