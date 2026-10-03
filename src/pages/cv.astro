@@ -134,11 +134,15 @@ const personJsonLd = JSON.stringify(personSchema).replace(/</g, "\\u003c");
           <div class="cv-item">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1">
               <h3 class="text-lg font-medium">
-                <a href={p.url} target="_blank" rel="noopener noreferrer" class="hover:text-accent transition-colors">{p.title}</a>
+                {p.url ? (
+                  <a href={p.url} target="_blank" rel="noopener noreferrer" class="hover:text-accent transition-colors">{p.title}</a>
+                ) : (
+                  p.title
+                )}
               </h3>
               <span class="text-sm opacity-60 shrink-0">{p.year}</span>
             </div>
-            <p class="text-sm opacity-70">{p.number} · {p.status} · {p.assignee}</p>
+            <p class="text-sm opacity-70">{[p.number, p.status, p.assignee].filter(Boolean).join(" · ")}</p>
             <p class="text-sm opacity-60">With {p.coInventors.join(", ")}</p>
           </div>
         ))}

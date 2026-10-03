@@ -30,7 +30,7 @@ export const cv = {
   website: "https://rokajdnik.com",
   github: "https://github.com/ajdnik",
   summary:
-    "Director of Software Engineering with over 15 years of experience building scalable software and leading engineering teams. At Plume Design, leads 7 direct reports and a 9-member API team. Architected zero-downtime cloud migrations of over 10 million customers and consolidated 1,500 APIs into fewer than 400. Three-time startup CTO and co-founder who helped secure over $3 million in funding. Co-inventor on two patent applications, with experience in distributed systems, API design and computer vision.",
+    "Director of Software Engineering with over 15 years of experience building scalable software and leading engineering teams. At Plume Design, leads 7 direct reports and a 9-member API team. Architected zero-downtime cloud migrations of over 10 million customers and consolidated 1,500 APIs into fewer than 400. Three-time startup CTO and co-founder who helped secure over $3 million in funding. Co-inventor on four patent applications, with experience in distributed systems, API design and computer vision.",
 
   /** @type {Experience[]} */
   experience: [
@@ -226,14 +226,23 @@ export const cv = {
   patents: [
     {
       title:
-        "Systems and methods for identifying and acquiring information regarding remotely displayed video content",
-      number: "US 2016/0105731 A1",
-      status: "Published application",
-      year: "2016",
-      filed: "May 2015",
-      assignee: "Reveel Technologies Inc",
-      coInventors: ["Matija Vrbovsek"],
-      url: "https://patents.google.com/patent/US20160105731A1/en",
+        "DNS Response Delay Scaled by Per-Fingerprint Request Frequency for Blocked and Paused Domains",
+      number: "US Application 19/728,395",
+      status: "Pending, unpublished",
+      year: "2026",
+      filed: "Jul 2, 2026",
+      assignee: "Plume Design Inc",
+      coInventors: ["Miha Klokočovnik", "Rik Williams"],
+    },
+    {
+      title:
+        "Dynamic DNS Response Shaping via Client Behavioral Fingerprinting for Blocked and Paused Domains",
+      number: "US Application 19/728,461",
+      status: "Pending, unpublished",
+      year: "2026",
+      filed: "Jul 2, 2026",
+      assignee: "Plume Design Inc",
+      coInventors: ["Miha Klokočovnik", "Rik Williams"],
     },
     {
       title: "System and method for cloud-based AI application management",
@@ -243,13 +252,24 @@ export const cv = {
       filed: "Oct 2024",
       assignee: "Plume Design Inc",
       coInventors: [
-        "Miha Klokocovnik",
-        "Gabrijel Jurkovic",
+        "Miha Klokočovnik",
+        "Gabrijel Jurković",
         "Žiga Keržan",
         "Jaka Maver",
-        "Mario Balukcic",
+        "Mario Balukčić",
       ],
       url: "https://patents.google.com/patent/US20260099312A1/en",
+    },
+    {
+      title:
+        "Systems and methods for identifying and acquiring information regarding remotely displayed video content",
+      number: "US 2016/0105731 A1",
+      status: "Published application",
+      year: "2016",
+      filed: "May 2015",
+      assignee: "Reveel Technologies Inc",
+      coInventors: ["Matija Verbovšek"],
+      url: "https://patents.google.com/patent/US20160105731A1/en",
     },
   ],
 

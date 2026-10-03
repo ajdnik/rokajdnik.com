@@ -9,12 +9,15 @@ import { cv, CV_PDF_PATH } from "../src/data/cv.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const REGULAR = "Helvetica";
-const BOLD = "Helvetica-Bold";
+// Arimo (metric-compatible with Helvetica) is embedded so Latin Extended
+// characters (e.g. Klokočovnik) keep correct, extractable Unicode text.
+const fontDir = resolve(root, "node_modules/@expo-google-fonts/arimo");
+const REGULAR = "Arimo";
+const BOLD = "Arimo-Bold";
 const ACCENT = "#1d4ed8";
 const INK = "#111827";
 const MUTED = "#4b5563";
-const BODY = 9.5;
+const BODY = 9.3;
 const SITE = cv.website;
 
 const plain = (s) => s.replaceAll("→", ">");
@@ -27,7 +30,7 @@ function build(file) {
 
   const doc = new PDFDocument({
     size: "A4",
-    margins: { top: 38, bottom: 34, left: 46, right: 46 },
+    margins: { top: 38, bottom: 30, left: 46, right: 46 },
     info: {
       Title: `${cv.name} - CV`,
       Author: cv.name,
@@ -35,6 +38,8 @@ function build(file) {
       Keywords: cv.skills.flatMap((s) => s.items).join(", "),
     },
   });
+  doc.registerFont(REGULAR, resolve(fontDir, "400Regular/Arimo_400Regular.ttf"));
+  doc.registerFont(BOLD, resolve(fontDir, "700Bold/Arimo_700Bold.ttf"));
   doc.pipe(createWriteStream(out));
 
   const left = doc.page.margins.left;
@@ -60,7 +65,7 @@ function build(file) {
   // ---- Helpers ----
   const heading = (label) => {
     need(60);
-    doc.moveDown(0.7);
+    doc.moveDown(0.55);
     doc.fillColor(ACCENT).font(BOLD).fontSize(11.5)
       .text(label.toUpperCase(), left, doc.y, { characterSpacing: 1 });
     const y = doc.y + 2;
@@ -100,7 +105,7 @@ function build(file) {
   // ---- Experience ----
   heading("Experience");
   cv.experience.forEach((e, i) => {
-    if (i) doc.moveDown(0.5);
+    if (i) doc.moveDown(0.35);
     need(e.achievements ? 60 : 45);
     titleRow(e.title, e.company, `${e.start} - ${e.end}`);
     if (e.description) body(e.description);
@@ -140,7 +145,7 @@ function build(file) {
     need(48);
     doc.fillColor(INK).font(BOLD).fontSize(BODY).text(p.title, left, doc.y, { width, link: p.url, lineGap: 1.5 });
     doc.fillColor(MUTED).font(REGULAR).text(
-      `${p.number} | ${p.status} | filed ${p.filed} | ${p.assignee}`, { width });
+      [p.number, p.status, `filed ${p.filed}`, p.assignee].filter(Boolean).join(" | "), { width });
     doc.text(`Co-inventors: ${p.coInventors.join(", ")}`, { width });
   });
 
