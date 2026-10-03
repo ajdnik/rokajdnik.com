@@ -8,6 +8,10 @@ export function mdxToMarkdown(source: string): string {
   let fence: string | null = null;
   const text = source
     .replace(/<Image\b[^>]*?\balt="([^"]*)"[^>]*?\/>/gs, "![$1]")
+    .replace(/<a\s+href="([^"]*)"[^>]*>\s*(.*?)\s*<\/a>/gs, "[$2]($1)")
+    .replace(/\{" "\}/g, " ")
+    .replace(/<div class="code-filename">(.*?)<\/div>/g, "`$1`")
+    .replace(/^\s*<\/?div\b[^>]*>\s*$/gm, "")
     .replace(/<figcaption\b[^>]*>(.*?)<\/figcaption>/g, "$1")
     .replace(/^\s*<\/?(figure|figcaption)\b[^>]*>\s*$/gm, "");
   for (const line of text.split("\n")) {
@@ -22,16 +26,16 @@ export function mdxToMarkdown(source: string): string {
       out.push(line);
       continue;
     }
-    // Text left over from indented JSX (e.g. figcaption) would render as code.
-    if (/^ {2,}(?![-*+>]|\d+[.)])\S/.test(line) && !/^ {4,}/.test(out.at(-2) ?? "")) {
-      out.push(line.trimStart());
-      continue;
-    }
     if (/^(import|export)\s/.test(line)) continue;
     // Wrapper tags like <Callout ...> / </Callout>: keep inner content.
     if (/^\s*<\/?[A-Z][\w.]*(\s[^>]*)?>\s*$/.test(line)) continue;
     // Self-closing components like <Diagram client:visible />.
     if (/^\s*<[A-Z][\w.]*(\s[^>]*)?\/>\s*$/.test(line)) continue;
+    // Text left over from indented JSX (e.g. figcaption) would render as code.
+    if (/^ {2,}(?![-*+>]|\d+[.)])\S/.test(line) && !/^ {4,}/.test(out.at(-2) ?? "")) {
+      out.push(line.trimStart());
+      continue;
+    }
     out.push(line);
   }
   return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
