@@ -6,7 +6,28 @@ import BaseLayout from "./BaseLayout.astro";
 import Title from "../components/Title.astro";
 import Lightbox from "../components/Lightbox.astro";
 import SeriesNav from "../components/SeriesNav.astro";
+import { SITE_AUTHOR } from "../consts";
 const { frontmatter, readTime, series } = Astro.props;
+
+const authors = (
+  Array.isArray(frontmatter.author) ? frontmatter.author : [frontmatter.author]
+).map((name: string) => ({ "@type": "Person", name }));
+const postUrl = new URL(`/${frontmatter.slug}`, Astro.site).href;
+const blogPostingJsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: frontmatter.title,
+  description: frontmatter.description,
+  datePublished: frontmatter.date.toISOString(),
+  author: authors,
+  publisher: { "@type": "Person", name: SITE_AUTHOR },
+  keywords: frontmatter.tags,
+  url: postUrl,
+  mainEntityOfPage: postUrl,
+  ...(frontmatter.cover && {
+    image: new URL(frontmatter.cover.src.src, Astro.site).href,
+  }),
+}).replace(/</g, "\\u003c");
 ---
 
 <BaseLayout
@@ -17,6 +38,13 @@ const { frontmatter, readTime, series } = Astro.props;
   pubDate={frontmatter.date}
   image={frontmatter.cover?.src.src}
 >
+  <link
+    slot="head"
+    rel="alternate"
+    type="text/markdown"
+    href={`/${frontmatter.slug}.md`}
+  />
+  <script type="application/ld+json" slot="head" set:html={blogPostingJsonLd} />
   <ProgressBar />
   {frontmatter.cover && (
     <figure class="cover-image">

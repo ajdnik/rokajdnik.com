@@ -2,7 +2,31 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Introduction from "../components/Introduction.astro";
 import Featured from "../components/Featured.astro";
+import { cv } from "../data/cv.js";
 import { SITE_TITLE, SITE_DESCRIPTION, SITE_AUTHOR } from "../consts";
+
+const siteJsonLd = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: Astro.site?.href,
+    author: { "@type": "Person", name: SITE_AUTHOR },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: SITE_AUTHOR,
+    url: Astro.site?.href,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Celje",
+      addressCountry: "SI",
+    },
+    sameAs: [cv.linkedin, cv.github],
+  },
+]).replace(/</g, "\\u003c");
 ---
 
 <BaseLayout
@@ -11,6 +35,8 @@ import { SITE_TITLE, SITE_DESCRIPTION, SITE_AUTHOR } from "../consts";
   author={SITE_AUTHOR}
   url="/"
 >
+  <script type="application/ld+json" slot="head" set:html={siteJsonLd} />
+  <link slot="head" rel="alternate" type="text/plain" href="/llms.txt" title="LLM index" />
   <Introduction />
   <hr />
   <Featured />
