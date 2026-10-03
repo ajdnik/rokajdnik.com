@@ -3,6 +3,32 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { SITE_TITLE, SITE_AUTHOR } from "../consts";
 import CheckCircle from "../components/icons/CheckCircle.astro";
 import Tag from "../components/Tag.astro";
+import { cv, CV_PDF_PATH } from "../data/cv.js";
+
+const current = cv.experience[0];
+const personSchema = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: cv.name,
+  jobTitle: current.title,
+  url: cv.website,
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Ljubljana",
+    addressCountry: "SI",
+  },
+  worksFor: { "@type": "Organization", name: current.company },
+  alumniOf: cv.education.map((e) => ({
+    "@type": "CollegeOrUniversity",
+    name: e.school,
+  })),
+  sameAs: [cv.linkedin, cv.github],
+  knowsAbout: cv.skills
+    .filter((g) => g.group !== "Spoken Languages")
+    .flatMap((g) => g.items),
+};
+// Escape "<" so the JSON can never close the script tag.
+const personJsonLd = JSON.stringify(personSchema).replace(/</g, "\\u003c");
 ---
 
 <BaseLayout
@@ -11,129 +37,78 @@ import Tag from "../components/Tag.astro";
   author={SITE_AUTHOR}
   url="/cv"
 >
+  <script type="application/ld+json" slot="head" set:html={personJsonLd} />
   <section class="center">
     <!-- Summary -->
     <div class="mb-12">
-      <p class="text-lg leading-relaxed opacity-90">
-        Director of Software Engineering with over 15 years of experience building scalable applications, 
-        leading technical teams, and co-founding technology startups. Passionate about innovation, 
-        software architecture, and solving complex engineering challenges.
-      </p>
-      <p class="mt-4 opacity-70">Ljubljana, Slovenia</p>
+      <p class="text-lg leading-relaxed opacity-90">{cv.summary}</p>
+      <p class="mt-4 opacity-70">{cv.location}</p>
     </div>
 
     <!-- Experience -->
     <div class="mb-12">
       <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Experience</h2>
-      
+
       <div class="space-y-8">
-        <div class="cv-item">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
-            <h3 class="text-xl font-medium">Director of Software Engineering</h3>
-            <span class="text-sm opacity-60">Sep 2020 - Present</span>
+        {cv.experience.map((e) => (
+          <div class="cv-item">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+              <h3 class="text-xl font-medium">{e.title}</h3>
+              <span class="text-sm opacity-60">{e.start} - {e.end}</span>
+            </div>
+            {e.company && <p class="text-accent font-medium mb-2">{e.company}</p>}
+            {e.description && (
+              <p class="opacity-80">{e.description}</p>
+            )}
+            {e.achievementsLabel && (
+              <p class="mt-3 text-sm font-medium opacity-80">{e.achievementsLabel}</p>
+            )}
+            {e.achievements && (
+              <ul class="mt-2 list-disc space-y-1 pl-5 text-sm opacity-80 marker:text-accent">
+                {e.achievements.map((a) => <li>{a}</li>)}
+              </ul>
+            )}
+            {e.technologies && (
+              <p class="mt-3 text-sm opacity-70">
+                <span class="font-medium">Technologies:</span> {e.technologies.join(", ")}
+              </p>
+            )}
           </div>
-          <p class="text-accent font-medium mb-2">Plume Design, Inc.</p>
-          <p class="opacity-80 mb-3">Leading engineering teams at a telecommunications company focused on smart home and WiFi solutions.</p>
-          <div class="text-sm opacity-70 space-y-1">
-            <p>Senior Software Engineer → Staff Software Engineer → Director of Software Engineering</p>
-          </div>
-        </div>
-
-        <div class="cv-item">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
-            <h3 class="text-xl font-medium">CTO & Co-Founder</h3>
-            <span class="text-sm opacity-60">Jun 2019 - Oct 2020</span>
-          </div>
-          <p class="text-accent font-medium mb-2">CoilPay Technologies Inc.</p>
-          <p class="opacity-80">Bank-issued smart wearable-enabled payment ecosystem for micropayments. Built an Android-like ecosystem of MicroApps for Coil wearables including smartwatch functionality.</p>
-        </div>
-
-        <div class="cv-item">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
-            <h3 class="text-xl font-medium">CTO & Co-Founder</h3>
-            <span class="text-sm opacity-60">Aug 2018 - Sep 2020</span>
-          </div>
-          <p class="text-accent font-medium mb-2">MikMik</p>
-          <p class="opacity-80">Integrated electric scooter micro-rental system focused on green mobility and innovation. Operated in Ljubljana, Piran, and Koper with expansion plans across Europe.</p>
-        </div>
-
-        <div class="cv-item">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
-            <h3 class="text-xl font-medium">CTO & Co-Founder</h3>
-            <span class="text-sm opacity-60">Nov 2013 - Nov 2019</span>
-          </div>
-          <p class="text-accent font-medium mb-2">Reveel Technologies, Inc.</p>
-          <p class="opacity-80">First company to help brands and media outlets increase revenue by adding interactive experiences to visual media. Based in San Francisco, CA.</p>
-        </div>
-
-        <div class="cv-item">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
-            <h3 class="text-xl font-medium">Previous Experience</h3>
-            <span class="text-sm opacity-60">2009 - 2015</span>
-          </div>
-          <p class="opacity-80">Computer Programmer at Studio Kreativis d.o.o. and 3zsistemi</p>
-        </div>
+        ))}
       </div>
     </div>
 
     <!-- Skills -->
     <div class="mb-12">
       <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Skills</h2>
-      
+
       <div class="grid sm:grid-cols-2 gap-6">
-        <div>
-          <h3 class="font-medium mb-3 text-accent">Leadership</h3>
-          <div class="flex flex-wrap gap-2">
-            <Tag size="md">Software Engineering</Tag>
-            <Tag size="md">Team Management</Tag>
-            <Tag size="md">Technical Strategy</Tag>
+        {cv.skills.map((g) => (
+          <div>
+            <h3 class="font-medium mb-3 text-accent">{g.group}</h3>
+            <div class="flex flex-wrap gap-2">
+              {g.items.map((i) => <Tag size="md">{i}</Tag>)}
+            </div>
           </div>
-        </div>
-        
-        <div>
-          <h3 class="font-medium mb-3 text-accent">Technical</h3>
-          <div class="flex flex-wrap gap-2">
-            <Tag size="md">REST APIs</Tag>
-            <Tag size="md">Distributed Systems</Tag>
-            <Tag size="md">Software Architecture</Tag>
-            <Tag size="md">DevOps</Tag>
-            <Tag size="md">Data Engineering</Tag>
-          </div>
-        </div>
-        
-        <div>
-          <h3 class="font-medium mb-3 text-accent">Domain Expertise</h3>
-          <div class="flex flex-wrap gap-2">
-            <Tag size="md">Telecommunications</Tag>
-            <Tag size="md">Fintech</Tag>
-            <Tag size="md">Computer Vision</Tag>
-            <Tag size="md">Startups</Tag>
-          </div>
-        </div>
-        
-        <div>
-          <h3 class="font-medium mb-3 text-accent">Languages</h3>
-          <div class="flex flex-wrap gap-2">
-            <Tag size="md">Slovenian (Native)</Tag>
-            <Tag size="md">English (Professional)</Tag>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
 
     <!-- Education -->
     <div class="mb-12">
       <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Education</h2>
-      
+
       <div class="space-y-6">
-        <div class="cv-item">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
-            <h3 class="text-xl font-medium">Bachelor's Degree in Computer Science</h3>
-            <span class="text-sm opacity-60">2009 - 2012</span>
+        {cv.education.map((e) => (
+          <div class="cv-item">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
+              <h3 class="text-xl font-medium">{e.degree}</h3>
+              <span class="text-sm opacity-60">{e.start} - {e.end}</span>
+            </div>
+            <p class="text-accent font-medium">{e.school}</p>
+            <p class="opacity-70">{e.field}</p>
           </div>
-          <p class="text-accent font-medium">University of Maribor</p>
-          <p class="opacity-70">Computer Science and Information Technologies</p>
-        </div>
+        ))}
       </div>
     </div>
 
@@ -142,19 +117,81 @@ import Tag from "../components/Tag.astro";
       <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Certifications</h2>
       
       <ul class="space-y-3">
-        <li class="flex items-start gap-3">
-          <CheckCircle class="text-accent shrink-0 mt-1" />
-          <span class="opacity-90">Certified ScrumMaster (CSM) - Scrum Alliance</span>
-        </li>
-        <li class="flex items-start gap-3">
-          <CheckCircle class="text-accent shrink-0 mt-1" />
-          <span class="opacity-90">Managing Multiple Generations - LinkedIn Learning</span>
-        </li>
+        {cv.certifications.map((c) => (
+          <li class="flex items-start gap-3">
+            <CheckCircle class="text-accent shrink-0 mt-1" />
+            <span class="opacity-90">{c}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <!-- Patents -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Patents</h2>
+      <div class="space-y-6">
+        {cv.patents.map((p) => (
+          <div class="cv-item">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1">
+              <h3 class="text-lg font-medium">
+                {p.url ? (
+                  <a href={p.url} target="_blank" rel="noopener noreferrer" class="hover:text-accent transition-colors">{p.title}</a>
+                ) : (
+                  p.title
+                )}
+              </h3>
+              <span class="text-sm opacity-60 shrink-0">{p.year}</span>
+            </div>
+            <p class="text-sm opacity-70">{[p.number, p.status, p.assignee].filter(Boolean).join(" · ")}</p>
+            <p class="text-sm opacity-60">With {p.coInventors.join(", ")}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Talks -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Conference Talks</h2>
+      <div class="space-y-6">
+        {cv.talks.map((t) => (
+          <div class="cv-item">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1">
+              <h3 class="text-lg font-medium"><a href={t.url} class="hover:text-accent transition-colors">{t.title}</a></h3>
+              <span class="text-sm opacity-60 shrink-0">{t.date}</span>
+            </div>
+            <p class="text-accent font-medium">{t.event}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <div class="mb-12">
+      <h2 class="text-2xl font-semibold pb-4 border-b border-foreground/20 mb-6">Projects</h2>
+      <ul class="space-y-3">
+        {cv.openSource.map((r) => (
+          <li>
+            <a href={r.url} target="_blank" rel="noopener noreferrer" class="font-medium hover:text-accent transition-colors">{r.name}</a>
+            <span class="opacity-80">: {r.description}</span>
+          </li>
+        ))}
       </ul>
     </div>
 
     <!-- LinkedIn CTA -->
-    <div class="text-center pt-6">
+    <div class="flex flex-wrap items-center justify-center gap-4 pt-6">
+      <a
+        href={CV_PDF_PATH}
+        download
+        class="bg-accent text-background hover:opacity-80 inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium transition-all duration-150 ease-in-out"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Download CV (PDF)
+      </a>
       <a
         href="https://linkedin.com/in/rokajdnik"
         target="_blank"
