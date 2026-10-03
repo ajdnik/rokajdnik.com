@@ -23,7 +23,7 @@ const plumeTechnologies = [
 export const cv = {
   name: "Rok Ajdnik",
   headline: "Director of Software Engineering",
-  location: "Ljubljana, Slovenia",
+  location: "Celje, Slovenia",
   // Shown in the PDF header only, never on the website.
   pdfEmail: "r.ajdnik@gmail.com",
   linkedin: "https://linkedin.com/in/rokajdnik",
