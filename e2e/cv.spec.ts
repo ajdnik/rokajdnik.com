@@ -32,11 +32,13 @@ test.describe("CV page", () => {
     // Should have skill categories
     for (const category of [
       "Leadership",
-      "Technical",
+      "Engineering",
       "Domain Expertise",
-      "Languages",
+      "Spoken Languages",
     ]) {
-      await expect(page.getByRole("heading", { name: category })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: category, exact: true }),
+      ).toBeVisible();
     }
   });
 
@@ -69,5 +71,47 @@ test.describe("CV page", () => {
       "href",
       "https://linkedin.com/in/rokajdnik",
     );
+  });
+
+  test("offers a downloadable PDF", async ({ page, request }) => {
+    const link = page.locator("a", { hasText: "Download CV (PDF)" });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("download", "");
+    const href = await link.getAttribute("href");
+    expect(href).toMatch(/\.pdf$/);
+
+    const response = await request.get(href!);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("application/pdf");
+  });
+
+  test("shows achievements, patents, talks and open source", async ({
+    page,
+  }) => {
+    const main = page.locator("section.center");
+    await expect(main).toContainText("zero downtime");
+    await expect(main).toContainText("20 million images");
+    for (const name of ["Patents", "Conference Talks"]) {
+      await expect(page.getByRole("heading", { name })).toBeVisible();
+    }
+    await expect(main).toContainText("ROSUS 2018");
+    await expect(
+      page.locator('a[href="https://github.com/ajdnik/imghash"]'),
+    ).toBeVisible();
+  });
+
+
+  test("exposes Person JSON-LD", async ({ page }) => {
+    const raw = await page
+      .locator('script[type="application/ld+json"]')
+      .first()
+      .textContent();
+    const data = JSON.parse(raw!);
+    expect(data["@type"]).toBe("Person");
+    expect(data.name).toBe("Rok Ajdnik");
+    expect(data.jobTitle).toBe("Director of Software Engineering");
+    expect(data.worksFor.name).toBe("Plume Design, Inc.");
+    expect(data.sameAs).toContain("https://linkedin.com/in/rokajdnik");
+    expect(raw).not.toContain("@gmail.com");
   });
 });

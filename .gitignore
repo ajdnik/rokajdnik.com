@@ -32,3 +32,6 @@ pnpm-debug.log*
 
 # lighthouse
 lighthouse-results.json
+
+# generated CV PDF (scripts/generate-cv-pdf.mjs)
+/public/Rok_Ajdnik_CV.pdf

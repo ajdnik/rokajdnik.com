@@ -40,6 +40,7 @@ const { title, description, author, url, pubDate, image } = Astro.props;
       image={image}
     />
     <PostHog />
+    <slot name="head" />
   </head>
   <body>
     <script is:inline>

@@ -4,13 +4,16 @@
   "version": "1.0.0",
   "description": "Personal blog and portfolio website",
   "scripts": {
+    "predev": "node scripts/generate-cv-pdf.mjs",
     "dev": "astro dev",
+    "cv:pdf": "node scripts/generate-cv-pdf.mjs",
+    "prebuild": "node scripts/generate-cv-pdf.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:lighthouse": "astro build && node scripts/lighthouse.mjs"
+    "test:lighthouse": "npm run build && node scripts/lighthouse.mjs"
   },
   "keywords": [
     "personal",
@@ -51,6 +54,7 @@
     "@types/react-dom": "^19.2.2",
     "chrome-launcher": "^1.2.1",
     "lighthouse": "^13.0.3",
+    "pdfkit": "^0.20.2",
     "prettier": "3.6.2",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "^0.7.1"
